@@ -45,7 +45,7 @@ Unlike rigid legacy systems, Zentro offers a decoupled architecture featuring **
 | **Frontend** | ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white) ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white) ![Redux](https://img.shields.io/badge/Redux-593D88?style=flat&logo=redux&logoColor=white) |
 | **Backend** | ![Node](https://img.shields.io/badge/Node.js-43853D?style=flat&logo=node.js&logoColor=white) ![Express](https://img.shields.io/badge/Express.js-404D59?style=flat) ![Socket.io](https://img.shields.io/badge/Socket.io-black?style=flat&logo=socket.io&badgeColor=010101) |
 | **Database** | ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=flat&logo=mongodb&logoColor=white) ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?&style=flat&logo=redis&logoColor=white) |
-| **DevOps** | ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white) ![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=flat&logo=amazon-aws&logoColor=white) |
+
 
 ---
 
@@ -101,3 +101,72 @@ erp-crm-project/
     │   ├── models/         # Mongoose Schemas
     │   └── services/       # Business Logic
     └── package.json
+```
+⚡ Installation & Setup
+Follow these steps to get the project running locally.
+
+Prerequisites
+Node.js (v18+)
+
+MongoDB (Local or Atlas URL)
+
+Git
+
+Step 1: Clone the Repository:
+```bash
+git clone [https://github.com/CHIRAG-singh123/ERP-CRM-Zentro.git](https://github.com/CHIRAG-singh123/ERP-CRM-Zentro.git)
+cd ERP-CRM-Zentro
+```
+
+Step 2: Setup Backend (Server)
+Open a terminal and navigate to the server folder to install dependencies and configure environment variables.
+```bash
+cd server
+# Install backend dependencies
+npm install
+
+# Create a .env file (Copy .env.example if available)
+echo "PORT=5000" >> .env
+echo "MONGO_URI=your_mongodb_connection_string" >> .env
+echo "JWT_SECRET=your_jwt_secret" >> .env
+
+# Start the Backend Server
+npm run dev
+```
+Server will run on http://localhost:5000
+
+Step 3: Setup Frontend (Client)
+Open a new terminal window (keep the server running), navigate to the client folder, and start the React app.
+```bash
+cd client
+# Install frontend dependencies
+npm install
+
+# Start the Frontend Development Server
+npm run dev
+```
+Client will run on http://localhost:5173
+
+🗺 Roadmap
+[x] Phase 1: Core Foundation (Auth, Companies, Contacts CRUD)
+
+[ ] Phase 2: Operational Tools (Invoicing, PDF generation, Calendar)
+
+[ ] Phase 3: Advanced Polish (Socket.io Chat, Stripe Integration)
+
+[ ] Phase 4: Deployment (Docker, CI/CD, AWS S3)
+
+🤝 Contributing
+Contributions are welcome! Please fork the repo and create a pull request.
+
+Fork the Project
+
+Create your Feature Branch (git checkout -b feature/AmazingFeature)
+
+Commit your Changes (git commit -m 'Add some AmazingFeature')
+
+Push to the Branch (git push origin feature/AmazingFeature)
+
+Open a Pull Request
+
+<div align="center"> <p>Made with ❤️ by <a href="https://www.google.com/search?q=https://github.com/CHIRAG-singh123">Chirag Singh</a></p> </div>
