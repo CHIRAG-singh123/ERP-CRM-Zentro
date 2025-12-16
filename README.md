@@ -45,7 +45,64 @@ Unlike rigid legacy systems, Zentro offers a decoupled architecture featuring **
 | **Frontend** | ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white) ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white) ![Redux](https://img.shields.io/badge/Redux-593D88?style=flat&logo=redux&logoColor=white) |
 | **Backend** | ![Node](https://img.shields.io/badge/Node.js-43853D?style=flat&logo=node.js&logoColor=white) ![Express](https://img.shields.io/badge/Express.js-404D59?style=flat) ![Socket.io](https://img.shields.io/badge/Socket.io-black?style=flat&logo=socket.io&badgeColor=010101) |
 | **Database** | ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=flat&logo=mongodb&logoColor=white) 
+---
 
+## ✨ **Key Features**
+
+<details>
+<summary>⚡ <b>Core Features (Basic MVP)</b> - <i>Click to expand</i></summary>
+
+| Feature | Description |
+| :--- | :--- |
+| **🔐 Authentication** | JWT-based Auth with Access/Refresh tokens & Secure Password Hashing. |
+| **👥 RBAC** | Granular Role-Based Access Control (Admin, Sales, Manager). |
+| **🏢 Company Management** | Full CRUD for client organizations and hierarchical structures. |
+| **📇 Contact Management** | Advanced contact books linked to specific companies. |
+| **📊 Lead Pipeline** | Kanban-style drag-and-drop lead tracking (New -> Qualified -> Won). |
+| **💰 Deals & Opportunities** | Value estimation, probability tracking, and closing dates. |
+| **📅 Task Manager** | Assign tasks, set due dates, and track completion status. |
+| **🧾 Document** | Upload Documents, Download them or delete them |
+| **📦 Chat ** | Chatting feature between admin and employees. |
+
+</details>
+
+<details>
+<summary>🔥 <b>Advanced Modules</b> - <i>Click to expand</i></summary>
+
+| Feature | Description |
+| :--- | :--- |
+| **🤖 Workflow Automation** | "If-This-Then-That" rule engine for auto-assigning leads. |
+| **💬 Real-time Chat** | Integrated team chat and deal-specific discussion threads (Socket.io). |
+| **📈 Analytics Dashboard** | Visual data using Recharts for sales performance and KPIs. |
+| **💳 Stripe Payments** | Accept payments directly on sent invoices via Webhooks. |
+| **🔎 Elastic Search** | Fuzzy search across the entire database (Leads, Contacts, Notes). |
+| **📅 Calendar Sync** | 2-way sync with Google/Outlook type calendars. |
+
+</details>
+
+---
+
+## 📂 **Directory Structure**
+
+```bash
+ERP-CRM/
+├── src/                 # Frontend Source (React + Vite + TS)
+│   ├── features/        # Redux Slices (Auth, Leads, etc.)
+│   ├── components/      # Reusable UI (Charts, Tables)
+│   └── pages/           # Dashboard views
+├── public/              # Static assets
+├── server/              # Backend (Node + Express)
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── models/
+│   │   └── services/
+│   ├── .env             # Backend variables
+│   └── package.json     # Backend dependencies
+├── .env                 # Frontend variables
+├── index.html           # React Entry point
+├── vite.config.ts       # Vite Configuration
+└── package.json         # Frontend dependencies
+```
 ---
 
 ## ✨ **Key Features**
