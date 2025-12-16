@@ -140,41 +140,23 @@ ERP-CRM/
 
 ---
 
-## 📂 **Directory Structure**
-
-```bash
-erp-crm-project/
-├── client/                 # Frontend (React + Vite + TS)
-│   ├── src/
-│   │   ├── features/       # Redux Slices (Auth, Leads, etc.)
-│   │   ├── components/     # Reusable UI (Charts, Tables)
-│   │   └── pages/          # Dashboard views
-│   └── tailwind.config.js
-│
-└── server/                 # Backend (Node + Express)
-    ├── src/
-    │   ├── controllers/    # Route Logic
-    │   ├── models/         # Mongoose Schemas
-    │   └── services/       # Business Logic
-    └── package.json
-```
-⚡ Installation & Setup
+**⚡ Installation & Setup**
 Follow these steps to get the project running locally.
 
 Prerequisites
 Node.js (v18+)
 
-MongoDB (Local or Atlas URL)
+**MongoDB (Local or Atlas URL)**
 
-Git
+**Git**
 
-Step 1: Clone the Repository:
+**Step 1: Clone the Repository:**
 ```bash
 git clone [https://github.com/CHIRAG-singh123/ERP-CRM-Zentro.git](https://github.com/CHIRAG-singh123/ERP-CRM-Zentro.git)
 cd ERP-CRM-Zentro
 ```
 
-Step 2: Setup Backend (Server)
+**Step 2: Setup Backend (Server)**
 Open a terminal and navigate to the server folder to install dependencies and configure environment variables.
 ```bash
 cd server
@@ -191,7 +173,7 @@ npm run dev
 ```
 Server will run on http://localhost:5000
 
-Step 3: Setup Frontend (Client)
+**Step 3: Setup Frontend (Client)**
 Open a new terminal window (keep the server running), navigate to the client folder, and start the React app.
 ```bash
 cd client
@@ -203,7 +185,7 @@ npm run dev
 ```
 Client will run on http://localhost:5173
 
-🗺 Roadmap
+**🗺 Roadmap**
 [x] Phase 1: Core Foundation (Auth, Companies, Contacts CRUD)
 
 [ ] Phase 2: Operational Tools (Invoicing, PDF generation, Calendar)
@@ -212,10 +194,10 @@ Client will run on http://localhost:5173
 
 [ ] Phase 4: Deployment (Docker, CI/CD, AWS S3)
 
-🤝 Contributing
+**🤝 Contributing**
 Contributions are welcome! Please fork the repo and create a pull request.
 
-Fork the Project
+**Fork the Project**
 
 Create your Feature Branch (git checkout -b feature/AmazingFeature)
 
