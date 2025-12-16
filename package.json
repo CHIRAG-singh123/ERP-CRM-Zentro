@@ -1,0 +1,47 @@
+{
+  "name": "vite-react-typescript-starter",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env BROWSER=none vite",
+    "dev:client": "cross-env BROWSER=none vite",
+    "dev:server": "cd server && npm run dev",
+    "dev:all": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:no-browser": "cross-env BROWSER=none OPEN_BROWSER=false vite --no-open",
+    "build": "vite build",
+    "build:analyze": "vite build --mode production && npx vite-bundle-visualizer",
+    "build:prod": "cross-env NODE_ENV=production vite build",
+    "preview": "vite preview",
+    "preview:prod": "cross-env NODE_ENV=production vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/react": "^6.1.19",
+    "@fullcalendar/timegrid": "^6.1.19",
+    "@tanstack/react-query": "^5.90.8",
+    "formik": "^2.4.9",
+    "lucide-react": "^0.344.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^14.3.8",
+    "react-router-dom": "^7.9.5",
+    "recharts": "^3.5.1",
+    "socket.io-client": "^4.7.2",
+    "yup": "^1.7.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.18",
+    "cross-env": "^7.0.3",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.2"
+  }
+}

@@ -1,0 +1,76 @@
+Q: How do I view products?
+A: Navigate to Customers > Products to browse all available products. You can see product images, descriptions, prices, categories, and ratings. Click on any product to view detailed information.
+
+Q: How do I see product details?
+A: From the Products page, click on any product card or product name to view its full details including description, price, category, images, and customer reviews with ratings.
+
+Q: How do I search for products?
+A: Use the search bar at the top of the Products page to search by product name, category, or description. You can also filter products by category using the category tags.
+
+Q: How do I view my dashboard?
+A: Go to Customers > Dashboard to see your personalized dashboard with product recommendations, recent views, and other relevant information tailored to your account.
+
+Q: What information can I see about products?
+A: As a customer, you can view product names, descriptions, prices, categories, product images, SKU numbers, customer ratings, and reviews. This helps you make informed purchasing decisions.
+
+Q: How do I filter products by category?
+A: On the Products page, you can click on category tags or use the category filter to show only products from specific categories. This makes it easier to find what you're looking for.
+
+Q: How do I see product ratings?
+A: Product ratings are displayed on product cards and detail pages. You'll see star ratings and the number of reviews, helping you understand product quality from other customers.
+
+Q: How do I navigate the customer portal?
+A: Use the sidebar navigation to access different sections: Dashboard for overview, Products for browsing, and Settings for your account preferences. The interface is designed to be intuitive and user-friendly.
+
+Q: What can I do in my customer account?
+A: As a customer, you can browse products, view detailed product information, see ratings and reviews, access your dashboard, and manage your account settings through the customer portal.
+
+Q: How do I find specific products?
+A: Use the search functionality on the Products page. You can search by product name, description, or category. The search will show matching products instantly as you type.
+
+Q: Ram Ram
+A: Ram Ram! How can I assist you today with browsing products or using the customer portal?
+
+Q: ram ram
+A: Ram Ram! I'm here to help you find products and navigate the customer portal. What would you like to know?
+
+Q: Jay shree ram
+A: Jay Shree Ram! Welcome! How can I help you explore our products today?
+
+Q: Jay Shree Ram
+A: Jay Shree Ram! I'm ready to assist you with product information and customer services. What do you need?
+
+Q: Jay Bhavani
+A: Jay Bhavani! How can I help you browse products or find what you're looking for today?
+
+Q: Jay Mataji
+A: Jay Mataji! Welcome to the customer portal! How can I assist you with products or your account today?
+
+Q: Jai Shri Krishna
+A: Jai Shri Krishna! I'm here to help you with product information and customer services. What would you like to know?
+
+Q: Jai Mata Di
+A: Jai Mata Di! How can I assist you in finding the right products or navigating the customer portal?
+
+Q: Om Namah Shivay
+A: Om Namah Shivay! Welcome! I'm ready to help you explore our product catalog. What are you looking for?
+
+Q: Radhe Radhe
+A: Radhe Radhe! How can I help you today? I'm here to assist with product browsing and customer services.
+
+Q: Har Har Mahadev
+A: Har Har Mahadev! Welcome! How can I assist you with finding products or using the customer portal?
+
+Q: Jai Ganesh
+A: Jai Ganesh! I'm here to help you browse products and answer any questions. What would you like to know?
+
+Q: Namaste
+A: Namaste! Welcome to the customer portal. How can I help you find products or assist with your account today?
+
+Q: How do I chat with support?
+chat
+chatting
+customer chat
+message support
+A: Open Chat from the sidebar if available, or use the Help/Support option to start a conversation. You can send messages and attachments, and a team member will respond. If you don't see Chat, reach out via the provided support email or contact form.
+

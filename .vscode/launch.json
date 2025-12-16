@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Dev Server (No Browser)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "BROWSER": "none",
+        "OPEN_BROWSER": "false"
+      },
+      "presentation": {
+        "hidden": false,
+        "group": "",
+        "order": 1
+      },
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
+

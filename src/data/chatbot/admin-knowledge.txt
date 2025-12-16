@@ -1,0 +1,92 @@
+Q: How do I manage employees?
+A: As an admin, you can manage employees by navigating to the Admin section > Employees. Here you can view all employees, add new ones, edit their details, assign roles, and track their performance. You also have access to employee performance metrics and audit logs.
+
+Q: How do I add a new employee?
+A: To add a new employee, go to Admin > Employees and click the "Add Employee" button. Fill in their name, email, role, and other required information. The system will send them an invitation email to set up their account.
+
+Q: How do I view employee performance?
+A: Navigate to Admin > Performance to see detailed performance metrics for all employees. You can view individual employee performance by clicking on their name, which shows their sales data, task completion rates, and other key metrics.
+
+Q: How do I manage products?
+A: Go to Admin > Products to manage your product catalog. You can create, edit, delete products, set prices, add categories, upload images, and manage inventory. You have full control over all product information.
+
+Q: How do I view audit logs?
+A: Access audit logs from Admin > Audit Trail. This shows all system activities including user actions, data changes, login attempts, and other important events for security and compliance tracking.
+
+Q: What permissions do I have as admin?
+A: As an admin, you have full system access including: managing all users and employees, viewing and editing all products, accessing audit logs, managing system settings, viewing all reports and analytics, and configuring roles and permissions.
+
+Q: How do I change user roles?
+A: Go to Settings > Users or Admin > Employees, find the user you want to modify, click Edit, and change their role. Available roles include admin, employee, and customer. Changes take effect immediately.
+
+Q: How do I export data?
+A: Most list pages have an Export button that allows you to download data in CSV format. You can export employee lists, product catalogs, and other data for reporting or backup purposes.
+
+Q: How do I view system reports?
+A: Navigate to Reports in the main menu to access comprehensive analytics including sales reports, employee performance, product analytics, and custom reports. You can filter by date range and export the data.
+
+Q: How do I manage system settings?
+A: Access Settings from the main navigation. Here you can configure user roles, teams, system preferences, and other administrative settings. Changes affect the entire system.
+
+Q: Ram Ram
+A: Ram Ram! How can I assist you today with the ERP-CRM system?
+
+Q: ram ram
+A: Ram Ram! How can I help you with your administrative tasks today?
+
+Q: Jay shree ram
+A: Jay Shree Ram! I'm here to help you with any questions about managing the ERP-CRM system. What would you like to know?
+
+Q: Jay Shree Ram
+A: Jay Shree Ram! Welcome! How can I assist you with administrative functions today?
+
+Q: Jay Bhavani
+A: Jay Bhavani! I'm ready to help you with any ERP-CRM system queries. What do you need assistance with?
+
+Q: Jay Mataji
+A: Jay Mataji! How can I help you manage the system today? Feel free to ask me anything about administration, employees, or system settings.
+
+Q: Jai Shri Krishna
+A: Jai Shri Krishna! Welcome! I'm here to assist you with all your administrative needs in the ERP-CRM system.
+
+Q: Jai Mata Di
+A: Jai Mata Di! How can I help you today? I'm ready to assist with any questions about managing the system.
+
+Q: Om Namah Shivay
+A: Om Namah Shivay! I'm here to help you with administrative tasks. What would you like to know?
+
+Q: Radhe Radhe
+A: Radhe Radhe! Welcome! How can I assist you with the ERP-CRM system today?
+
+Q: Har Har Mahadev
+A: Har Har Mahadev! I'm ready to help you with any administrative questions. What do you need?
+
+Q: Jai Ganesh
+A: Jai Ganesh! How can I help you manage the ERP-CRM system today? Feel free to ask me anything.
+
+Q: Namaste
+A: Namaste! Welcome to the ERP-CRM system. How can I assist you with administrative tasks today?
+
+Q: How do I manage documents and files?
+edit documents
+admin edit documents
+upload documents
+download documents
+document management
+A: Open Documents from the Workspace menu to see all files. Use "Upload Document" to add new files, click a row to preview or edit metadata, and use the action menu to download or replace files. Admins can manage all documents, versions, and permissions from this page.
+
+Q: How do I manage contacts and accounts?
+contacts
+admin contacts
+manage contacts
+account management
+A: Go to Contacts or Accounts in the Workspace. Use search and filters to find records, click "Add Contact" to create new ones, and open a contact to edit details, assign to accounts, or review activity history. Admins can see and edit every contact and account.
+
+Q: How do I use the chat feature?
+admin chat
+chat feature
+start chat
+chating
+chatting
+A: Select Chat from the Workspace sidebar to start messaging. Pick a teammate or search for a name, then send messages and files from the conversation panel. Use the channel list to switch threads and continue ongoing chats.
+

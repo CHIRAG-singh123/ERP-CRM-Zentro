@@ -1,0 +1,82 @@
+Q: How do I view products?
+A: Navigate to Employees > Products to see all available products. You can view product details, images, prices, and categories. Click on any product to see full information including descriptions and tags.
+
+Q: How do I create a new product?
+A: Go to Employees > Products and click "Add Product". Fill in the product name, description, price, SKU, category, and upload images. Once saved, the product will be available in the catalog.
+
+Q: How do I edit a product?
+A: From the Products list, click on the product you want to edit, then click the "Edit" button. Make your changes and click "Update" to save. You can modify all product details including name, price, description, and images.
+
+Q: How do I view my performance?
+A: Go to Employees > My Performance to see your personal performance metrics including sales data, task completion rates, and other key performance indicators relevant to your role.
+
+Q: How do I manage users?
+A: Navigate to Employees > Users to view and manage customer accounts. You can see customer information, their purchase history, and help them with account-related questions.
+
+Q: What can I do with products?
+A: As an employee, you can view all products, create new products, edit existing products, upload product images, set prices and categories, and manage product information. You have full product management capabilities.
+
+Q: How do I upload product images?
+A: When creating or editing a product, use the image uploader section. You can drag and drop images or click to browse. Supported formats include JPG, PNG, and other common image formats.
+
+Q: How do I set product prices?
+A: In the product form, enter the price in the Price field. You can use decimal values (e.g., 99.99). The price will be displayed to customers in the product catalog.
+
+Q: How do I add product categories?
+A: When creating or editing a product, enter the category name in the Category field. Categories help organize products and make them easier to find for customers.
+
+Q: How do I view product details?
+A: Click on any product from the Products list to view its complete details including name, description, price, SKU, category, images, tags, and creation information.
+
+Q: Ram Ram
+A: Ram Ram! How can I assist you today with product management or employee tasks?
+
+Q: ram ram
+A: Ram Ram! I'm here to help you with product management and employee functions. What do you need?
+
+Q: Jay shree ram
+A: Jay Shree Ram! Welcome! How can I help you manage products or handle employee tasks today?
+
+Q: Jay Shree Ram
+A: Jay Shree Ram! I'm ready to assist you with product management and employee services. What would you like to know?
+
+Q: Jay Bhavani
+A: Jay Bhavani! How can I help you with product management or employee tasks today?
+
+Q: Jay Mataji
+A: Jay Mataji! Welcome! I'm here to assist you with product management and employee functions. What do you need help with?
+
+Q: Jai Shri Krishna
+A: Jai Shri Krishna! How can I assist you with managing products or handling employee tasks today?
+
+Q: Jai Mata Di
+A: Jai Mata Di! I'm ready to help you with product management and employee services. What would you like to know?
+
+Q: Om Namah Shivay
+A: Om Namah Shivay! Welcome! How can I help you manage products or handle employee tasks today?
+
+Q: Radhe Radhe
+A: Radhe Radhe! I'm here to assist you with product management and employee functions. What do you need?
+
+Q: Har Har Mahadev
+A: Har Har Mahadev! How can I help you today with product management or employee tasks?
+
+Q: Jai Ganesh
+A: Jai Ganesh! Welcome! I'm ready to assist you with product management and employee services. What would you like to know?
+
+Q: Namaste
+A: Namaste! How can I help you manage products or handle employee tasks today? Feel free to ask me anything.
+
+Q: How do I chat with teammates?
+chat
+chatting
+chating
+employee chat
+A: Open Chat from the Workspace sidebar to message teammates. Select a user or search their name, then send messages or attachments from the conversation panel. Use the thread list to switch between recent chats.
+
+Q: How do I manage contacts?
+contacts
+view contacts
+edit contacts
+A: Go to Contacts in the Workspace to see customer or account records. Use search and filters, click a contact to view details, and choose Edit to update information or assign owners. If you don't see Contacts, ask an admin to grant access.
+

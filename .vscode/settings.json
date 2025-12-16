@@ -1,0 +1,35 @@
+{
+  // Disable browser preview auto-open
+  "browser-preview.startUrl": "",
+  "browser-preview.chromeExecutable": "",
+  
+  // Disable port forwarding auto-open
+  "remote.portsAttributes": {
+    "5173": {
+      "onAutoForward": "ignore",
+      "label": "Vite Dev Server",
+      "requireLocalPort": true
+    }
+  },
+  "remote.autoForwardPorts": false,
+  
+  // Disable simple browser features
+  "simpleBrowser.focusLockIndicator.enabled": false,
+  
+  // Disable automatic port detection and opening
+  "vscode.ports.autoForward": false,
+  
+  // Prevent Cursor from opening browser automatically
+  "vite.devServer.open": false,
+  
+  // Disable any automatic browser opening
+  "workbench.editor.enablePreview": false,
+  
+  // Cursor-specific settings to disable browser automation
+  "cursor.browser.autoOpen": false,
+  "cursor.browser.enabled": false,
+  
+  // Disable localhost link detection
+  "workbench.editor.centeredLayoutAutoResize": false
+}
+

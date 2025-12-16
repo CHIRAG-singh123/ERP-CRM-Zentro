@@ -1,0 +1,815 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Prevent white screen flash */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #242426;
+  color: #e4e4e4;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+#root {
+  min-height: 100vh;
+  background-color: #242426;
+  color: #e4e4e4;
+}
+
+/* Ensure smooth loading transitions */
+* {
+  box-sizing: border-box;
+}
+
+/* Prevent layout shift during load */
+body {
+  overflow-x: hidden;
+}
+
+/* Animation delays for stagger effects */
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+.animation-delay-500 {
+  animation-delay: 500ms;
+}
+
+/* Smooth transitions for all interactive elements */
+button,
+a,
+input,
+select,
+textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Enhanced button animations */
+button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: auto;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Ensure dropdown menus and their buttons are always clickable */
+[class*="z-"] button,
+[class*="z-\["] button {
+  pointer-events: auto !important;
+  position: relative;
+}
+
+/* Fix for dropdown menu buttons - ensure they're above the menu container */
+.relative button,
+[class*="absolute"] button {
+  position: relative;
+  z-index: auto;
+}
+
+/* Specific fix for user menu dropdown */
+.user-menu-dropdown {
+  z-index: 9999 !important;
+  position: fixed !important;
+  pointer-events: auto !important;
+}
+
+.user-menu-dropdown button {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: auto !important;
+  cursor: pointer !important;
+}
+
+/* Ensure dropdown is above all other elements */
+.z-\[9999\] {
+  z-index: 9999 !important;
+}
+
+.z-\[9998\] {
+  z-index: 9998 !important;
+}
+
+/* Primary button glow effect */
+button.bg-\[#A8DADC\]:hover,
+button.bg-\[#B39CD0\]:hover {
+  box-shadow: 0 4px 20px rgba(168, 218, 220, 0.4);
+}
+
+/* Button with icon animation */
+button svg {
+  transition: transform 0.3s ease;
+}
+
+button:hover svg {
+  transform: scale(1.1);
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(26, 26, 28, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Focus visible styles */
+*:focus-visible {
+  outline: 2px solid #B39CD0;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================
+   FullCalendar Dark Theme Overrides
+   ============================================ */
+.fc {
+  --fc-border-color: rgba(255, 255, 255, 0.1);
+  --fc-daygrid-event-dot-width: 8px;
+  --fc-event-border-color: #A8DADC;
+  --fc-event-bg-color: rgba(168, 218, 220, 0.2);
+  --fc-event-text-color: #E4E4E4;
+  --fc-today-bg-color: rgba(168, 218, 220, 0.1);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: #1A1A1C;
+  --fc-neutral-text-color: #E4E4E4;
+  --fc-list-event-hover-bg-color: rgba(168, 218, 220, 0.15);
+}
+
+/* Calendar view-only styling - make date cells non-interactive for task creation */
+.fc-daygrid-day.calendar-view-only {
+  cursor: default !important;
+}
+
+.fc-daygrid-day.calendar-view-only:hover {
+  background-color: transparent !important;
+}
+
+/* Ensure events (tasks) remain clickable */
+.fc-event {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* Prevent date selection highlighting */
+.fc-daygrid-day-frame {
+  cursor: default !important;
+}
+
+/* Calendar container */
+.fc-theme-standard .fc-scrollgrid {
+  border-color: rgba(255, 255, 255, 0.1);
+  background-color: transparent;
+}
+
+/* Header toolbar */
+.fc-header-toolbar {
+  color: #E4E4E4;
+  margin-bottom: 1.5em;
+}
+
+.fc-toolbar-title {
+  color: #E4E4E4 !important;
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.fc-button {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #E4E4E4 !important;
+  padding: 0.5em 1em;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.fc-button:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.fc-button:active {
+  transform: translateY(0);
+}
+
+.fc-button-primary:not(:disabled):active,
+.fc-button-primary:not(:disabled).fc-button-active {
+  background-color: rgba(168, 218, 220, 0.3) !important;
+  border-color: #A8DADC !important;
+  color: #E4E4E4 !important;
+}
+
+.fc-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Day headers */
+.fc-col-header-cell {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  padding: 0.75em 0.5em;
+}
+
+.fc-col-header-cell-cushion {
+  color: #E4E4E4 !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+/* Day cells */
+.fc-daygrid-day {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.fc-daygrid-day-frame {
+  min-height: 100px;
+}
+
+.fc-daygrid-day-number {
+  color: #E4E4E4 !important;
+  padding: 0.5em;
+  font-weight: 500;
+}
+
+.fc-day-today .fc-daygrid-day-number {
+  background-color: rgba(168, 218, 220, 0.2);
+  color: #A8DADC !important;
+  border-radius: 50%;
+  width: 2em;
+  height: 2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* Other month days */
+.fc-day-other .fc-daygrid-day-number {
+  color: rgba(228, 228, 228, 0.3) !important;
+}
+
+/* Events */
+.fc-event {
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin: 2px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fc-event:hover {
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(168, 218, 220, 0.3);
+}
+
+.fc-event-title {
+  color: #E4E4E4 !important;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.fc-event-time {
+  color: rgba(228, 228, 228, 0.8) !important;
+  font-size: 0.75rem;
+}
+
+/* More link */
+.fc-more-link {
+  color: #A8DADC !important;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.fc-more-link:hover {
+  color: #BCE7E5 !important;
+}
+
+/* Popover */
+.fc-popover {
+  background-color: #1A1A1C !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.fc-popover-header {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #E4E4E4 !important;
+  padding: 0.75em;
+}
+
+.fc-popover-body {
+  color: #E4E4E4 !important;
+}
+
+/* Time grid */
+.fc-timegrid-slot {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.fc-timegrid-slot-label {
+  color: rgba(228, 228, 228, 0.6) !important;
+  font-size: 0.75rem;
+}
+
+.fc-timegrid-col {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.fc-timegrid-axis {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.fc-timegrid-axis-cushion {
+  color: rgba(228, 228, 228, 0.6) !important;
+}
+
+/* Week view */
+.fc-timegrid-event {
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+/* List view */
+.fc-list-day-cushion {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #E4E4E4 !important;
+  font-weight: 600;
+}
+
+.fc-list-event {
+  color: #E4E4E4 !important;
+}
+
+.fc-list-event:hover td {
+  background-color: rgba(168, 218, 220, 0.1) !important;
+}
+
+/* Scrollbar for calendar */
+.fc-scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+  background: #1a1a1c;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   Advanced Animation Utilities
+   ============================================ */
+
+/* Smooth page transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(168, 218, 220, 0.2);
+}
+
+/* Button press animation */
+.button-press {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.button-press:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading skeleton with shimmer */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* Stagger animations for lists */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideFade 0.5s ease-out forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.05s; }
+.stagger-item:nth-child(2) { animation-delay: 0.1s; }
+.stagger-item:nth-child(3) { animation-delay: 0.15s; }
+.stagger-item:nth-child(4) { animation-delay: 0.2s; }
+.stagger-item:nth-child(5) { animation-delay: 0.25s; }
+.stagger-item:nth-child(6) { animation-delay: 0.3s; }
+.stagger-item:nth-child(7) { animation-delay: 0.35s; }
+.stagger-item:nth-child(8) { animation-delay: 0.4s; }
+.stagger-item:nth-child(9) { animation-delay: 0.45s; }
+.stagger-item:nth-child(10) { animation-delay: 0.5s; }
+
+/* Gradient animations */
+.gradient-animated {
+  background: linear-gradient(
+    -45deg,
+    rgba(168, 218, 220, 0.1),
+    rgba(179, 156, 208, 0.1),
+    rgba(168, 218, 220, 0.1),
+    rgba(179, 156, 208, 0.1)
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* Glow effect on focus */
+.glow-focus:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(168, 218, 220, 0.3), 0 0 20px rgba(168, 218, 220, 0.2);
+}
+
+/* Smooth fade-in for loading states */
+.loading-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Pulse glow effect */
+.pulse-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Float animation for cards */
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Rotate on hover */
+.rotate-hover {
+  transition: transform 0.3s ease;
+}
+
+.rotate-hover:hover {
+  transform: rotate(5deg) scale(1.05);
+}
+
+/* Scale on hover */
+.scale-hover {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scale-hover:hover {
+  transform: scale(1.05);
+}
+
+/* Smooth color transitions */
+.color-transition {
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Slide in from left with fade */
+.slide-fade-left {
+  animation: slideFadeLeft 0.5s ease-out;
+}
+
+@keyframes slideFadeLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide in from right with fade */
+.slide-fade-right {
+  animation: slideFadeRight 0.5s ease-out;
+}
+
+@keyframes slideFadeRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Bounce in with scale */
+.bounce-scale {
+  animation: bounceScale 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bounceScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Smooth entrance for modals */
+.modal-enter {
+  opacity: 0;
+  transform: scale(0.9) translateY(-20px);
+}
+
+.modal-enter-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+/* Smooth exit for modals */
+.modal-exit {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.modal-exit-active {
+  opacity: 0;
+  transform: scale(0.9) translateY(-20px);
+  transition: opacity 0.2s ease-in, transform 0.2s ease-in;
+}
+
+/* ============================================
+   Enhanced Loading States
+   ============================================ */
+
+/* Spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #A8DADC;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Pulse loading animation */
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Skeleton loading with shimmer */
+.skeleton-loading {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+/* Loading dots */
+.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #A8DADC;
+  animation: loadingDots 1.4s ease-in-out infinite both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes loadingDots {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Fade in for loaded content */
+.content-loaded {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* DataGrid custom scrollbar */
+.datagrid-scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+
+.datagrid-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.datagrid-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.datagrid-scrollable::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Firefox scrollbar */
+.datagrid-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Chatbot custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(168, 218, 220, 0.2);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 218, 220, 0.4);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 218, 220, 0.2) transparent;
+}
+
+/* ============================================
+   Animated Logo Animations
+   ============================================ */
+
+/* Pulse animation for orbiting dots */
+.pulse {
+  animation: logoPulse 2s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+  0%, 100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+/* Sweep animation for rotating stroke ring - now handled by SVG animateTransform */

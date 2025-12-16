@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Resource Hints for Performance -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Critical Inline Styles to Prevent FOUC -->
+    <style>
+      /* Critical CSS to prevent white screen flash */
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #242426;
+        color: #e4e4e4;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #root {
+        min-height: 100vh;
+        background-color: #242426;
+        color: #e4e4e4;
+      }
+      /* Loading animation */
+      @keyframes app-pulse {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(200%); }
+      }
+    </style>
+
+    <!-- SEO Meta Tags -->
+    <title>Zentro | For professional Management of business.</title>
+    <meta name="description" content="Professional Zentro system for managing your business operations, employees, products, and customers efficiently." />
+    <meta name="keywords" content="cigar shop marketing, smoke shop digital marketing, vape shop marketing agency, cigar store SEO, smoke shop advertising, online marketing for vape shops, grow cigar sales, vape shop social media marketing, local SEO for smoke shop, digital marketing for cigar store, marketing agency for vape shops, cigar shop Google Ads, smoke shop website design, vape shop lead generation, increase cigar shop walk-ins" />
+
+    <!-- Challenges Section Meta Tags -->
+    <meta name="challenges-title" content="Challenges Cigar & Smoke Shops Face | Marketing Solutions" />
+    <meta name="challenges-description" content="Struggling with low sales, weak online presence, or poor foot traffic? Discover common challenges cigar & smoke shops face — and how to fix them fast." />
+    <meta name="challenges-keywords" content="cigar shop challenges, smoke shop marketing problems, vape shop advertising issues, low smoke shop sales, increase cigar shop traffic, smoke shop SEO issues, social media for smoke shops, smoke shop Google ads restrictions, improve smoke shop visibility, cigar store online marketing" />
+
+    <!-- Services Section Meta Tags -->
+    <meta name="services-title" content="Cigar & Smoke Shop Marketing Services | SEO, Ads & Web Design" />
+    <meta name="services-description" content="All-in-one digital marketing for cigar and smoke shops — SEO, social media, Google Ads, website, and eCommerce solutions to grow sales and walk-ins." />
+    <meta name="services-keywords" content="cigar shop marketing services, smoke shop digital marketing, vape shop SEO, smoke shop social media management, cigar shop Google ads, smoke shop website design, eCommerce for cigar shops, online marketing for vape stores, digital marketing for smoke shops, grow cigar shop sales, local SEO for smoke shop, marketing agency for vape stores" />
+
+    <!-- Results Section Meta Tags -->
+    <meta name="results-title" content="Cigar & Smoke Shop Marketing Results | Proven ROI" />
+    <meta name="results-description" content="See real results from our digital marketing for cigar, vape, and smoke shops — more traffic, more calls, and higher sales across the U.S." />
+    <meta name="results-keywords" content="cigar shop marketing results, smoke shop success stories, vape shop marketing ROI, digital marketing case studies, cigar lounge advertising results, smoke shop SEO performance, increase smoke shop sales, Google ads for cigar shops, social media growth for smoke shops, proven marketing results for vape stores" />
+
+    <!-- Portfolio Section Meta Tags -->
+    <meta name="portfolio-title" content="Social Media Portfolio | Smoke Shop Creative Design Examples" />
+    <meta name="portfolio-description" content="View our social media creative work for cigar and smoke shops — from product highlights to seasonal campaigns that drive real engagement." />
+    <meta name="portfolio-keywords" content="smoke shop social media portfolio, cigar shop creative designs, vape shop marketing examples, social media content for smoke shops, smoke shop product photography, cigar shop advertising examples, vape store promotional campaigns, smoke shop brand visuals, social media posts for cigar shops" />
+
+    <!-- Why Us Section Meta Tags -->
+    <meta name="why-us-title" content="Why Choose Us | Smoke & Cigar Shop Marketing Experts" />
+    <meta name="why-us-description" content="Work with marketing experts who specialize in cigar, vape, and smoke shops. 17+ years of experience, ROI-driven results, and full transparency." />
+    <meta name="why-us-keywords" content="cigar shop marketing experts, smoke shop marketing agency, vape shop advertising professionals, ROI driven marketing for smoke shops, cigar store digital marketing specialists, compliant advertising for cigar shops, smoke shop SEO agency, vape shop marketing company, transparent marketing agency for smoke shops" />
+
+    <!-- How It Works Section Meta Tags -->
+    <meta name="how-it-works-title" content="How It Works | 3-Step Smoke Shop Marketing Process" />
+    <meta name="how-it-works-description" content="Our 3-step marketing system helps cigar & smoke shops grow fast — from audit to launch to scaling. Go live in 3 weeks and track real results." />
+    <meta name="how-it-works-keywords" content="how digital marketing works for smoke shops, cigar shop marketing process, vape shop marketing strategy, smoke shop advertising plan, cigar store SEO process, launch marketing campaign for smoke shops, smoke shop growth system, 3 step marketing for cigar shops, optimize smoke shop ads, scale vape shop marketing" />
+
+    <!-- Packages Section Meta Tags -->
+    <meta name="packages-title" content="SEO & Social Media Packages for Smoke & Cigar Shops" />
+    <meta name="packages-description" content="Affordable SEO & social media packages for cigar, vape, and smoke shops. Rank higher, boost visibility, and grow sales with proven digital marketing plans." />
+    <meta name="packages-keywords" content="cigar shop SEO packages, smoke shop social media marketing, vape shop SEO and ads, digital marketing plans for smoke shops, cigar store marketing packages, local SEO for smoke shops, Instagram ads for cigar stores, smoke shop marketing pricing, social media growth for vape shops, affordable SEO and social media plans for smoke shops" />
+
+    <!-- Testimonials Section Meta Tags -->
+    <meta name="testimonials-title" content="Client Reviews | Smoke Shop Marketing Success Stories" />
+    <meta name="testimonials-description" content="Read real reviews from cigar, vape, and smoke shop owners who grew their business with Kovian Media's digital marketing services." />
+    <meta name="testimonials-keywords" content="smoke shop marketing reviews, cigar shop marketing testimonials, vape shop marketing success stories, digital marketing for smoke shops reviews, client testimonials smoke shop, marketing agency reviews for vape stores, real results cigar shop marketing, smoke shop SEO reviews" />
+
+    <!-- FAQ Section Meta Tags -->
+    <meta name="faq-title" content="FAQ | Cigar & Smoke Shop Marketing Questions Answered" />
+    <meta name="faq-description" content="Get answers about cigar & smoke shop marketing — results, legal ads, website needs, and reporting. Transparent, fast, and compliant solutions." />
+    <meta name="faq-keywords" content="smoke shop marketing FAQ, cigar shop digital marketing questions, vape shop advertising compliance, tobacco marketing legal questions, SEO for smoke shops, smoke shop website optimization, smoke shop reporting and updates, how to promote cigar shop online, digital marketing for vape stores" />
+
+    <!-- Contact Section Meta Tags -->
+    <meta name="contact-title" content="Book a Free Strategy Call | Smoke Shop Marketing Experts" />
+    <meta name="contact-description" content="Book your free strategy call with Kovian Media. We help smoke, vape, and cigar shops grow with proven SEO & social media marketing solutions." />
+    <meta name="contact-keywords" content="book smoke shop marketing call, cigar shop SEO consultation, vape shop marketing agency contact, smoke shop advertising strategy, local smoke shop promotion, smoke shop lead generation, Kovian Media contact, free marketing consultation for smoke shop" />
+
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="Zentro | For professional Management of business." />
+    <meta property="og:description" content="Professional Zentro system for managing your business operations, employees, products, and customers efficiently." />
+    <meta property="og:type" content="website" />
+
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Zentro | For professional Management of business." />
+    <meta name="twitter:description" content="Professional Zentro system for managing your business operations, employees, products, and customers efficiently." />
+
+    <!-- Google Fonts - Load with font-display swap for better performance -->
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&family=Stack+Sans+Text&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&family=Stack+Sans+Text&display=swap" rel="stylesheet" />
+    </noscript>
+    
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.css' rel='stylesheet' />
+  </head>
+  <body>
+    <div id="root" style="min-height: 100vh; background-color: #242426;"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
