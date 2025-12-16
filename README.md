@@ -62,7 +62,7 @@ Unlike rigid legacy systems, Zentro offers a decoupled architecture featuring **
 | **💰 Deals & Opportunities** | Value estimation, probability tracking, and closing dates. |
 | **📅 Task Manager** | Assign tasks, set due dates, and track completion status. |
 | **🧾 Document** | Upload Documents, Download them or delete them |
-| **📦 Chat ** | Chatting feature between admin and employees. |
+| **🗨️ Chat** | Chatting feature between admin and employees. |
 
 </details>
 
