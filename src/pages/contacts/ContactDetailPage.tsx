@@ -6,6 +6,8 @@ import { PageHeader } from '../../components/common/PageHeader';
 import { useContact, useDeleteContact } from '../../hooks/queries/useContacts';
 import { ContactForm } from '../../components/contacts/ContactForm';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { EmailModal } from '../../components/common/EmailModal';
+import { sendEmailToContact } from '../../services/api/contacts';
 import { getPrimaryEmail, getPrimaryPhone, formatAddress } from '../../utils/contactUtils';
 import { formatDate } from '../../utils/formatting';
 
@@ -14,6 +16,7 @@ export function ContactDetailPage() {
   const navigate = useNavigate();
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const { data, isLoading, isError, error } = useContact(id);
   const contact = data?.contact;
@@ -40,6 +43,13 @@ export function ContactDetailPage() {
 
   const handleFormSuccess = () => {
     setShowEditForm(false);
+  };
+
+  const handleSendEmail = async (emailData: { fromEmail: string; subject: string; message: string }) => {
+    if (!contact?._id) {
+      throw new Error('Contact not found');
+    }
+    await sendEmailToContact(contact._id, emailData);
   };
 
   if (isLoading) {
@@ -215,13 +225,13 @@ export function ContactDetailPage() {
               Share Contact
             </button>
             {primaryEmail && (
-              <a
-                href={`mailto:${primaryEmail}`}
+              <button
+                onClick={() => setShowEmailModal(true)}
                 className="w-full flex items-center justify-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-[#A8DADC] hover:text-[#A8DADC] hover:scale-105"
               >
                 <Mail className="h-4 w-4" />
                 Send Email
-              </a>
+              </button>
             )}
             {primaryPhone && (
               <a
@@ -254,6 +264,16 @@ export function ContactDetailPage() {
           onConfirm={confirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
           confirmVariant="danger"
+        />
+      )}
+
+      {showEmailModal && contact && primaryEmail && (
+        <EmailModal
+          isOpen={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          recipientEmail={primaryEmail}
+          recipientName={`${contact.firstName} ${contact.lastName}`}
+          onSend={handleSendEmail}
         />
       )}
     </div>

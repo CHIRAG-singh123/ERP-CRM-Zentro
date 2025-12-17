@@ -7,6 +7,7 @@ import {
   deleteContact,
   importContacts,
   exportContacts,
+  sendEmailToContact,
 } from '../controllers/contactController.js';
 import { authenticate } from '../middlewares/auth.js';
 import multer from 'multer';
@@ -20,6 +21,7 @@ router.get('/export', exportContacts);
 router.post('/import', upload.single('file'), importContacts);
 router.route('/').get(getContacts).post(createContact);
 router.route('/:id').get(getContact).put(updateContact).delete(deleteContact);
+router.post('/:id/send-email', sendEmailToContact);
 
 export default router;
 

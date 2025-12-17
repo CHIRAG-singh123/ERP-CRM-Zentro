@@ -1,12 +1,12 @@
 import path from 'path';
 
 /**
- * Allowed file extensions for documents
+ * Allowed file extensions for document uploads (original Office formats)
  */
 export const ALLOWED_EXTENSIONS = ['.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'];
 
 /**
- * Allowed MIME types for documents
+ * Allowed MIME types for document uploads (original Office formats)
  */
 export const ALLOWED_MIME_TYPES = [
   'application/msword', // .doc
@@ -16,6 +16,16 @@ export const ALLOWED_MIME_TYPES = [
   'application/vnd.ms-excel', // .xls
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
 ];
+
+/**
+ * Stored file MIME type (all documents are converted to PDF)
+ */
+export const STORED_MIME_TYPE = 'application/pdf';
+
+/**
+ * Stored file extension
+ */
+export const STORED_EXTENSION = '.pdf';
 
 /**
  * Map file extension to file type
@@ -37,7 +47,7 @@ export const getFileType = (filename) => {
 };
 
 /**
- * Validate file extension
+ * Validate file extension for upload
  */
 export const isValidExtension = (filename) => {
   const ext = path.extname(filename).toLowerCase();
@@ -45,20 +55,37 @@ export const isValidExtension = (filename) => {
 };
 
 /**
- * Validate MIME type
+ * Validate MIME type for upload
  */
 export const isValidMimeType = (mimeType) => {
   return ALLOWED_MIME_TYPES.includes(mimeType);
 };
 
 /**
- * Validate file (both extension and MIME type)
+ * Validate file for upload (both extension and MIME type)
  */
 export const validateFile = (filename, mimeType) => {
   const validExtension = isValidExtension(filename);
   const validMime = isValidMimeType(mimeType);
   
   return validExtension && validMime;
+};
+
+/**
+ * Check if a MIME type is a valid stored document type (PDF)
+ */
+export const isValidStoredMimeType = (mimeType) => {
+  return mimeType === STORED_MIME_TYPE;
+};
+
+/**
+ * Get the PDF filename from an original filename
+ * @param {string} originalFilename - Original filename (e.g., "report.docx")
+ * @returns {string} - PDF filename (e.g., "report.pdf")
+ */
+export const getPDFFilename = (originalFilename) => {
+  const basename = path.basename(originalFilename, path.extname(originalFilename));
+  return `${basename}${STORED_EXTENSION}`;
 };
 
 /**

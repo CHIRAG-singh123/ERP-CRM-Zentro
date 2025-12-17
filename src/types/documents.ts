@@ -4,10 +4,13 @@ export interface Document {
   _id: string;
   filename: string;
   originalName: string;
-  mimeType: string;
-  size: number;
+  originalFilename?: string; // Original uploaded filename before conversion
+  mimeType: string; // Always 'application/pdf' for stored files
+  originalMimeType?: string; // Original MIME type before conversion
+  size: number; // PDF file size
+  originalSize?: number; // Original file size before conversion
   path: string;
-  fileType: DocumentFileType;
+  fileType: DocumentFileType; // Original file type (word, powerpoint, excel)
   description?: string;
   tags: string[];
   uploadedBy: {
@@ -16,6 +19,7 @@ export interface Document {
     email: string;
   };
   tenantId?: string;
+  isConverted?: boolean; // Flag indicating if document was converted to PDF
   createdAt: string;
   updatedAt: string;
 }

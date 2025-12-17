@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from 'react';
+
 type AnimatedLogoProps = {
   name?: string;
   tagline?: string;
@@ -6,6 +8,31 @@ type AnimatedLogoProps = {
   className?: string;
 };
 
+// Color theme definitions
+const colorThemes = [
+  {
+    name: 'Purple Blue',
+    gradient: 'linear-gradient(135deg, #7B61FF 0%, #00D4FF 100%)',
+    bgColor: 'rgba(123, 97, 255, 0.15)',
+    borderColor: '#7B61FF',
+    textColor: '#A8DADC',
+  },
+  {
+    name: 'Accent',
+    gradient: 'linear-gradient(135deg, #8AA1FF 0%, #A8DADC 100%)',
+    bgColor: 'rgba(138, 161, 255, 0.15)',
+    borderColor: '#8AA1FF',
+    textColor: '#BCE7E5',
+  },
+  {
+    name: 'Cyan',
+    gradient: 'linear-gradient(135deg, #00D4FF 0%, #BCE7E5 100%)',
+    bgColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: '#00D4FF',
+    textColor: '#E0F7FA',
+  },
+];
+
 export function AnimatedLogo({
   name = 'Zentro',
   tagline = 'Professional Business Management',
@@ -13,9 +40,55 @@ export function AnimatedLogo({
   height = 120,
   className = '',
 }: AnimatedLogoProps): JSX.Element {
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  const [colorThemeIndex, setColorThemeIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const progressBarRef = useRef<SVGRectElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const currentTheme = colorThemes[colorThemeIndex];
+
+  // Handle click outside to close tooltip
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isTooltipVisible &&
+        tooltipRef.current &&
+        !tooltipRef.current.contains(event.target as Node) &&
+        progressBarRef.current &&
+        !progressBarRef.current.contains(event.target as Node)
+      ) {
+        setIsTooltipVisible(false);
+      }
+    };
+
+    if (isTooltipVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isTooltipVisible]);
+
+  const handleProgressBarClick = () => {
+    const nextIndex = (colorThemeIndex + 1) % colorThemes.length;
+    setColorThemeIndex(nextIndex);
+    setIsTooltipVisible(true);
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
   return (
     <div
-      className={`animate-fade-in ${className}`}
+      ref={containerRef}
+      className={`animate-fade-in relative ${className}`}
       style={{
         width,
         height,
@@ -218,6 +291,17 @@ export function AnimatedLogo({
             }
             .logo-text-main { transition: fill 0.3s ease; }
             .logo-text-tagline { transition: fill 0.3s ease; }
+            
+            @keyframes fadeIn {
+              from {
+                opacity: 0;
+                transform: translateY(-8px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
           `}</style>
         </defs>
         <g transform="translate(140,28)">
@@ -245,14 +329,85 @@ export function AnimatedLogo({
             {tagline}
           </text>
 
-          {/* Animated gradient underline */}
-          <rect x="0" y="58" width="160" height="4" rx="2" fill="url(#g-underline)" opacity={0.95}>
+          {/* Animated gradient underline - Clickable progress bar */}
+          <rect
+            ref={progressBarRef}
+            x="0"
+            y="58"
+            width="160"
+            height="4"
+            rx="2"
+            fill="url(#g-underline)"
+            opacity={isHovered ? 1 : 0.95}
+            style={{
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              filter: isHovered ? 'drop-shadow(0 0 8px #7B61FF) drop-shadow(0 0 12px #00D4FF)' : 'none',
+            }}
+            onClick={handleProgressBarClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
             {/* animate width for a subtle loading-style underline */}
             <animate attributeName="width" values="0;160;0" dur="4.8s" repeatCount="indefinite" />
           </rect>
         </g>
 
       </svg>
+
+      {/* Tooltip */}
+      {isTooltipVisible && (
+        <div
+          ref={tooltipRef}
+          className="absolute left-1/2 -translate-x-1/2 mt-2 z-50"
+          style={{
+            top: '100%',
+            marginTop: '8px',
+            minWidth: '200px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            background: currentTheme.bgColor,
+            border: `1px solid ${currentTheme.borderColor}`,
+            boxShadow: `0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px ${currentTheme.borderColor}40`,
+            color: currentTheme.textColor,
+            fontSize: '13px',
+            fontWeight: 500,
+            transition: 'all 0.3s ease',
+            backdropFilter: 'blur(10px)',
+            animation: 'fadeIn 0.3s ease-out',
+            opacity: 1,
+          }}
+          role="tooltip"
+          aria-live="polite"
+        >
+          <div
+            style={{
+              background: currentTheme.gradient,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              fontWeight: 600,
+              marginBottom: '4px',
+            }}
+          >
+            {currentTheme.name} Theme
+          </div>
+          <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '4px' }}>
+            Click to cycle through themes
+          </div>
+          {/* Arrow pointing up */}
+          <div
+            className="absolute -top-1 left-1/2 -translate-x-1/2"
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: '6px solid transparent',
+              borderRight: '6px solid transparent',
+              borderBottom: `6px solid ${currentTheme.borderColor}`,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

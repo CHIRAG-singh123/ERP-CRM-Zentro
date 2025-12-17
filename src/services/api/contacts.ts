@@ -142,3 +142,19 @@ export const exportContacts = async (): Promise<Blob> => {
   
   return response.blob();
 };
+
+export interface SendEmailData {
+  fromEmail: string;
+  subject: string;
+  message: string;
+}
+
+export const sendEmailToContact = async (
+  id: string,
+  data: SendEmailData
+): Promise<{ success: boolean; message: string }> => {
+  return fetchJson<{ success: boolean; message: string }>(`/contacts/${id}/send-email`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};

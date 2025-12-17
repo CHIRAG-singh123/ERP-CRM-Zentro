@@ -7,6 +7,7 @@ import {
   deleteCompany,
   importCompanies,
   exportCompanies,
+  sendEmailToCompany,
 } from '../controllers/companyController.js';
 import { authenticate } from '../middlewares/auth.js';
 import multer from 'multer';
@@ -20,6 +21,7 @@ router.get('/export', exportCompanies);
 router.post('/import', upload.single('file'), importCompanies);
 router.route('/').get(getCompanies).post(createCompany);
 router.route('/:id').get(getCompany).put(updateCompany).delete(deleteCompany);
+router.post('/:id/send-email', sendEmailToCompany);
 
 export default router;
 

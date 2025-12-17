@@ -1,10 +1,6 @@
-import { X, Download, Loader2, AlertCircle, RefreshCw, ExternalLink, Eye } from 'lucide-react';
+import { X, Download, Loader2, AlertCircle, RefreshCw, Eye, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { 
-  generateViewToken, 
-  getGoogleDocsViewerUrl,
-  getOfficeOnlineViewerUrl 
-} from '../../services/api/documents';
+import { getDocumentViewUrl } from '../../services/api/documents';
 import type { Document } from '../../types/documents';
 
 interface DocumentViewerProps {
@@ -80,68 +76,30 @@ export function DocumentViewer({ document, onClose, onDownload }: DocumentViewer
     }
   };
 
-  const handleOpenInNewTab = async () => {
+  // View PDF in new tab using native browser PDF viewer
+  const handleViewPDF = async () => {
     if (!document) return;
     
     try {
       setLoading(true);
       setError(null);
       
-      console.log(`[Viewer] Opening document in new tab: ${document.originalName}`);
-      console.log(`[Viewer] File type: ${document.fileType}, MIME: ${document.mimeType}`);
+      console.log(`[Viewer] Opening PDF in new tab: ${document.originalName}`);
       
-      // Generate a temporary public view token
-      const tokenResponse = await generateViewToken(document._id);
-      console.log(`[Viewer] Generated view token, expires: ${tokenResponse.expiresAt}`);
+      // Get the view URL for the PDF
+      const viewUrl = getDocumentViewUrl(document._id);
+      console.log(`[Viewer] PDF View URL: ${viewUrl}`);
       
-      // Use Google Docs Viewer for Office documents
-      // Google Docs Viewer can render Word, Excel, PowerPoint, and PDF files
-      const viewerUrl = getGoogleDocsViewerUrl(tokenResponse.publicViewUrl);
-      
-      console.log(`[Viewer] Opening with Google Docs Viewer: ${viewerUrl}`);
-      
-      // Open the viewer in a new tab
-      const newWindow = window.open(viewerUrl, '_blank');
+      // Open the PDF in a new tab - browser will use native PDF viewer
+      const newWindow = window.open(viewUrl, '_blank');
       
       if (!newWindow) {
         throw new Error('Popup blocked. Please allow popups for this site to view documents.');
       }
       
     } catch (err) {
-      console.error('[Viewer] Failed to open document:', err);
+      console.error('[Viewer] Failed to open PDF:', err);
       setError(err instanceof Error ? err.message : 'Failed to open document. Please try downloading instead.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Alternative: Open with Office Online Viewer (for Microsoft files)
-  const handleOpenWithOfficeOnline = async () => {
-    if (!document) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log(`[Viewer] Opening with Office Online: ${document.originalName}`);
-      
-      // Generate a temporary public view token
-      const tokenResponse = await generateViewToken(document._id);
-      
-      // Use Office Online Viewer (better for Microsoft Office files)
-      const viewerUrl = getOfficeOnlineViewerUrl(tokenResponse.publicViewUrl);
-      
-      console.log(`[Viewer] Office Online URL: ${viewerUrl}`);
-      
-      const newWindow = window.open(viewerUrl, '_blank');
-      
-      if (!newWindow) {
-        throw new Error('Popup blocked. Please allow popups for this site.');
-      }
-      
-    } catch (err) {
-      console.error('[Viewer] Failed to open with Office Online:', err);
-      setError(err instanceof Error ? err.message : 'Failed to open document.');
     } finally {
       setLoading(false);
     }
@@ -232,6 +190,10 @@ export function DocumentViewer({ document, onClose, onDownload }: DocumentViewer
                     <div className="text-7xl mb-4">{getFileIcon(document.fileType)}</div>
                     <h3 className="text-xl font-semibold text-white mb-2">{document.originalName}</h3>
                     <p className="text-sm text-white/60 capitalize">{document.fileType} Document</p>
+                    <div className="mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/20 border border-red-500/30">
+                      <FileText className="h-3.5 w-3.5 text-red-400" />
+                      <span className="text-xs font-medium text-red-300">Stored as PDF</span>
+                    </div>
                   </div>
                 </div>
 
@@ -242,12 +204,12 @@ export function DocumentViewer({ document, onClose, onDownload }: DocumentViewer
                     <span className="text-sm font-medium text-white">{formatFileSize(document.size)}</span>
                   </div>
                   <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-sm text-white/60">Type</span>
+                    <span className="text-sm text-white/60">Original Type</span>
                     <span className="text-sm font-medium text-white capitalize">{document.fileType}</span>
                   </div>
                   <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-sm text-white/60">MIME Type</span>
-                    <span className="text-sm font-medium text-white/80 text-xs">{document.mimeType}</span>
+                    <span className="text-sm text-white/60">Format</span>
+                    <span className="text-sm font-medium text-white/80">PDF (Converted)</span>
                   </div>
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="text-sm text-white/60">Uploaded</span>
@@ -271,9 +233,9 @@ export function DocumentViewer({ document, onClose, onDownload }: DocumentViewer
 
                 {/* Actions */}
                 <div className="space-y-3 pb-4">
-                  {/* Primary Action: View in Browser */}
+                  {/* Primary Action: View PDF */}
                   <button
-                    onClick={handleOpenInNewTab}
+                    onClick={handleViewPDF}
                     disabled={loading}
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#B39CD0] px-6 py-3.5 text-sm font-semibold text-[#1A1A1C] transition-all duration-200 hover:bg-[#BCE7E5] hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#B39CD0]/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -282,33 +244,22 @@ export function DocumentViewer({ document, onClose, onDownload }: DocumentViewer
                     ) : (
                       <Eye className="h-5 w-5" />
                     )}
-                    {loading ? 'Opening...' : 'View in Browser'}
+                    {loading ? 'Opening...' : 'View'}
                   </button>
 
-                  {/* Secondary Actions Row */}
-                  <div className="flex gap-2">
+                  {/* Download Button */}
+                  {onDownload && (
                     <button
-                      onClick={handleOpenWithOfficeOnline}
-                      disabled={loading}
-                      className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-medium text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white hover:border-[#B39CD0]/30 disabled:opacity-50"
+                      onClick={() => onDownload(document)}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white hover:border-[#B39CD0]/30"
                     >
-                      <ExternalLink className="h-4 w-4" />
-                      Office Online
+                      <Download className="h-4 w-4" />
+                      Download PDF
                     </button>
-                    
-                    {onDownload && (
-                      <button
-                        onClick={() => onDownload(document)}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-medium text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white hover:border-[#B39CD0]/30"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download
-                      </button>
-                    )}
-                  </div>
+                  )}
                   
                   <p className="text-xs text-white/40 text-center pt-2">
-                    View opens document in Google Docs Viewer. Use Office Online for better Microsoft Office compatibility.
+                    Document is stored as PDF for universal compatibility. Click View to open in your browser's PDF viewer.
                   </p>
                 </div>
               </div>

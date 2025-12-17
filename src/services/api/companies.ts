@@ -114,3 +114,19 @@ export const exportCompanies = async (): Promise<Blob> => {
   
   return response.blob();
 };
+
+export interface SendEmailData {
+  fromEmail: string;
+  subject: string;
+  message: string;
+}
+
+export const sendEmailToCompany = async (
+  id: string,
+  data: SendEmailData
+): Promise<{ success: boolean; message: string }> => {
+  return fetchJson<{ success: boolean; message: string }>(`/companies/${id}/send-email`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};

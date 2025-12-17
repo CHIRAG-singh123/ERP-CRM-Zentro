@@ -2,6 +2,7 @@ import Contact from '../models/Contact.js';
 import Company from '../models/Company.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { parseContactsCSV, contactsToCSV } from '../utils/csvParser.js';
+import { sendGeneralEmail } from '../utils/emailService.js';
 import multer from 'multer';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -196,5 +197,77 @@ export const exportContacts = asyncHandler(async (req, res) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename=contacts-export.csv');
   res.send(csv);
+});
+
+// @desc    Send email to contact
+// @route   POST /api/contacts/:id/send-email
+// @access  Private
+export const sendEmailToContact = asyncHandler(async (req, res) => {
+  const { fromEmail, subject, message } = req.body;
+
+  // Validate required fields
+  if (!fromEmail || !subject || !message) {
+    return res.status(400).json({
+      error: 'Missing required fields: fromEmail, subject, and message are required',
+    });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(fromEmail)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+
+  // Role-based email validation
+  const isAdmin = req.user.role === 'admin';
+  if (!isAdmin && fromEmail.toLowerCase() !== req.user.email.toLowerCase()) {
+    return res.status(403).json({
+      error: 'You can only send emails from your own email address. Only administrators can use different email addresses.',
+    });
+  }
+
+  // Find contact
+  const query = { _id: req.params.id };
+  if (req.user.tenantId) {
+    query.tenantId = req.user.tenantId;
+  }
+
+  const contact = await Contact.findOne(query);
+
+  if (!contact) {
+    return res.status(404).json({ error: 'Contact not found' });
+  }
+
+  // Get contact's primary email
+  let contactEmail = null;
+  if (contact.emails && contact.emails.length > 0) {
+    const primaryEmail = contact.emails.find((e) => e.isPrimary);
+    contactEmail = primaryEmail ? primaryEmail.email : contact.emails[0].email;
+  }
+
+  if (!contactEmail) {
+    return res.status(400).json({ error: 'Contact does not have an email address' });
+  }
+
+  // Send email
+  const fromName = req.user.name || fromEmail.split('@')[0];
+  const emailResult = await sendGeneralEmail(
+    contactEmail,
+    fromEmail,
+    subject,
+    message,
+    fromName
+  );
+
+  if (!emailResult.success) {
+    return res.status(500).json({
+      error: emailResult.error || 'Failed to send email',
+    });
+  }
+
+  res.json({
+    success: true,
+    message: 'Email sent successfully',
+  });
 });
 

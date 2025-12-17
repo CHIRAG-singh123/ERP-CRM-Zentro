@@ -57,16 +57,16 @@ export function Sidebar() {
                   <NavLink
                     key={item.href}
                     to={item.href}
-                    className={`group flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                    className={`sidebar-nav-item group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium ${
                       active
-                        ? 'bg-accent/15 text-accent shadow-sm scale-[1.02] dark:bg-accent/20'
-                        : 'text-foreground/70 hover:bg-muted hover:text-foreground hover:translate-x-1'
+                        ? 'bg-accent/15 text-accent shadow-sm border-2 border-accent/40 dark:bg-accent/20 dark:border-accent/50 sidebar-active'
+                        : 'text-foreground/70 border-2 border-transparent hover:bg-muted/50 hover:text-foreground'
                     }`}
                     style={{ animationDelay: `${(sectionIndex * 50) + (itemIndex * 30)}ms` }}
                   >
                     <span className="flex items-center gap-2">
                       {item.icon ? (
-                        <item.icon className={`h-5 w-5 transition-all duration-200 icon-visible ${active ? 'scale-110 text-accent' : 'text-foreground/70 group-hover:scale-110 group-hover:text-foreground'}`} />
+                        <item.icon className={`h-5 w-5 transition-all duration-300 ease-in-out icon-visible ${active ? 'scale-110 text-accent' : 'text-foreground/70 group-hover:scale-110 group-hover:text-foreground'}`} />
                       ) : null}
                       <span className="font-medium">{item.label}</span>
                     </span>

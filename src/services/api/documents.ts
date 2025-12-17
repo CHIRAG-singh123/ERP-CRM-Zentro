@@ -149,27 +149,42 @@ export const getDocumentPreviewUrl = async (id: string): Promise<DocumentPreview
   return fetchJson<DocumentPreviewResponse>(`/documents/${id}/preview`);
 };
 
-// Get the direct serve URL for a document (for local preview)
-export const getDocumentServeUrl = (id: string): string => {
+// Helper function to get the base API URL
+const getBaseUrl = (): string => {
   let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   baseUrl = baseUrl.replace(/\/$/, '');
   if (!baseUrl.endsWith('/api')) {
     baseUrl = `${baseUrl}/api`;
   }
-  return `${baseUrl}/documents/${id}/serve`;
+  return baseUrl;
+};
+
+// Get the direct serve URL for a document (for local preview) - legacy
+export const getDocumentServeUrl = (id: string): string => {
+  return `${getBaseUrl()}/documents/${id}/serve`;
 };
 
 // Get the direct download URL for a document
 export const getDocumentDownloadUrl = (id: string): string => {
-  let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  baseUrl = baseUrl.replace(/\/$/, '');
-  if (!baseUrl.endsWith('/api')) {
-    baseUrl = `${baseUrl}/api`;
-  }
-  return `${baseUrl}/documents/${id}/download`;
+  return `${getBaseUrl()}/documents/${id}/download`;
 };
 
-// Response type for view token generation
+/**
+ * Get the URL to view a document as PDF in the browser
+ * This URL opens the PDF directly in a new tab using the browser's native PDF viewer
+ * @param id - Document ID
+ * @returns URL string that can be opened in a new tab
+ */
+export const getDocumentViewUrl = (id: string): string => {
+  const baseUrl = getBaseUrl();
+  const token = localStorage.getItem('accessToken');
+  
+  // Include the auth token as a query parameter for the view endpoint
+  // This allows the browser to open the PDF directly without needing to set headers
+  return `${baseUrl}/documents/${id}/view?token=${encodeURIComponent(token || '')}`;
+};
+
+// Response type for view token generation (kept for backward compatibility)
 export interface ViewTokenResponse {
   viewToken: string;
   publicViewUrl: string;
@@ -182,13 +197,14 @@ export interface ViewTokenResponse {
   };
 }
 
-// Generate a temporary public view token for a document
+// Generate a temporary public view token for a document (legacy - kept for backward compatibility)
 export const generateViewToken = async (id: string): Promise<ViewTokenResponse> => {
   return fetchJson<ViewTokenResponse>(`/documents/${id}/view-token`, {
     method: 'POST',
   });
 };
 
+// Legacy functions - kept for backward compatibility but no longer used
 // Get the Google Docs Viewer URL for a public document URL
 export const getGoogleDocsViewerUrl = (publicFileUrl: string): string => {
   return `https://docs.google.com/viewer?url=${encodeURIComponent(publicFileUrl)}&embedded=true`;

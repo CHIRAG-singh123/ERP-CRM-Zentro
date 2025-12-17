@@ -20,10 +20,10 @@ const initializeEmailService = () => {
   }
 
   emailProvider = (process.env.EMAIL_PROVIDER || 'development').toLowerCase();
-  const isDevelopment = process.env.NODE_ENV !== 'production' || emailProvider === 'development';
+  const isDevelopment = emailProvider === 'development';
 
   // Development mode - console logging only
-  if (isDevelopment && !process.env.SMTP_HOST) {
+  if (isDevelopment) {
     console.log('📧 Email Service: Running in DEVELOPMENT mode (console logging only)');
     console.log('📧 To enable real email sending, configure EMAIL_PROVIDER and SMTP settings in .env');
     return null;
@@ -56,6 +56,13 @@ const initializeEmailService = () => {
   } catch (error) {
     console.error('❌ Failed to initialize email service:', error.message);
     console.error('📧 Email sending will be disabled. Please check your email configuration.');
+    if (emailProvider === 'gmail') {
+      console.error('💡 Gmail Setup Tips:');
+      console.error('   1. Ensure GMAIL_USER is set to your Gmail address');
+      console.error('   2. Ensure GMAIL_APP_PASSWORD is set (use App Password, not regular password)');
+      console.error('   3. Generate App Password at: https://myaccount.google.com/apppasswords');
+      console.error('   4. Make sure 2-Step Verification is enabled on your Google account');
+    }
   }
 
   return transporter;
@@ -68,8 +75,16 @@ const createGmailTransporter = () => {
   const user = process.env.GMAIL_USER || process.env.SMTP_USER;
   const password = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS;
 
-  if (!user || !password) {
-    throw new Error('Gmail configuration missing: GMAIL_USER and GMAIL_APP_PASSWORD required');
+  if (!user) {
+    throw new Error('Gmail configuration missing: GMAIL_USER (or SMTP_USER) is required. Please set it in your .env file.');
+  }
+
+  if (!password) {
+    throw new Error('Gmail configuration missing: GMAIL_APP_PASSWORD (or SMTP_PASS) is required. Please set it in your .env file. Note: Use an App Password, not your regular Gmail password.');
+  }
+
+  if (!user.includes('@gmail.com') && !user.includes('@googlemail.com')) {
+    console.warn(`⚠️ Warning: GMAIL_USER (${user}) doesn't appear to be a Gmail address. Make sure this is correct.`);
   }
 
   return nodemailer.createTransport({
@@ -423,6 +438,251 @@ export const sendPasswordResetEmail = async (email, resetToken, resetUrl) => {
 
     // Don't throw error - we don't want to expose email sending failures to users
     // This prevents email enumeration attacks
+    return {
+      success: false,
+      error: error.message,
+      provider: emailProvider,
+    };
+  }
+};
+
+/**
+ * Generate professional HTML email template for general emails
+ */
+const generateGeneralEmailTemplate = (subject, message, fromEmail, fromName = '') => {
+  const appName = process.env.APP_NAME || 'ERP-CRM';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  
+  // Escape HTML in message to prevent XSS
+  const escapeHtml = (text) => {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  };
+
+  const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+  const displayFromName = fromName || fromEmail.split('@')[0];
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(subject)}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      background-color: #f4f4f4;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .email-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .email-header h1 {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .email-body {
+      padding: 40px 30px;
+    }
+    .email-body h2 {
+      color: #333333;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .email-body p {
+      color: #666666;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .message-content {
+      background-color: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+      color: #333333;
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    .sender-info {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 14px;
+      color: #495057;
+    }
+    .email-footer {
+      background-color: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e9ecef;
+    }
+    .email-footer p {
+      color: #6c757d;
+      font-size: 14px;
+      margin: 5px 0;
+    }
+    .email-footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    @media only screen and (max-width: 600px) {
+      .email-body {
+        padding: 30px 20px;
+      }
+      .email-header {
+        padding: 30px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${appName}</h1>
+    </div>
+    <div class="email-body">
+      <h2>${escapeHtml(subject)}</h2>
+      <div class="message-content">
+        ${safeMessage}
+      </div>
+      <div class="sender-info">
+        <strong>From:</strong> ${escapeHtml(displayFromName)} &lt;${escapeHtml(fromEmail)}&gt;
+      </div>
+    </div>
+    <div class="email-footer">
+      <p>This email was sent from ${appName}.</p>
+      <p>&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
+      <p><a href="${frontendUrl}">Visit our website</a></p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+};
+
+/**
+ * Generate plain text version of general email
+ */
+const generateGeneralEmailText = (subject, message, fromEmail, fromName = '') => {
+  const appName = process.env.APP_NAME || 'ERP-CRM';
+  const displayFromName = fromName || fromEmail.split('@')[0];
+  
+  return `
+${subject}
+
+${message}
+
+---
+From: ${displayFromName} <${fromEmail}>
+
+This email was sent from ${appName}.
+© ${new Date().getFullYear()} ${appName}. All rights reserved.
+  `.trim();
+};
+
+/**
+ * Send general email (for contacts, accounts, etc.)
+ * @param {string} toEmail - Recipient email address
+ * @param {string} fromEmail - Sender email address
+ * @param {string} subject - Email subject
+ * @param {string} message - Email message content
+ * @param {string} fromName - Optional sender name
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
+ */
+export const sendGeneralEmail = async (toEmail, fromEmail, subject, message, fromName = '') => {
+  // Initialize transporter if not already done
+  const emailTransporter = initializeEmailService();
+  
+  // Development mode - console logging
+  if (!emailTransporter) {
+    const htmlContent = generateGeneralEmailTemplate(subject, message, fromEmail, fromName);
+    const textContent = generateGeneralEmailText(subject, message, fromEmail, fromName);
+    
+    console.log('\n📧 ========== GENERAL EMAIL (DEVELOPMENT MODE) ==========');
+    console.log(`To: ${toEmail}`);
+    console.log(`From: ${fromName || fromEmail} <${fromEmail}>`);
+    console.log(`Subject: ${subject}`);
+    console.log('\n--- HTML Content Preview ---');
+    console.log(htmlContent.substring(0, 500) + '...');
+    console.log('\n--- Plain Text Content ---');
+    console.log(textContent);
+    console.log('📧 ============================================================\n');
+    
+    return { success: true, mode: 'development' };
+  }
+
+  // Production mode - send actual email
+  const defaultFromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER || 'noreply@example.com';
+  const defaultFromName = process.env.FROM_NAME || process.env.APP_NAME || 'ERP-CRM';
+  
+  // Use the provided fromEmail, but format it properly
+  const mailFromEmail = fromEmail || defaultFromEmail;
+  const mailFromName = fromName || defaultFromName;
+  
+  const mailOptions = {
+    from: `"${mailFromName}" <${mailFromEmail}>`,
+    to: toEmail,
+    subject: subject,
+    html: generateGeneralEmailTemplate(subject, message, mailFromEmail, mailFromName),
+    text: generateGeneralEmailText(subject, message, mailFromEmail, mailFromName),
+    replyTo: fromEmail, // Allow replies to go to the actual sender
+  };
+
+  try {
+    // Verify connection first
+    await emailTransporter.verify();
+    
+    // Send email with retry logic
+    const info = await retryWithBackoff(async () => {
+      return await emailTransporter.sendMail(mailOptions);
+    });
+
+    console.log(`✅ General email sent successfully to ${toEmail}`);
+    console.log(`📧 Message ID: ${info.messageId}`);
+    
+    return {
+      success: true,
+      messageId: info.messageId,
+      provider: emailProvider,
+    };
+  } catch (error) {
+    // Log detailed error information
+    console.error(`❌ Failed to send general email to ${toEmail}:`);
+    console.error(`   Error: ${error.message}`);
+    
+    if (error.code) {
+      console.error(`   Error Code: ${error.code}`);
+    }
+    
+    if (error.response) {
+      console.error(`   SMTP Response: ${error.response}`);
+    }
+
     return {
       success: false,
       error: error.message,

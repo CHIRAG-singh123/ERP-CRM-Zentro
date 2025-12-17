@@ -4,6 +4,7 @@ import fs from 'fs/promises';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import multer from 'multer';
 import { validateFile, getFileType, formatFileSize } from '../utils/documentUtils.js';
+import { convertToPDF, getPDFOutputPath, getConversionSupport } from '../utils/pdfConverter.js';
 import mongoose from 'mongoose';
 
 // Helper function to check if user can access document (owner or admin)
@@ -150,7 +151,7 @@ export const getDocument = asyncHandler(async (req, res) => {
   res.json({ document });
 });
 
-// @desc    Upload document
+// @desc    Upload document (converts to PDF)
 // @route   POST /api/documents
 // @access  Private
 export const uploadDocument = asyncHandler(async (req, res) => {
@@ -171,25 +172,144 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid file type' });
   }
 
-  const document = await Document.create({
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    mimeType: req.file.mimetype,
-    size: req.file.size,
-    path: `/uploads/documents/${req.file.filename}`,
-    fileType,
-    description: description || '',
-    tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim())) : [],
-    uploadedBy: req.user._id,
-    tenantId: req.user.tenantId,
-  });
+  console.log(`[Upload] Processing file: ${req.file.originalname}`);
+  console.log(`[Upload] File type: ${fileType}`);
+  console.log(`[Upload] Original path: ${req.file.path}`);
 
-  const populated = await Document.findById(document._id).populate('uploadedBy', 'name email');
+  // Store original file info
+  const originalFilename = req.file.filename;
+  const originalMimeType = req.file.mimetype;
+  const originalSize = req.file.size;
+  const originalPath = req.file.path;
 
-  res.status(201).json({ document: populated });
+  // Generate PDF output path
+  const pdfFilename = path.basename(originalFilename, path.extname(originalFilename)) + '.pdf';
+  const pdfPath = path.join(path.dirname(originalPath), pdfFilename);
+
+  try {
+    // Convert to PDF
+    console.log(`[Upload] Converting to PDF: ${pdfPath}`);
+    await convertToPDF(originalPath, pdfPath, fileType);
+    console.log(`[Upload] PDF conversion successful`);
+
+    // Get PDF file stats
+    const pdfStats = await fs.stat(pdfPath);
+    console.log(`[Upload] PDF size: ${pdfStats.size} bytes`);
+
+    // Delete original file after successful conversion
+    try {
+      await fs.unlink(originalPath);
+      console.log(`[Upload] Original file deleted: ${originalPath}`);
+    } catch (deleteError) {
+      console.error('[Upload] Error deleting original file:', deleteError);
+      // Continue even if deletion fails
+    }
+
+    // Create document record with PDF info
+    const document = await Document.create({
+      filename: pdfFilename,
+      originalName: req.file.originalname, // Keep original name for display
+      originalFilename: originalFilename,
+      mimeType: 'application/pdf',
+      originalMimeType: originalMimeType,
+      size: pdfStats.size,
+      originalSize: originalSize,
+      path: `/uploads/documents/${pdfFilename}`,
+      fileType,
+      description: description || '',
+      tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim())) : [],
+      uploadedBy: req.user._id,
+      tenantId: req.user.tenantId,
+      isConverted: true,
+    });
+
+    const populated = await Document.findById(document._id).populate('uploadedBy', 'name email');
+
+    console.log(`[Upload] Document created: ${document._id}`);
+    res.status(201).json({ document: populated });
+
+  } catch (conversionError) {
+    console.error('[Upload] PDF conversion failed:', conversionError);
+    
+    // Clean up original file on conversion failure
+    try {
+      await fs.unlink(originalPath);
+    } catch (cleanupError) {
+      console.error('[Upload] Error cleaning up original file:', cleanupError);
+    }
+
+    // Also try to clean up any partial PDF file
+    try {
+      await fs.unlink(pdfPath);
+    } catch (cleanupError) {
+      // PDF might not exist, ignore error
+    }
+
+    return res.status(500).json({ 
+      error: 'Failed to convert document to PDF. Please try again or contact support.',
+      details: conversionError.message 
+    });
+  }
 });
 
-// @desc    Proxy document for Office Online Viewer
+// @desc    View document as PDF in browser
+// @route   GET /api/documents/:id/view
+// @access  Private - Owner or Admin only
+export const viewDocument = asyncHandler(async (req, res) => {
+  console.log(`[View] Request for document: ${req.params.id}`);
+  console.log(`[View] User: ${req.user._id}, Role: ${req.user.role}`);
+  
+  const document = await findDocumentById(req.params.id);
+
+  if (!document) {
+    console.error(`[View] Document not found: ${req.params.id}`);
+    return res.status(404).json({ error: 'Document not found' });
+  }
+
+  // Check ownership - only owner or admin can view
+  if (!canAccessDocument(document, req.user)) {
+    console.error(`[View] Access denied. User ${req.user._id} is not owner of document ${document._id}`);
+    return res.status(403).json({ error: 'You do not have permission to view this document' });
+  }
+
+  // Construct file path - document.path is like "/uploads/documents/filename.pdf"
+  const relativePath = document.path.startsWith('/') ? document.path.slice(1) : document.path;
+  const filePath = path.join(process.cwd(), 'server', relativePath);
+  console.log(`[View] Document: ${document.originalName}`);
+  console.log(`[View] PDF path: ${filePath}`);
+
+  try {
+    await fs.access(filePath);
+    console.log(`[View] PDF file exists, serving for inline viewing`);
+    
+    // Get the display filename (change extension to .pdf for clarity)
+    const displayName = document.originalName.replace(/\.[^/.]+$/, '') + '.pdf';
+    
+    // Use res.sendFile for reliable file serving
+    res.sendFile(filePath, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="${encodeURIComponent(displayName)}"`,
+        'Cache-Control': 'private, max-age=3600',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    }, (error) => {
+      if (error) {
+        console.error(`[View] Error sending file:`, error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Error serving PDF file' });
+        }
+      } else {
+        console.log(`[View] PDF served successfully`);
+      }
+    });
+  } catch (error) {
+    console.error(`[View] File access error:`, error);
+    res.status(404).json({ error: 'PDF file not found on server' });
+  }
+});
+
+// @desc    Proxy document for Office Online Viewer (legacy - kept for backward compatibility)
 // @route   GET /api/documents/:id/proxy
 // @access  Private - Owner or Admin only
 export const proxyDocument = asyncHandler(async (req, res) => {
@@ -245,7 +365,7 @@ export const proxyDocument = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Download document
+// @desc    Download document (as PDF)
 // @route   GET /api/documents/:id/download
 // @access  Private - Owner or Admin only
 export const downloadDocument = asyncHandler(async (req, res) => {
@@ -268,7 +388,12 @@ export const downloadDocument = asyncHandler(async (req, res) => {
   // Construct file path
   const relativePath = document.path.startsWith('/') ? document.path.slice(1) : document.path;
   const filePath = path.join(process.cwd(), 'server', relativePath);
+  
+  // Create download filename - use original name but with .pdf extension
+  const downloadName = document.originalName.replace(/\.[^/.]+$/, '') + '.pdf';
+  
   console.log(`[Download] Document: ${document.originalName}`);
+  console.log(`[Download] Download as: ${downloadName}`);
   console.log(`[Download] File path: ${filePath}`);
 
   try {
@@ -276,7 +401,7 @@ export const downloadDocument = asyncHandler(async (req, res) => {
     console.log(`[Download] File exists, initiating download`);
     
     // Use res.download() - simple and reliable
-    res.download(filePath, document.originalName, (error) => {
+    res.download(filePath, downloadName, (error) => {
       if (error) {
         console.error(`[Download] Error downloading file:`, error);
         if (!res.headersSent) {

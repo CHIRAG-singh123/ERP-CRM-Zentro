@@ -38,15 +38,21 @@ const renderCustomLabel = ({
   // Only show label if percentage is >= 5%
   if (percent < 0.05) return null;
 
+  // Use a contrasting color based on theme - dark text for light mode, light text for dark mode
+  const textColor = 'var(--color-foreground)';
+  
   return (
     <text
       x={x}
       y={y}
-      fill="white"
+      fill={textColor}
       textAnchor={x > cx ? 'start' : 'end'}
       dominantBaseline="central"
       className="text-xs font-semibold"
-      style={{ textShadow: '0px 0px 4px rgba(0, 0, 0, 0.8)' }}
+      style={{ 
+        textShadow: '0px 0px 3px rgba(255, 255, 255, 0.9), 0px 0px 6px rgba(0, 0, 0, 0.4)',
+        fontWeight: 600
+      }}
     >
       {`${(percent * 100).toFixed(0)}%`}
     </text>
@@ -62,15 +68,15 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="rounded-lg border border-white/20 bg-[#1F1F21] p-3 shadow-xl">
-        <p className="text-sm font-semibold text-white mb-1">{data.stage}</p>
-        <p className="text-xs text-white/70">
-          Deals: <span className="font-medium text-white">{data.count}</span>
+      <div className="rounded-lg border border-border bg-card p-3 shadow-xl">
+        <p className="text-sm font-semibold text-foreground mb-1">{data.stage}</p>
+        <p className="text-xs text-muted-foreground">
+          Deals: <span className="font-medium text-foreground">{data.count}</span>
         </p>
-        <p className="text-xs text-white/70">
+        <p className="text-xs text-muted-foreground">
           Value: <span className="font-medium text-[#A8DADC]">{formatCurrency(data.totalValue)}</span>
         </p>
-        <p className="text-xs text-white/70">
+        <p className="text-xs text-muted-foreground">
           Percentage: <span className="font-medium text-[#B39CD0]">{data.percentage.toFixed(1)}%</span>
         </p>
       </div>
@@ -90,10 +96,10 @@ const CenterLabel = ({ viewBox, totalDeals, totalValue }: CenterLabelProps) => {
   
   return (
     <text x={cx} y={cy} textAnchor="middle">
-      <tspan x={cx} y={cy - 10} className="fill-white text-2xl font-bold">
+      <tspan x={cx} y={cy - 10} className="fill-foreground text-2xl font-bold">
         {totalDeals}
       </tspan>
-      <tspan x={cx} y={cy + 15} className="fill-white/70 text-sm">
+      <tspan x={cx} y={cy + 15} className="fill-muted-foreground text-sm">
         Total Deals
       </tspan>
       <tspan x={cx} y={cy + 35} className="fill-[#A8DADC] text-base font-semibold">
@@ -173,7 +179,7 @@ export function DealsByStagePieChart({ data, onFilterChange }: DealsByStagePieCh
               height={36}
               iconType="circle"
               formatter={(value) => (
-                <span className="text-sm text-white/80">{value}</span>
+                <span className="text-sm text-foreground">{value}</span>
               )}
               wrapperStyle={{
                 paddingTop: '20px',
@@ -184,20 +190,20 @@ export function DealsByStagePieChart({ data, onFilterChange }: DealsByStagePieCh
       </div>
 
       {/* Summary Stats */}
-      <div className="mt-4 pt-4 border-t border-white/10">
+      <div className="mt-4 pt-4 border-t border-border">
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               <AnimatedNumber value={totalDeals} format="number" />
             </div>
-            <div className="text-xs text-white/60">Total Deals</div>
+            <div className="text-xs text-muted-foreground">Total Deals</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-[#A8DADC]">
               {formatAbbreviatedNumber(totalValue, true)}
             </div>
-            <div className="text-xs text-white/60">Total Value</div>
-            <div className="text-xs text-white/40 mt-1">
+            <div className="text-xs text-muted-foreground">Total Value</div>
+            <div className="text-xs text-muted-foreground/70 mt-1">
               {formatCurrency(totalValue)}
             </div>
           </div>
@@ -205,7 +211,7 @@ export function DealsByStagePieChart({ data, onFilterChange }: DealsByStagePieCh
       </div>
 
       {/* Stage Breakdown */}
-      <div className="mt-4 pt-4 border-t border-white/10">
+      <div className="mt-4 pt-4 border-t border-border">
         <div className="grid grid-cols-2 gap-2 text-xs">
           {chartDataWithPercentage.map((item) => (
             <div key={item.stage} className="flex items-center justify-between">
@@ -214,9 +220,9 @@ export function DealsByStagePieChart({ data, onFilterChange }: DealsByStagePieCh
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: STAGE_COLORS[item.stage] }}
                 />
-                <span className="text-white/70">{item.stage}</span>
+                <span className="text-muted-foreground">{item.stage}</span>
               </div>
-              <span className="font-medium text-white">{item.count}</span>
+              <span className="font-medium text-foreground">{item.count}</span>
             </div>
           ))}
         </div>

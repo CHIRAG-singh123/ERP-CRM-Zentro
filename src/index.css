@@ -772,6 +772,47 @@ button:hover svg {
   animation: gradientShift 8s ease infinite;
 }
 
+/* ============================================
+   Sidebar Navigation Animations
+   ============================================ */
+
+/* Sidebar active item border animation */
+.sidebar-active {
+  animation: sidebarBorderAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes sidebarBorderAppear {
+  0% {
+    border-color: transparent;
+    opacity: 0.5;
+  }
+  100% {
+    border-color: var(--color-accent);
+    opacity: 1;
+  }
+}
+
+/* Dark mode border animation adjustment */
+.dark .sidebar-active {
+  border-color: var(--color-accent);
+  opacity: 1;
+}
+
+/* Smooth border transition for sidebar items */
+.sidebar-nav-item {
+  transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced hover effect for non-active sidebar items */
+.sidebar-nav-item:not(.sidebar-active):hover {
+  transform: translateX(4px);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Glow effect on focus */
 .glow-focus:focus {
   outline: none;

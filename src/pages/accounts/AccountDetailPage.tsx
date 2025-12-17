@@ -6,6 +6,8 @@ import { PageHeader } from '../../components/common/PageHeader';
 import { useCompany, useDeleteCompany } from '../../hooks/queries/useAccounts';
 import { CompanyForm } from '../../components/companies/CompanyForm';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { EmailModal } from '../../components/common/EmailModal';
+import { sendEmailToCompany } from '../../services/api/companies';
 import { formatCompanyAddress } from '../../utils/companyUtils';
 import { formatDate } from '../../utils/formatting';
 
@@ -14,6 +16,7 @@ export function AccountDetailPage() {
   const navigate = useNavigate();
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const { data, isLoading, isError, error } = useCompany(id);
   const company = data?.company;
@@ -40,6 +43,13 @@ export function AccountDetailPage() {
 
   const handleFormSuccess = () => {
     setShowEditForm(false);
+  };
+
+  const handleSendEmail = async (emailData: { fromEmail: string; subject: string; message: string }) => {
+    if (!company?._id) {
+      throw new Error('Company not found');
+    }
+    await sendEmailToCompany(company._id, emailData);
   };
 
   if (isLoading) {
@@ -221,13 +231,13 @@ export function AccountDetailPage() {
           <h3 className="text-sm uppercase tracking-[0.32em] text-white/40">Quick Actions</h3>
           <div className="space-y-2">
             {company.email && (
-              <a
-                href={`mailto:${company.email}`}
+              <button
+                onClick={() => setShowEmailModal(true)}
                 className="w-full flex items-center justify-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-[#A8DADC] hover:text-[#A8DADC] hover:scale-105"
               >
                 <Mail className="h-4 w-4" />
                 Send Email
-              </a>
+              </button>
             )}
             {company.phone && (
               <a
@@ -271,6 +281,16 @@ export function AccountDetailPage() {
           onConfirm={confirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
           confirmVariant="danger"
+        />
+      )}
+
+      {showEmailModal && company && company.email && (
+        <EmailModal
+          isOpen={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          recipientEmail={company.email}
+          recipientName={company.name}
+          onSend={handleSendEmail}
         />
       )}
     </div>

@@ -3,26 +3,48 @@ import crypto from 'crypto';
 
 const documentSchema = new mongoose.Schema(
   {
+    // PDF filename (stored file)
     filename: {
       type: String,
       required: true,
     },
+    // Original uploaded filename (e.g., "report.docx")
     originalName: {
       type: String,
       required: true,
     },
+    // Original filename before conversion (preserved for reference)
+    originalFilename: {
+      type: String,
+      default: null,
+    },
+    // MIME type - always 'application/pdf' for stored files
     mimeType: {
       type: String,
       required: true,
+      default: 'application/pdf',
     },
+    // Original MIME type before conversion
+    originalMimeType: {
+      type: String,
+      default: null,
+    },
+    // PDF file size
     size: {
       type: Number,
       required: true,
     },
+    // Original file size before conversion
+    originalSize: {
+      type: Number,
+      default: null,
+    },
+    // Path to PDF file
     path: {
       type: String,
       required: true,
     },
+    // Original file type (word, powerpoint, excel) - kept for display purposes
     fileType: {
       type: String,
       enum: ['word', 'powerpoint', 'excel'],
@@ -49,7 +71,12 @@ const documentSchema = new mongoose.Schema(
       ref: 'Tenant',
       index: true,
     },
-    // Temporary view token for external viewers (like Google Docs Viewer)
+    // Flag to indicate if document was converted to PDF
+    isConverted: {
+      type: Boolean,
+      default: true,
+    },
+    // Temporary view token for external viewers (kept for backward compatibility)
     viewToken: {
       type: String,
       default: null,

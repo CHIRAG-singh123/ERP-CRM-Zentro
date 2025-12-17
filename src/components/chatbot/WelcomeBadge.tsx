@@ -34,17 +34,17 @@ export function WelcomeBadge({ onDismiss }: WelcomeBadgeProps) {
       <div className="relative">
         <div className="absolute -top-2 -right-2 h-5 w-5 animate-ping rounded-full bg-[#A8DADC] opacity-75"></div>
         <div className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-gradient-to-br from-[#A8DADC] to-[#B39CD0] shadow-lg"></div>
-        <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-gradient-to-br from-[#1A1A1C]/98 via-[#1F1F21]/98 to-[#1A1A1C]/98 backdrop-blur-xl px-5 py-4 shadow-2xl ring-2 ring-[#A8DADC]/30 transition-all duration-300 hover:ring-[#A8DADC]/50 hover:shadow-[#A8DADC]/20">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/95 backdrop-blur-xl px-5 py-4 shadow-2xl ring-2 ring-accent/30 transition-all duration-300 hover:ring-accent/50 hover:shadow-accent/20 dark:bg-gradient-to-br dark:from-[#1A1A1C]/98 dark:via-[#1F1F21]/98 dark:to-[#1A1A1C]/98 dark:border-white/20">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#A8DADC] to-[#B39CD0] shadow-lg ring-2 ring-[#A8DADC]/40">
             <MessageCircle className="h-6 w-6 text-[#1A1A1C]" />
           </div>
           <div className="flex flex-col">
-            <p className="text-sm font-semibold text-white">How can I assist you today?</p>
-            <p className="text-xs text-white/60 mt-0.5">Click the chat button to get started</p>
+            <p className="text-sm font-semibold text-foreground">How can I assist you today?</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Click the chat button to get started</p>
           </div>
           <button
             onClick={onDismiss}
-            className="ml-2 rounded-lg p-1.5 text-white/40 transition-all duration-200 hover:bg-white/10 hover:text-white hover:scale-110"
+            className="ml-2 rounded-lg p-1.5 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground hover:scale-110"
             aria-label="Dismiss"
           >
             <svg

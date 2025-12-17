@@ -12,6 +12,8 @@ dist-ssr
 *.local
 server/node_modules
 server/.env
+server/uploads/*
+
 
 .vscode/*
 !.vscode/extensions.json
