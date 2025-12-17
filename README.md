@@ -163,4 +163,8 @@ Commit your Changes (git commit -m 'Add some AmazingFeature')
 
 Push to the Branch (git push origin feature/AmazingFeature)
 
+<<<<<<< HEAD
 Open a Pull Request
+=======
+Open a Pull Request
+>>>>>>> 0a7788610c1bce4025266b7aea913dc1f2110daa
