@@ -205,7 +205,21 @@ export function AnimatedLogo({
           </g>
         </g>
 
-        {/* Right text block */}
+        {/* Right text block - Theme aware colors */}
+        <defs>
+          <style>{`
+            @media (prefers-color-scheme: light) {
+              .logo-text-main { fill: #1a1a1a; }
+              .logo-text-tagline { fill: #666666; }
+            }
+            @media (prefers-color-scheme: dark) {
+              .logo-text-main { fill: #FFFFFF; }
+              .logo-text-tagline { fill: #9AA4B2; }
+            }
+            .logo-text-main { transition: fill 0.3s ease; }
+            .logo-text-tagline { transition: fill 0.3s ease; }
+          `}</style>
+        </defs>
         <g transform="translate(140,28)">
           <text
             x="0"
@@ -213,7 +227,8 @@ export function AnimatedLogo({
             fontFamily="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial"
             fontWeight={700}
             fontSize={20}
-            fill="#FFFFFF"
+            className="logo-text-main"
+            style={{ fill: 'var(--color-foreground, #1a1a1a)' }}
           >
             {name}
           </text>
@@ -222,9 +237,10 @@ export function AnimatedLogo({
             x="0"
             y="46"
             fontFamily="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial"
-            fontWeight={400}
+            fontWeight={500}
             fontSize={11.5}
-            fill="#9AA4B2"
+            className="logo-text-tagline"
+            style={{ fill: 'var(--color-muted-foreground, #666666)' }}
           >
             {tagline}
           </text>

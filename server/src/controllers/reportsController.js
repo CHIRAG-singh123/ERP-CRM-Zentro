@@ -14,18 +14,44 @@ export const getKPIs = asyncHandler(async (req, res) => {
   const tenantFilter = req.user.tenantId ? { tenantId: req.user.tenantId } : {};
   const ownerFilter = req.user.role !== 'admin' ? { ownerId: req.user._id } : {};
 
+  // Extract filter parameters from query
+  const { startDate, endDate, ownerId, stage } = req.query;
+
+  // Build dynamic filter
+  const dynamicFilter = { ...tenantFilter };
+  
+  // Owner filter: if ownerId is provided and user is admin, use it; otherwise use default ownerFilter
+  if (ownerId && req.user.role === 'admin') {
+    dynamicFilter.ownerId = ownerId;
+  } else if (req.user.role !== 'admin') {
+    Object.assign(dynamicFilter, ownerFilter);
+  }
+
+  // Date range filter
+  const dateFilter = {};
+  if (startDate || endDate) {
+    if (startDate) dateFilter.$gte = new Date(startDate);
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      dateFilter.$lte = endDateTime;
+    }
+  }
+
   // Monthly sales (last 6 months)
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
+  const monthlySalesFilter = {
+    ...tenantFilter,
+    ...ownerFilter,
+    stage: 'Closed Won',
+    createdAt: { $gte: sixMonthsAgo },
+  };
+
   const monthlySales = await Deal.aggregate([
     {
-      $match: {
-        ...tenantFilter,
-        ...ownerFilter,
-        stage: 'Closed Won',
-        createdAt: { $gte: sixMonthsAgo },
-      },
+      $match: monthlySalesFilter,
     },
     {
       $group: {
@@ -58,13 +84,47 @@ export const getKPIs = asyncHandler(async (req, res) => {
     },
   ]);
 
-  // Leads by source
+  // Deals by stage (with filters applied)
+  const dealsByStageFilter = { ...dynamicFilter };
+  if (Object.keys(dateFilter).length > 0) {
+    dealsByStageFilter.createdAt = dateFilter;
+  }
+  if (stage) {
+    dealsByStageFilter.stage = stage;
+  }
+
+  const allStages = ['Prospecting', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
+  
+  const dealsByStageResult = await Deal.aggregate([
+    {
+      $match: dealsByStageFilter,
+    },
+    {
+      $group: {
+        _id: '$stage',
+        count: { $sum: 1 },
+        totalValue: { $sum: '$value' },
+      },
+    },
+  ]);
+
+  // Ensure all stages are present (even with 0 count)
+  const dealsByStageMap = new Map(dealsByStageResult.map(item => [item._id, item]));
+  const dealsByStage = allStages.map(stageName => ({
+    stage: stageName,
+    count: dealsByStageMap.get(stageName)?.count || 0,
+    totalValue: dealsByStageMap.get(stageName)?.totalValue || 0,
+  }));
+
+  // Leads by source (with filters applied)
+  const leadsBySourceFilter = { ...dynamicFilter };
+  if (Object.keys(dateFilter).length > 0) {
+    leadsBySourceFilter.createdAt = dateFilter;
+  }
+
   const leadsBySource = await Lead.aggregate([
     {
-      $match: {
-        ...tenantFilter,
-        ...ownerFilter,
-      },
+      $match: leadsBySourceFilter,
     },
     {
       $group: {
@@ -175,6 +235,7 @@ export const getKPIs = asyncHandler(async (req, res) => {
       count: openDeals[0]?.count || 0,
       totalValue: openDeals[0]?.totalValue || 0,
     },
+    dealsByStage,
     leadsBySource: leadsBySource.map((item) => ({
       source: item._id,
       count: item.count,

@@ -66,7 +66,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           </div>
           {navigation.map((section) => (
             <div key={section.label}>
-              <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/40">
+              <p className="px-2 text-[11px] font-bold uppercase tracking-[0.32em] text-foreground/60">
                 {section.label}
               </p>
               <nav className="mt-3 space-y-1">
@@ -79,14 +79,14 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                       key={item.href}
                       to={item.href}
                       onClick={onClose}
-                      className={`group flex items-center justify-between rounded-md px-3 py-2 text-sm transition-all duration-200 ${
+                      className={`group flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 ${
                         active
-                          ? 'bg-white/10 text-white'
-                          : 'text-white/60 hover:bg-white/5 hover:text-white'
+                          ? 'bg-accent/15 text-accent'
+                          : 'text-foreground/70 hover:bg-muted hover:text-foreground'
                       }`}
                     >
                       <span className="flex items-center gap-2">
-                        {item.icon ? <item.icon className="h-4 w-4" /> : null}
+                        {item.icon ? <item.icon className={`h-5 w-5 transition-all duration-200 icon-visible ${active ? 'text-accent' : 'text-foreground/70 group-hover:text-foreground'}`} /> : null}
                         <span>{item.label}</span>
                       </span>
                       {item.href === '/chat' && totalUnread > 0 ? (

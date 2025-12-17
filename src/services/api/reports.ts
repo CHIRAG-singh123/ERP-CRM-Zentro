@@ -26,12 +26,19 @@ export interface Deal {
   createdAt: string;
 }
 
+export interface DealsByStage {
+  stage: string;
+  count: number;
+  totalValue: number;
+}
+
 export interface KPIsResponse {
   monthlySales: MonthlySales[];
   openDeals: {
     count: number;
     totalValue: number;
   };
+  dealsByStage: DealsByStage[];
   leadsBySource: LeadsBySource[];
   conversionRate: number;
   recentDeals: Deal[];
@@ -43,8 +50,20 @@ export interface KPIsResponse {
   weeklyTasks: number;
 }
 
-export const getKPIs = async (): Promise<KPIsResponse> => {
-  return fetchJson<KPIsResponse>('/reports/kpis');
+export const getKPIs = async (params?: {
+  startDate?: string;
+  endDate?: string;
+  ownerId?: string;
+  stage?: string;
+}): Promise<KPIsResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.startDate) queryParams.append('startDate', params.startDate);
+  if (params?.endDate) queryParams.append('endDate', params.endDate);
+  if (params?.ownerId) queryParams.append('ownerId', params.ownerId);
+  if (params?.stage) queryParams.append('stage', params.stage);
+
+  const queryString = queryParams.toString();
+  return fetchJson<KPIsResponse>(`/reports/kpis${queryString ? `?${queryString}` : ''}`);
 };
 
 export interface ConversionFunnelData {

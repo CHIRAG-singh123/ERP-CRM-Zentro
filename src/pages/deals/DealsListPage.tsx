@@ -243,7 +243,7 @@ export function DealsListPage() {
                       e.stopPropagation();
                       handleViewDeal(deal);
                     }}
-                    className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-[#A8DADC] hover:bg-white/5 hover:scale-110"
+                    className="action-button action-button-view"
                     title="View Deal"
                   >
                     <Eye className="h-4 w-4" />
@@ -253,7 +253,7 @@ export function DealsListPage() {
                       e.stopPropagation();
                       handleEditDeal(deal);
                     }}
-                    className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-[#B39CD0] hover:bg-white/5 hover:scale-110"
+                    className="action-button action-button-edit"
                     title="Edit Deal"
                   >
                     <Edit className="h-4 w-4" />
@@ -263,7 +263,7 @@ export function DealsListPage() {
                       e.stopPropagation();
                       handleDeleteDeal(deal);
                     }}
-                    className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-red-400 hover:bg-white/5 hover:scale-110"
+                    className="action-button action-button-delete"
                     title="Delete Deal"
                   >
                     <Trash2 className="h-4 w-4" />

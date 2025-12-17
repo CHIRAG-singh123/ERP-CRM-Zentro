@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Handshake, Target, FileText, Calendar } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { DataGrid } from '../../components/common/DataGrid';
@@ -13,13 +12,22 @@ import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import { OverdueTasksModal } from '../../components/tasks/OverdueTasksModal';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { formatAbbreviatedNumber, formatCurrency } from '../../utils/formatting';
+import { DealsByStagePieChart, type ChartFilterValues } from '../../components/dashboard/DealsByStagePieChart';
+import { LeadsBySourceBarChart } from '../../components/dashboard/LeadsBySourceBarChart';
 
 export function DashboardPage() {
-  const { data, isLoading, refetch } = useDashboardSummary();
+  const [filters, setFilters] = useState<ChartFilterValues>({});
+  const { data, isLoading, refetch } = useDashboardSummary(filters);
   const { user } = useAuth();
   const { subscribeToTasks, onDashboardMetricsUpdated } = useSocket();
   const queryClient = useQueryClient();
   const [showOverdueModal, setShowOverdueModal] = useState(false);
+  const isAdmin = user?.role === 'admin';
+
+  const handleFilterChange = (newFilters: ChartFilterValues) => {
+    setFilters(newFilters);
+  };
 
   // Only admin and employees can access this dashboard
   // Customers should be redirected to /customers/dashboard
@@ -111,15 +119,26 @@ export function DashboardPage() {
           ? Array.from({ length: 4 }).map((_, index) => (
               <MetricCard key={index} value="—" label="Loading…" trend=" " />
             ))
-          : metrics.map((metric) => {
+          : metrics.map((metric, index) => {
               const Icon = metric.icon;
-              const valueDisplay = (
-                <AnimatedNumber 
-                  value={metric.value} 
-                  format={metric.valueFormat} 
-                  decimals={metric.valueFormat === 'percentage' ? 1 : 0}
-                />
-              );
+              
+              // For currency values, use abbreviated format with full value on hover
+              let valueDisplay: React.ReactNode;
+              let fullValueTooltip: string | undefined;
+              
+              if (metric.valueFormat === 'currency') {
+                valueDisplay = formatAbbreviatedNumber(metric.value, true);
+                fullValueTooltip = formatCurrency(metric.value);
+              } else {
+                valueDisplay = (
+                  <AnimatedNumber 
+                    value={metric.value} 
+                    format={metric.valueFormat} 
+                    decimals={metric.valueFormat === 'percentage' ? 1 : 0}
+                  />
+                );
+              }
+              
               const trendDisplay = metric.trend !== null ? (
                 <>
                   <AnimatedNumber 
@@ -132,13 +151,16 @@ export function DashboardPage() {
               ) : (
                 metric.trendText || ''
               );
+              
               return (
                 <MetricCard
                   key={metric.id}
+                  index={index}
                   value={valueDisplay}
                   label={metric.label}
                   trend={trendDisplay}
                   icon={<Icon className="h-5 w-5" />}
+                  fullValue={fullValueTooltip}
                   onClick={
                     metric.id === 'weeklyTasks' && canViewTasks
                       ? () => setShowOverdueModal(true)
@@ -150,9 +172,9 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Monthly Sales Chart */}
-        <section className="card-hover animate-slide-fade rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-white/20 hover:shadow-xl">
-          <h3 className="mb-4 text-lg font-semibold text-white transition-colors duration-300">Monthly Sales</h3>
+        {/* Deals by Stage Pie Chart */}
+        <section className="card-hover animate-slide-fade rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-accent/30 hover:shadow-xl">
+          <h3 className="mb-4 text-lg font-bold text-foreground transition-colors duration-300">Deals by Stage</h3>
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <div className="flex flex-col items-center gap-3">
@@ -160,30 +182,22 @@ export function DashboardPage() {
                 <div className="text-white/60 animate-pulse">Loading chart...</div>
               </div>
             </div>
-          ) : data?.monthlySales && data.monthlySales.length > 0 ? (
-            <div className="animate-fade-in">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={data.monthlySales}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
-                  <XAxis dataKey="month" stroke="#ffffff60" />
-                  <YAxis stroke="#ffffff60" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1F1F21', border: '1px solid #ffffff20', color: '#fff', borderRadius: '8px' }}
-                  />
-                  <Legend />
-                  <Line type="monotone" dataKey="total" stroke="#A8DADC" strokeWidth={2} name="Sales ($)" />
-                  <Line type="monotone" dataKey="count" stroke="#B39CD0" strokeWidth={2} name="Deals" />
-                </LineChart>
-              </ResponsiveContainer>
+          ) : data?.dealsByStage && data.dealsByStage.length > 0 ? (
+            <div className="animate-fade-in" style={{ height: '500px' }}>
+              <DealsByStagePieChart 
+                data={data.dealsByStage} 
+                onFilterChange={handleFilterChange}
+                isAdmin={isAdmin}
+              />
             </div>
           ) : (
-            <div className="flex h-64 items-center justify-center text-sm text-white/60">No sales data</div>
+            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">No deals data</div>
           )}
         </section>
 
         {/* Leads by Source Chart */}
-        <section className="card-hover animate-slide-fade rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-white/20 hover:shadow-xl" style={{ animationDelay: '0.1s' }}>
-          <h3 className="mb-4 text-lg font-semibold text-white transition-colors duration-300">Leads by Source</h3>
+        <section className="card-hover animate-slide-fade rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-accent/30 hover:shadow-xl" style={{ animationDelay: '0.1s' }}>
+          <h3 className="mb-4 text-lg font-bold text-foreground transition-colors duration-300">Leads by Source</h3>
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <div className="flex flex-col items-center gap-3">
@@ -192,29 +206,21 @@ export function DashboardPage() {
               </div>
             </div>
           ) : data?.leadsBySource && data.leadsBySource.length > 0 ? (
-            <div className="animate-fade-in">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={data.leadsBySource}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
-                  <XAxis dataKey="source" stroke="#ffffff60" />
-                  <YAxis stroke="#ffffff60" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1F1F21', border: '1px solid #ffffff20', color: '#fff', borderRadius: '8px' }}
-                  />
-                  <Legend />
-                  <Bar dataKey="count" fill="#A8DADC" name="Leads" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="animate-fade-in" style={{ height: '500px' }}>
+              <LeadsBySourceBarChart 
+                data={data.leadsBySource}
+                onFilterChange={handleFilterChange}
+              />
             </div>
           ) : (
-            <div className="flex h-64 items-center justify-center text-sm text-white/60">No leads data</div>
+            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">No leads data</div>
           )}
         </section>
       </div>
 
       {/* Recent Deals */}
-      <section className="card-hover animate-slide-fade rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-white/20 hover:shadow-xl" style={{ animationDelay: '0.2s' }}>
-        <h3 className="mb-4 text-lg font-semibold text-white">Recent Deals</h3>
+      <section className="card-hover animate-slide-fade rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-accent/30 hover:shadow-xl" style={{ animationDelay: '0.2s' }}>
+        <h3 className="mb-4 text-lg font-bold text-foreground">Recent Deals</h3>
         {isLoading ? (
           <DataGridPlaceholder columns={['Deal', 'Contact', 'Company', 'Value', 'Stage']} rows={5} />
         ) : data?.recentDeals && data.recentDeals.length > 0 ? (
@@ -252,7 +258,7 @@ export function DashboardPage() {
             data={data.recentDeals}
           />
         ) : (
-          <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 px-6 py-10 text-center text-sm text-white/50">
+          <div className="rounded-xl border border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
             No recent deals
           </div>
         )}

@@ -304,7 +304,7 @@ export function CompanyForm({ company, isOpen, onSuccess, onCancel }: CompanyFor
                   <button
                     type="submit"
                     disabled={isSubmitting || isLoading}
-                    className="flex-1 rounded-lg bg-[#A8DADC] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:scale-105 hover:bg-[#BCE7E5] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="crud-button crud-button-primary flex-1"
                   >
                     {(isSubmitting || isLoading) && <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />}
                     {company ? 'Update Account' : 'Create Account'}
@@ -313,7 +313,7 @@ export function CompanyForm({ company, isOpen, onSuccess, onCancel }: CompanyFor
                     type="button"
                     onClick={onCancel}
                     disabled={isSubmitting || isLoading}
-                    className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:scale-105 hover:border-white/20 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="crud-button crud-button-secondary flex-1"
                   >
                     Cancel
                   </button>

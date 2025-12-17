@@ -89,3 +89,41 @@ export const truncate = (text: string, maxLength: number): string => {
   return text.slice(0, maxLength) + '...';
 };
 
+// Format abbreviated number (K, M, B)
+export const formatAbbreviatedNumber = (value: number, isCurrency: boolean = false): string => {
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  const prefix = isCurrency ? '$' : '';
+  
+  // Billions
+  if (absValue >= 1_000_000_000) {
+    const billions = absValue / 1_000_000_000;
+    // Use 2 decimal places, but remove trailing zeros
+    const formatted = billions.toFixed(2).replace(/\.?0+$/, '');
+    return `${sign}${prefix}${formatted}B`;
+  }
+  
+  // Millions
+  if (absValue >= 1_000_000) {
+    const millions = absValue / 1_000_000;
+    // Use 2 decimal places, but remove trailing zeros
+    const formatted = millions.toFixed(2).replace(/\.?0+$/, '');
+    return `${sign}${prefix}${formatted}M`;
+  }
+  
+  // Thousands
+  if (absValue >= 1_000) {
+    const thousands = absValue / 1_000;
+    // Use 2 decimal places, but remove trailing zeros
+    const formatted = thousands.toFixed(2).replace(/\.?0+$/, '');
+    return `${sign}${prefix}${formatted}K`;
+  }
+  
+  // Less than 1000
+  if (isCurrency) {
+    return formatCurrency(value);
+  }
+  
+  return `${sign}${absValue.toFixed(0)}`;
+};
+

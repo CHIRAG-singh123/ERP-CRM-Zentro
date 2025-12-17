@@ -272,7 +272,7 @@ export function ProductsListPage() {
                         e.stopPropagation();
                         handleViewProduct(product);
                       }}
-                      className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-[#A8DADC] hover:bg-white/5 hover:scale-110"
+                      className="action-button action-button-view"
                       title="View Product"
                     >
                       <Eye className="h-4 w-4" />
@@ -284,7 +284,7 @@ export function ProductsListPage() {
                             e.stopPropagation();
                             openEditModal(product);
                           }}
-                          className="rounded p-1.5 text-white/50 transition-all duration-200 hover:bg-white/10 hover:text-blue-400 hover:scale-110"
+                          className="action-button action-button-edit"
                           title="Edit Product"
                         >
                           <Edit className="h-4 w-4" />
@@ -294,7 +294,7 @@ export function ProductsListPage() {
                             e.stopPropagation();
                             handleDelete(product._id);
                           }}
-                          className="rounded p-1.5 text-white/50 transition-all duration-200 hover:bg-white/10 hover:text-red-400 hover:scale-110"
+                          className="action-button action-button-delete"
                           title="Delete Product"
                         >
                           <Trash2 className="h-4 w-4" />

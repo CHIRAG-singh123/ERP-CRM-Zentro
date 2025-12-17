@@ -24,9 +24,9 @@ export function NotificationBell() {
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative rounded-md p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+        className="relative rounded-md p-2 text-foreground/70 transition-all duration-200 hover:bg-muted hover:text-foreground icon-visible-hover"
       >
-        <Bell className="h-5 w-5" />
+        <Bell className="h-5 w-5 icon-visible" />
         {unreadCount > 0 && (
           <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
             {unreadCount > 9 ? '9+' : unreadCount}

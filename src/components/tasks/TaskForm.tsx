@@ -432,24 +432,24 @@ export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: 
                 <ErrorMessage name="tags" component="p" className="mt-1 text-xs text-red-400" />
               </div>
 
-              <div className="flex gap-2 pt-4">
-                <button
-                  type="submit"
-                  disabled={isSubmitting || isLoading}
-                  className="flex-1 rounded-lg bg-[#A8DADC] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:scale-105 hover:bg-[#BCE7E5] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {(isSubmitting || isLoading) && <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />}
-                  {task ? 'Update Task' : 'Create Task'}
-                </button>
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  disabled={isSubmitting || isLoading}
-                  className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:scale-105 hover:border-white/20 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-              </div>
+                  <div className="flex gap-2 pt-4">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || isLoading}
+                      className="crud-button crud-button-primary flex-1"
+                    >
+                      {(isSubmitting || isLoading) && <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />}
+                      {task ? 'Update Task' : 'Create Task'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onCancel}
+                      disabled={isSubmitting || isLoading}
+                      className="crud-button crud-button-secondary flex-1"
+                    >
+                      Cancel
+                    </button>
+                  </div>
             </Form>
               );
             }}

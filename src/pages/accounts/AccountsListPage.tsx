@@ -186,7 +186,7 @@ export function AccountsListPage() {
                       e.stopPropagation();
                       handleViewAccount(company);
                     }}
-                    className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-[#A8DADC] hover:bg-white/5 hover:scale-110"
+                    className="action-button action-button-view"
                     title="View Account"
                   >
                     <Eye className="h-4 w-4" />
@@ -196,7 +196,7 @@ export function AccountsListPage() {
                       e.stopPropagation();
                       handleEditAccount(company);
                     }}
-                    className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-[#B39CD0] hover:bg-white/5 hover:scale-110"
+                    className="action-button action-button-edit"
                     title="Edit Account"
                   >
                     <Edit className="h-4 w-4" />
@@ -206,7 +206,7 @@ export function AccountsListPage() {
                       e.stopPropagation();
                       handleDeleteAccount(company);
                     }}
-                    className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-red-400 hover:bg-white/5 hover:scale-110"
+                    className="action-button action-button-delete"
                     title="Delete Account"
                   >
                     <Trash2 className="h-4 w-4" />

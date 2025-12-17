@@ -22,7 +22,7 @@ export function AppLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-[#242426] text-[#E4E4E4]">
+    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
       <Sidebar />
       <MobileSidebar isOpen={isMobileSidebarOpen} onClose={() => setIsMobileSidebarOpen(false)} />
       <div className="flex min-h-screen flex-1 flex-col">

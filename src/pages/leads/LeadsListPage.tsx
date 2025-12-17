@@ -257,7 +257,7 @@ export function LeadsListPage() {
                       e.stopPropagation();
                       handleViewLead(lead);
                     }}
-                    className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-[#A8DADC] hover:bg-white/5 hover:scale-110"
+                    className="action-button action-button-view"
                     title="View Lead"
                   >
                     <Eye className="h-4 w-4" />
@@ -267,7 +267,7 @@ export function LeadsListPage() {
                       e.stopPropagation();
                       handleEditLead(lead);
                     }}
-                    className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-[#B39CD0] hover:bg-white/5 hover:scale-110"
+                    className="action-button action-button-edit"
                     title="Edit Lead"
                   >
                     <Edit className="h-4 w-4" />
@@ -277,7 +277,7 @@ export function LeadsListPage() {
                       e.stopPropagation();
                       handleDeleteLead(lead);
                     }}
-                    className="p-1.5 rounded-lg text-white/60 transition-all duration-200 hover:text-red-400 hover:bg-white/5 hover:scale-110"
+                    className="action-button action-button-delete"
                     title="Delete Lead"
                   >
                     <Trash2 className="h-4 w-4" />

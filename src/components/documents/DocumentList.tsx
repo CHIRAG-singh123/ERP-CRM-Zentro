@@ -185,21 +185,21 @@ export function DocumentList({
                   <div className="flex items-center justify-end gap-1">
                     <button
                       onClick={() => onView(document)}
-                      className="rounded-lg p-2 text-white/50 transition-all duration-200 hover:bg-[#B39CD0]/20 hover:text-[#B39CD0] hover:scale-110 active:scale-95"
+                      className="action-button action-button-view"
                       title="View"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => onDownload(document)}
-                      className="rounded-lg p-2 text-white/50 transition-all duration-200 hover:bg-white/10 hover:text-white hover:scale-110 active:scale-95"
+                      className="action-button action-button-view"
                       title="Download"
                     >
                       <Download className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => onDelete(document)}
-                      className="rounded-lg p-2 text-white/50 transition-all duration-200 hover:bg-red-500/20 hover:text-red-400 hover:scale-110 active:scale-95"
+                      className="action-button action-button-delete"
                       title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />

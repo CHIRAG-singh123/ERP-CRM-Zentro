@@ -2,6 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode, useState, Suspense } from 'react';
 
 import { createQueryClient } from '../services/queryClient';
+import { ThemeProvider } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
 import { SocketProvider } from '../context/SocketContext';
@@ -14,11 +15,11 @@ interface AppProvidersProps {
 // Loading component
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#242426]">
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="text-center">
-        <div className="mb-4 text-white">Loading...</div>
-        <div className="h-1 w-48 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full w-1/3 animate-pulse bg-[#B39CD0]"></div>
+        <div className="mb-4 text-foreground">Loading...</div>
+        <div className="h-1 w-48 overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-1/3 animate-pulse bg-accent"></div>
         </div>
       </div>
     </div>
@@ -34,17 +35,19 @@ export function AppProviders({ children }: AppProvidersProps) {
   logger.debug('[AppProviders] Rendering providers...');
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SocketProvider>
-          <ToastProvider>
-            <Suspense fallback={<LoadingFallback />}>
-              {children}
-            </Suspense>
-          </ToastProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <SocketProvider>
+            <ToastProvider>
+              <Suspense fallback={<LoadingFallback />}>
+                {children}
+              </Suspense>
+            </ToastProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

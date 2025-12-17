@@ -2,25 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme CSS Variables */
+:root {
+  /* Light Mode (Default) */
+  --color-background: #f7f6f9;
+  --color-foreground: #1a1a1a;
+  --color-card: #fafafa;
+  --color-card-foreground: #1a1a1a;
+  --color-muted: #efefef;
+  --color-muted-foreground: #666666;
+  --color-accent: #6425fe;
+  --color-accent-foreground: #ffffff;
+  --color-accent-secondary: #B39CD0;
+  --color-border: rgba(44, 44, 44, 0.15);
+  --color-input: rgba(44, 44, 44, 0.12);
+  --color-ring: #6425fe;
+  
+  /* Chart colors - Light Mode */
+  --color-chart-primary: #6425fe;
+  --color-chart-secondary: #B39CD0;
+  --color-chart-tertiary: #A8DADC;
+  --color-chart-positive: #77b900;
+  --color-chart-negative: #e8464c;
+}
+
+.dark {
+  /* Dark Mode */
+  --color-background: #242426;
+  --color-foreground: #e4e4e4;
+  --color-card: #1A1A1C;
+  --color-card-foreground: #e4e4e4;
+  --color-muted: #1F1F21;
+  --color-muted-foreground: rgba(255, 255, 255, 0.6);
+  --color-accent: #B39CD0;
+  --color-accent-foreground: #1A1A1C;
+  --color-accent-secondary: #A8DADC;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-input: rgba(255, 255, 255, 0.1);
+  --color-ring: #B39CD0;
+  
+  /* Chart colors - Dark Mode */
+  --color-chart-primary: #A8DADC;
+  --color-chart-secondary: #B39CD0;
+  --color-chart-tertiary: #6425fe;
+  --color-chart-positive: #77b900;
+  --color-chart-negative: #e8464c;
+}
+
 /* Prevent white screen flash */
 html,
 body {
   margin: 0;
   padding: 0;
-  background-color: #242426;
-  color: #e4e4e4;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
   min-height: 100vh;
-  background-color: #242426;
-  color: #e4e4e4;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
 }
 
 /* Ensure smooth loading transitions */
@@ -134,11 +182,209 @@ button.bg-\[#B39CD0\]:hover {
 
 /* Button with icon animation */
 button svg {
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, color 0.3s ease;
+  color: currentColor;
 }
 
 button:hover svg {
   transform: scale(1.1);
+}
+
+/* Icon visibility utilities */
+.icon-visible {
+  color: var(--color-foreground);
+  opacity: 1;
+}
+
+.icon-visible-muted {
+  color: var(--color-muted-foreground);
+  opacity: 0.95;
+}
+
+.icon-visible-hover {
+  transition: all 0.2s ease;
+}
+
+.icon-visible-hover:hover {
+  color: var(--color-accent);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Icon in light mode */
+.light .icon-light-mode {
+  color: #1a1a1a;
+  opacity: 1;
+}
+
+.dark .icon-light-mode {
+  color: #e4e4e4;
+  opacity: 0.9;
+}
+
+/* ============================================
+   Action Button Utilities (View, Edit, Delete)
+   ============================================ */
+
+.action-button {
+  padding: 0.375rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* View button - cyan/teal */
+.action-button-view {
+  color: var(--color-muted-foreground);
+  background-color: transparent;
+}
+
+.action-button-view:hover {
+  color: #0891b2;
+  background-color: var(--color-muted);
+  transform: scale(1.1);
+}
+
+.dark .action-button-view:hover {
+  color: #a6f3e3;
+  background-color: rgba(168, 218, 220, 0.15);
+}
+
+/* Edit button - purple */
+.action-button-edit {
+  color: var(--color-muted-foreground);
+  background-color: transparent;
+}
+
+.action-button-edit:hover {
+  color: #9333ea;
+  background-color: var(--color-muted);
+  transform: scale(1.1);
+}
+
+.dark .action-button-edit:hover {
+  color: #d8b4fe;
+  background-color: rgba(179, 156, 208, 0.15);
+}
+
+/* Delete button - red */
+.action-button-delete {
+  color: var(--color-muted-foreground);
+  background-color: transparent;
+}
+
+.action-button-delete:hover {
+  color: #dc2626;
+  background-color: var(--color-muted);
+  transform: scale(1.1);
+}
+
+.dark .action-button-delete:hover {
+  color: #fca5a5;
+  background-color: rgba(232, 70, 76, 0.15);
+}
+
+/* Action button icon sizing */
+.action-button svg {
+  width: 1rem;
+  height: 1rem;
+  transition: all 0.2s ease;
+}
+
+.action-button:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   CRUD Button Utilities (Save, Cancel, Create, Delete, Update)
+   ============================================ */
+
+.crud-button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Primary CRUD buttons (Save, Create, Update) */
+.crud-button-primary {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+.crud-button-primary:hover:not(:disabled) {
+  background-color: var(--color-accent);
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(100, 37, 254, 0.3);
+}
+
+.dark .crud-button-primary:hover:not(:disabled) {
+  background-color: #d8b4fe;
+  color: #1A1A1C;
+  box-shadow: 0 4px 12px rgba(216, 180, 254, 0.3);
+}
+
+/* Secondary CRUD buttons (Cancel) */
+.crud-button-secondary {
+  background-color: var(--color-muted);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+}
+
+.crud-button-secondary:hover:not(:disabled) {
+  background-color: var(--color-border);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dark .crud-button-secondary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Danger CRUD buttons (Delete) */
+.crud-button-danger {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+
+.crud-button-danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.crud-button-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Enhanced icon sizing */
+.icon-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+.icon-base {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.icon-lg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 /* Glassmorphism utility */
@@ -156,16 +402,16 @@ button:hover svg {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1c;
+  background: var(--color-muted);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-muted-foreground);
 }
 
 /* Focus visible styles */
@@ -176,19 +422,23 @@ button:hover svg {
 }
 
 /* ============================================
-   FullCalendar Dark Theme Overrides
+   FullCalendar Theme Overrides
    ============================================ */
 .fc {
-  --fc-border-color: rgba(255, 255, 255, 0.1);
+  --fc-border-color: var(--color-border);
   --fc-daygrid-event-dot-width: 8px;
-  --fc-event-border-color: #A8DADC;
-  --fc-event-bg-color: rgba(168, 218, 220, 0.2);
-  --fc-event-text-color: #E4E4E4;
-  --fc-today-bg-color: rgba(168, 218, 220, 0.1);
+  --fc-event-border-color: var(--color-accent);
+  --fc-event-bg-color: var(--color-accent);
+  --fc-event-text-color: var(--color-accent-foreground);
+  --fc-today-bg-color: var(--color-muted);
   --fc-page-bg-color: transparent;
-  --fc-neutral-bg-color: #1A1A1C;
-  --fc-neutral-text-color: #E4E4E4;
-  --fc-list-event-hover-bg-color: rgba(168, 218, 220, 0.15);
+  --fc-neutral-bg-color: var(--color-card);
+  --fc-neutral-text-color: var(--color-foreground);
+  --fc-list-event-hover-bg-color: var(--color-muted);
+}
+
+.dark .fc {
+  --fc-event-bg-color: rgba(168, 218, 220, 0.2);
 }
 
 /* Calendar view-only styling - make date cells non-interactive for task creation */
@@ -219,30 +469,31 @@ button:hover svg {
 
 /* Header toolbar */
 .fc-header-toolbar {
-  color: #E4E4E4;
+  color: var(--color-foreground);
   margin-bottom: 1.5em;
 }
 
 .fc-toolbar-title {
-  color: #E4E4E4 !important;
+  color: var(--color-foreground) !important;
   font-weight: 600;
   font-size: 1.5rem;
 }
 
 .fc-button {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  color: #E4E4E4 !important;
+  background-color: var(--color-muted) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-foreground) !important;
   padding: 0.5em 1em;
   font-weight: 500;
   transition: all 0.3s ease;
 }
 
 .fc-button:hover {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  border-color: rgba(255, 255, 255, 0.3) !important;
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent-foreground) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(100, 37, 254, 0.2);
 }
 
 .fc-button:active {
@@ -251,9 +502,9 @@ button:hover svg {
 
 .fc-button-primary:not(:disabled):active,
 .fc-button-primary:not(:disabled).fc-button-active {
-  background-color: rgba(168, 218, 220, 0.3) !important;
-  border-color: #A8DADC !important;
-  color: #E4E4E4 !important;
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent-foreground) !important;
 }
 
 .fc-button:disabled {
@@ -263,13 +514,13 @@ button:hover svg {
 
 /* Day headers */
 .fc-col-header-cell {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--color-muted);
+  border-color: var(--color-border);
   padding: 0.75em 0.5em;
 }
 
 .fc-col-header-cell-cushion {
-  color: #E4E4E4 !important;
+  color: var(--color-foreground) !important;
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.75rem;
@@ -279,7 +530,7 @@ button:hover svg {
 /* Day cells */
 .fc-daygrid-day {
   background-color: transparent;
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-border);
 }
 
 .fc-daygrid-day-frame {
@@ -287,14 +538,14 @@ button:hover svg {
 }
 
 .fc-daygrid-day-number {
-  color: #E4E4E4 !important;
+  color: var(--color-foreground) !important;
   padding: 0.5em;
   font-weight: 500;
 }
 
 .fc-day-today .fc-daygrid-day-number {
-  background-color: rgba(168, 218, 220, 0.2);
-  color: #A8DADC !important;
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground) !important;
   border-radius: 50%;
   width: 2em;
   height: 2em;
@@ -306,7 +557,8 @@ button:hover svg {
 
 /* Other month days */
 .fc-day-other .fc-daygrid-day-number {
-  color: rgba(228, 228, 228, 0.3) !important;
+  color: var(--color-muted-foreground) !important;
+  opacity: 0.5;
 }
 
 /* Events */
@@ -324,43 +576,48 @@ button:hover svg {
 }
 
 .fc-event-title {
-  color: #E4E4E4 !important;
+  color: var(--color-accent-foreground) !important;
   font-weight: 500;
   font-size: 0.875rem;
 }
 
 .fc-event-time {
-  color: rgba(228, 228, 228, 0.8) !important;
+  color: var(--color-accent-foreground) !important;
+  opacity: 0.8;
   font-size: 0.75rem;
 }
 
 /* More link */
 .fc-more-link {
-  color: #A8DADC !important;
+  color: var(--color-accent) !important;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .fc-more-link:hover {
-  color: #BCE7E5 !important;
+  opacity: 0.8;
 }
 
 /* Popover */
 .fc-popover {
-  background-color: #1A1A1C !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.dark .fc-popover {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 .fc-popover-header {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #E4E4E4 !important;
+  background-color: var(--color-muted);
+  border-color: var(--color-border);
+  color: var(--color-foreground) !important;
   padding: 0.75em;
 }
 
 .fc-popover-body {
-  color: #E4E4E4 !important;
+  color: var(--color-foreground) !important;
 }
 
 /* Time grid */

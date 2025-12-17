@@ -62,7 +62,7 @@ export function NotificationsList({ onClose }: NotificationsListProps) {
             {notifications.filter((n) => !n.isRead).length > 0 && (
               <button
                 onClick={() => markAllAsRead.mutate()}
-                className="rounded-md p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
+                className="action-button action-button-view"
                 title="Mark all as read"
               >
                 <CheckCheck className="h-4 w-4" />
@@ -70,7 +70,7 @@ export function NotificationsList({ onClose }: NotificationsListProps) {
             )}
             <button
               onClick={onClose}
-              className="rounded-md p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
+              className="action-button action-button-view"
             >
               <X className="h-4 w-4" />
             </button>

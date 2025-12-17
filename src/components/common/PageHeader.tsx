@@ -9,12 +9,12 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions, children }: PageHeaderProps) {
   return (
-    <section className="card-hover mb-8 animate-fade-in rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 via-transparent to-white/5 p-6 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-white/20 hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(168,218,220,0.1)]">
+    <section className="card-hover mb-8 animate-fade-in rounded-2xl border border-border bg-gradient-to-br from-card via-card/50 to-card p-6 shadow-sm transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="animate-slide-in-left">
-          <h2 className="text-2xl font-semibold text-white transition-all duration-300 hover:text-[#A8DADC]">{title}</h2>
+          <h2 className="text-2xl font-bold text-foreground transition-all duration-300 hover:text-accent">{title}</h2>
           {description ? (
-            <p className="mt-1 text-sm text-white/60 transition-colors duration-300">{description}</p>
+            <p className="mt-1 text-sm font-medium text-muted-foreground transition-colors duration-300">{description}</p>
           ) : null}
         </div>
         {actions ? (

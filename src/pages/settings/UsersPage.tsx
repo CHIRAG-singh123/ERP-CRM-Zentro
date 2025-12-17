@@ -148,7 +148,7 @@ export function SettingsUsersPage() {
                 <button
                   onClick={() => handleEdit(user._id)}
                   disabled={updateUserMutation.isPending}
-                  className="rounded-lg p-2 text-white/60 transition-all duration-200 hover:scale-110 hover:bg-white/10 hover:text-[#A8DADC] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="action-button action-button-edit disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Edit user"
                 >
                   <Edit2 className="h-4 w-4" />
@@ -156,7 +156,7 @@ export function SettingsUsersPage() {
                 <button
                   onClick={() => handleDeleteClick(user._id)}
                   disabled={isCurrentUser || deleteUserMutation.isPending}
-                  className="rounded-lg p-2 text-white/60 transition-all duration-200 hover:scale-110 hover:bg-white/10 hover:text-red-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="action-button action-button-delete disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCurrentUser ? 'Cannot delete yourself' : 'Delete user'}
                 >
                   <Trash2 className="h-4 w-4" />

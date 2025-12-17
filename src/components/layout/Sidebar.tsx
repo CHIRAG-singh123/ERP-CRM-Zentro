@@ -40,12 +40,12 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="hidden w-72 shrink-0 flex-col border-r border-white/10 bg-[#1A1A1C] pr-2 pt-8 lg:flex animate-slide-in-left">
+    <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-card pr-2 pt-8 lg:flex animate-slide-in-left transition-colors duration-300 shadow-sm">
       <div className="space-y-8 px-6">
         <AnimatedLogo />
         {navigation.map((section, sectionIndex) => (
           <div key={section.label} className="animate-slide-in-left" style={{ animationDelay: `${sectionIndex * 50}ms` }}>
-            <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/40">
+            <p className="px-2 text-[11px] font-bold uppercase tracking-[0.32em] text-foreground/60">
               {section.label}
             </p>
             <nav className="mt-3 space-y-1">
@@ -57,25 +57,25 @@ export function Sidebar() {
                   <NavLink
                     key={item.href}
                     to={item.href}
-                    className={`group flex items-center justify-between rounded-md px-3 py-2 text-sm transition-all duration-200 ${
+                    className={`group flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 ${
                       active
-                        ? 'bg-white/10 text-white shadow-sm scale-[1.02]'
-                        : 'text-white/60 hover:bg-white/5 hover:text-white hover:translate-x-1'
+                        ? 'bg-accent/15 text-accent shadow-sm scale-[1.02] dark:bg-accent/20'
+                        : 'text-foreground/70 hover:bg-muted hover:text-foreground hover:translate-x-1'
                     }`}
                     style={{ animationDelay: `${(sectionIndex * 50) + (itemIndex * 30)}ms` }}
                   >
                     <span className="flex items-center gap-2">
                       {item.icon ? (
-                        <item.icon className={`h-4 w-4 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+                        <item.icon className={`h-5 w-5 transition-all duration-200 icon-visible ${active ? 'scale-110 text-accent' : 'text-foreground/70 group-hover:scale-110 group-hover:text-foreground'}`} />
                       ) : null}
-                      <span>{item.label}</span>
+                      <span className="font-medium">{item.label}</span>
                     </span>
                     {item.href === '/chat' && totalUnread > 0 ? (
-                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#B39CD0] px-1.5 text-[10px] font-semibold text-[#1A1A1C] transition-all duration-200 group-hover:bg-[#C3ADD9]">
+                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-semibold text-accent-foreground transition-all duration-200 group-hover:opacity-90">
                         {totalUnread > 99 ? '99+' : totalUnread}
                       </span>
                     ) : item.badge ? (
-                      <span className="rounded bg-white/10 px-2 py-0.5 text-[11px] uppercase tracking-wide text-white/70 transition-all duration-200 group-hover:bg-white/20">
+                      <span className="rounded bg-muted px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted-foreground transition-all duration-200 group-hover:bg-accent/10">
                         {item.badge}
                       </span>
                     ) : null}
