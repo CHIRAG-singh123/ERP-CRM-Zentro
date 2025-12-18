@@ -25,18 +25,20 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="rounded-lg border border-white/20 bg-[#1A1A1C] p-3 shadow-lg">
-        <p className="text-sm font-medium text-white mb-2">{data.companyName}</p>
-        <p className="text-xs text-white/50 mb-2">Industry: {data.industry}</p>
-        <p className="text-xs text-white/70">
-          Contacts: <span className="text-[#A8DADC] font-semibold"><AnimatedNumber value={data.contactCount} format="number" decimals={0} /></span>
-        </p>
-        <p className="text-xs text-white/70">
-          Deals: <span className="text-[#B39CD0] font-semibold"><AnimatedNumber value={data.dealCount} format="number" decimals={0} /></span>
-        </p>
-        <p className="text-xs text-white/70 mt-1">
-          Total Value: <span className="text-[#A8DADC] font-semibold"><AnimatedNumber value={data.totalValue} format="currency" /></span>
-        </p>
+      <div className="rounded-lg border border-white/20 bg-[#1A1A1C]/95 backdrop-blur-sm p-4 shadow-2xl">
+        <p className="text-sm font-bold text-white mb-2 pb-2 border-b border-white/10">{data.companyName}</p>
+        <p className="text-xs text-white/60 mb-2 font-medium">Industry: <span className="text-white/80">{data.industry}</span></p>
+        <div className="space-y-1.5">
+          <p className="text-xs text-white/70">
+            Contacts: <span className="text-[#A8DADC] font-bold text-sm ml-1"><AnimatedNumber value={data.contactCount} format="number" decimals={0} /></span>
+          </p>
+          <p className="text-xs text-white/70">
+            Deals: <span className="text-[#B39CD0] font-bold text-sm ml-1"><AnimatedNumber value={data.dealCount} format="number" decimals={0} /></span>
+          </p>
+          <p className="text-xs text-white/70">
+            Total Value: <span className="text-[#A8DADC] font-bold text-sm ml-1"><AnimatedNumber value={data.totalValue} format="currency" /></span>
+          </p>
+        </div>
       </div>
     );
   }
@@ -93,21 +95,31 @@ export function DealValueDistributionChart({ data }: DealValueDistributionChartP
               range={[50, 400]}
               name="Deal Count"
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#A8DADC', strokeWidth: 1 }} />
-            <Scatter dataKey="y" fill="#A8DADC" animationDuration={800}>
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#A8DADC', strokeWidth: 2, strokeDasharray: '3 3' }} />
+            <Scatter dataKey="y" fill="#A8DADC" animationDuration={1000} animationBegin={0}>
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={getIndustryColor(entry.industry)} />
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={getIndustryColor(entry.industry)}
+                  style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+                />
               ))}
             </Scatter>
           </ScatterChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-4 pt-4 border-t border-white/10">
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs">
           {Object.entries(industryColors).map(([industry, color]) => (
-            <div key={industry} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5">
-              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: color }}></div>
-              <span className="text-white/70">{industry}</span>
+            <div 
+              key={industry} 
+              className="group flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-white/5 to-white/5 hover:from-white/10 hover:to-white/10 border border-white/10 hover:border-[#A8DADC]/30 transition-all duration-200 cursor-pointer"
+            >
+              <div 
+                className="h-3.5 w-3.5 rounded-full shadow-md group-hover:scale-110 transition-transform" 
+                style={{ backgroundColor: color }}
+              ></div>
+              <span className="text-white/70 group-hover:text-white transition-colors font-medium">{industry}</span>
             </div>
           ))}
         </div>

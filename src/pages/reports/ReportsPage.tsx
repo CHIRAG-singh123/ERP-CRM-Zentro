@@ -151,7 +151,7 @@ export function ReportsPage() {
                   </div>
                   <div className="h-[400px] w-full">
                     {conversionData ? (
-                      <ConversionFunnelChart data={conversionData.funnel} />
+                      <ConversionFunnelChart data={conversionData.funnel} onFilterChange={handleFilterChange} />
                     ) : (
                       <div className="flex items-center justify-center h-full text-white/50">
                         <p>No funnel data available</p>
@@ -215,7 +215,7 @@ export function ReportsPage() {
                     </div>
                   </div>
                   <div className="h-[400px] w-full">
-                    <ConversionBySourceChart data={conversionData.conversionBySource} />
+                    <ConversionBySourceChart data={conversionData.conversionBySource} onFilterChange={handleFilterChange} />
                   </div>
                 </div>
               </div>

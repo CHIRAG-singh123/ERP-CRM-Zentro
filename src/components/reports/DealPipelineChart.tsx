@@ -23,20 +23,22 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="rounded-lg border border-white/20 bg-[#1A1A1C] p-3 shadow-lg">
-        <p className="text-sm font-medium text-white mb-2">{data.stage}</p>
-        <p className="text-xs text-white/70">
-          Count: <span className="text-[#A8DADC] font-semibold"><AnimatedNumber value={data.count} format="number" decimals={0} /></span>
-        </p>
-        <p className="text-xs text-white/70">
-          Total Value: <span className="text-[#B39CD0] font-semibold"><AnimatedNumber value={data.totalValue} format="currency" /></span>
-        </p>
-        <p className="text-xs text-white/70">
-          Avg Value: <span className="text-[#A8DADC] font-semibold"><AnimatedNumber value={data.avgValue} format="currency" /></span>
-        </p>
-        <p className="text-xs text-white/70 mt-1">
-          Weighted Value: <span className="text-[#B39CD0] font-semibold"><AnimatedNumber value={data.weightedValue} format="currency" /></span>
-        </p>
+      <div className="rounded-lg border border-white/20 bg-[#1A1A1C]/95 backdrop-blur-sm p-4 shadow-2xl">
+        <p className="text-sm font-bold text-white mb-2 pb-2 border-b border-white/10">{data.stage}</p>
+        <div className="space-y-1.5">
+          <p className="text-xs text-white/70">
+            Count: <span className="text-[#A8DADC] font-bold text-sm ml-1"><AnimatedNumber value={data.count} format="number" decimals={0} /></span>
+          </p>
+          <p className="text-xs text-white/70">
+            Total Value: <span className="text-[#B39CD0] font-bold text-sm ml-1"><AnimatedNumber value={data.totalValue} format="currency" /></span>
+          </p>
+          <p className="text-xs text-white/70">
+            Avg Value: <span className="text-[#A8DADC] font-bold text-sm ml-1"><AnimatedNumber value={data.avgValue} format="currency" /></span>
+          </p>
+          <p className="text-xs text-white/70">
+            Weighted Value: <span className="text-[#B39CD0] font-bold text-sm ml-1"><AnimatedNumber value={data.weightedValue} format="currency" /></span>
+          </p>
+        </div>
       </div>
     );
   }
@@ -81,10 +83,15 @@ export function DealPipelineChart({ data }: DealPipelineChartProps) {
               width={100}
               tick={{ fill: '#ffffff80' }}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(168, 218, 220, 0.1)' }} />
-            <Bar dataKey="totalValue" radius={[0, 6, 6, 0]} animationDuration={800}>
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(168, 218, 220, 0.15)', stroke: '#A8DADC', strokeWidth: 1 }} />
+            <Bar dataKey="totalValue" radius={[0, 8, 8, 0]} animationDuration={1000} animationBegin={0}>
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={getStageColor(entry.stage)} />
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={getStageColor(entry.stage)}
+                  className="hover:opacity-90 transition-opacity cursor-pointer"
+                  style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}
+                />
               ))}
             </Bar>
           </BarChart>
@@ -92,35 +99,38 @@ export function DealPipelineChart({ data }: DealPipelineChartProps) {
       </div>
       
       <div className="mt-6 pt-6 border-t border-white/10">
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="text-center">
-            <p className="text-xs text-white/50 mb-1">Total Deals</p>
-            <p className="text-lg font-bold text-white">
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          <div className="text-center px-4 py-3 rounded-lg bg-gradient-to-br from-white/5 to-white/5 hover:from-white/10 hover:to-white/10 border border-white/10 hover:border-[#A8DADC]/30 transition-all duration-200">
+            <p className="text-xs text-white/60 mb-1.5 font-medium">Total Deals</p>
+            <p className="text-xl font-bold text-white">
               <AnimatedNumber value={totalDeals} format="number" decimals={0} />
             </p>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-white/50 mb-1">Total Value</p>
-            <p className="text-lg font-bold text-[#A8DADC]">
+          <div className="text-center px-4 py-3 rounded-lg bg-gradient-to-br from-[#A8DADC]/10 to-[#A8DADC]/5 hover:from-[#A8DADC]/15 hover:to-[#A8DADC]/10 border border-[#A8DADC]/20 hover:border-[#A8DADC]/40 transition-all duration-200">
+            <p className="text-xs text-white/60 mb-1.5 font-medium">Total Value</p>
+            <p className="text-xl font-bold text-[#A8DADC]">
               <AnimatedNumber value={totalValue} format="currency" />
             </p>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-white/50 mb-1">Weighted Pipeline</p>
-            <p className="text-lg font-bold text-[#B39CD0]">
+          <div className="text-center px-4 py-3 rounded-lg bg-gradient-to-br from-[#B39CD0]/10 to-[#B39CD0]/5 hover:from-[#B39CD0]/15 hover:to-[#B39CD0]/10 border border-[#B39CD0]/20 hover:border-[#B39CD0]/40 transition-all duration-200">
+            <p className="text-xs text-white/60 mb-1.5 font-medium">Weighted Pipeline</p>
+            <p className="text-xl font-bold text-[#B39CD0]">
               <AnimatedNumber value={totalWeightedValue} format="currency" />
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
           {data.map((entry, index) => (
-            <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+            <div 
+              key={index} 
+              className="group flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-white/5 to-white/5 hover:from-white/10 hover:to-white/10 border border-white/10 hover:border-[#A8DADC]/30 transition-all duration-200 cursor-pointer"
+            >
               <div 
-                className="h-3 w-3 rounded-full shadow-sm" 
+                className="h-3.5 w-3.5 rounded-full shadow-md group-hover:scale-110 transition-transform" 
                 style={{ backgroundColor: getStageColor(entry.stage) }}
               ></div>
-              <span className="text-white/70 font-medium text-xs">{entry.stage}:</span>
-              <span className="text-white font-semibold text-xs"><AnimatedNumber value={entry.count} format="number" decimals={0} /></span>
+              <span className="text-white/70 font-medium text-xs group-hover:text-white transition-colors">{entry.stage}:</span>
+              <span className="text-white font-bold text-xs group-hover:text-[#A8DADC] transition-colors"><AnimatedNumber value={entry.count} format="number" decimals={0} /></span>
             </div>
           ))}
         </div>

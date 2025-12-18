@@ -1,8 +1,10 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import type { ConversionBySource } from '../../services/api/reports';
+import { ChartFilterDropdown, type ChartFilterValues } from '../common/ChartFilterDropdown';
 
 interface ConversionBySourceChartProps {
   data: ConversionBySource[];
+  onFilterChange?: (filters: ChartFilterValues) => void;
 }
 
 const sourceColors: Record<string, string> = {
@@ -18,7 +20,7 @@ const getSourceColor = (source: string): string => {
   return sourceColors[source.toLowerCase()] || sourceColors.other;
 };
 
-export function ConversionBySourceChart({ data }: ConversionBySourceChartProps) {
+export function ConversionBySourceChart({ data, onFilterChange }: ConversionBySourceChartProps) {
   const chartData = data.map((item) => ({
     ...item,
     rate: Math.round(item.rate * 10) / 10,
@@ -28,17 +30,19 @@ export function ConversionBySourceChart({ data }: ConversionBySourceChartProps) 
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="rounded-lg border border-white/20 bg-[#1A1A1C] p-3 shadow-lg">
-          <p className="text-sm font-medium text-white capitalize">{data.source}</p>
-          <p className="text-xs text-white/70 mt-1">
-            Total: <span className="text-[#A8DADC] font-semibold">{data.total}</span>
-          </p>
-          <p className="text-xs text-white/70">
-            Converted: <span className="text-[#B39CD0] font-semibold">{data.converted}</span>
-          </p>
-          <p className="text-xs text-white/70 mt-1">
-            Rate: <span className="text-[#A8DADC] font-semibold">{data.rate.toFixed(1)}%</span>
-          </p>
+        <div className="rounded-lg border border-white/20 bg-[#1A1A1C]/95 backdrop-blur-sm p-4 shadow-2xl">
+          <p className="text-sm font-bold text-white mb-2 pb-2 border-b border-white/10 capitalize">{data.source}</p>
+          <div className="space-y-1.5">
+            <p className="text-xs text-white/70">
+              Total: <span className="text-[#A8DADC] font-bold text-sm ml-1">{data.total}</span>
+            </p>
+            <p className="text-xs text-white/70">
+              Converted: <span className="text-[#B39CD0] font-bold text-sm ml-1">{data.converted}</span>
+            </p>
+            <p className="text-xs text-white/70">
+              Rate: <span className="text-[#A8DADC] font-bold text-sm ml-1">{data.rate.toFixed(1)}%</span>
+            </p>
+          </div>
         </div>
       );
     }
@@ -54,8 +58,13 @@ export function ConversionBySourceChart({ data }: ConversionBySourceChartProps) 
   }
 
   return (
-    <div className="h-full w-full flex flex-col">
-      <div className="flex-1 min-h-0">
+    <div className="h-full w-full flex flex-col relative">
+      {/* Integrated Filters */}
+      {onFilterChange && (
+        <ChartFilterDropdown onFilterChange={onFilterChange} />
+      )}
+
+      <div className={`flex-1 min-h-0 ${onFilterChange ? 'pt-8' : ''}`} style={{ minHeight: '300px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
@@ -82,27 +91,41 @@ export function ConversionBySourceChart({ data }: ConversionBySourceChartProps) 
                 style: { textAnchor: 'middle', fill: '#ffffff70', fontSize: '12px', fontWeight: 500 } 
               }}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(168, 218, 220, 0.1)' }} />
-            <Bar dataKey="rate" radius={[8, 8, 0, 0]} animationDuration={800}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={getSourceColor(entry.source)} />
-              ))}
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(168, 218, 220, 0.15)', stroke: '#A8DADC', strokeWidth: 1 }} />
+            <Bar dataKey="rate" radius={[8, 8, 0, 0]} animationDuration={1000} animationBegin={0}>
+              {chartData.map((entry, index) => {
+                const color = getSourceColor(entry.source);
+                return (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={color}
+                    className="hover:opacity-90 transition-opacity cursor-pointer"
+                    style={{ 
+                      filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.3))',
+                      opacity: 0.95
+                    }}
+                  />
+                );
+              })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
       
-      {/* Legend */}
+      {/* Enhanced Legend */}
       <div className="mt-6 pt-6 border-t border-white/10">
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
           {chartData.map((entry, index) => (
-            <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+            <div 
+              key={index} 
+              className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-white/5 to-white/5 hover:from-white/10 hover:to-white/10 border border-white/10 hover:border-[#A8DADC]/30 transition-all duration-200 cursor-pointer"
+            >
               <div 
-                className="h-3 w-3 rounded-full shadow-sm" 
+                className="h-3.5 w-3.5 rounded-full shadow-md group-hover:scale-110 transition-transform" 
                 style={{ backgroundColor: getSourceColor(entry.source) }}
               ></div>
-              <span className="text-white/70 font-medium capitalize text-xs">{entry.source}:</span>
-              <span className="text-white font-semibold text-xs">{entry.rate.toFixed(1)}%</span>
+              <span className="text-white/70 font-medium capitalize text-xs group-hover:text-white transition-colors">{entry.source}:</span>
+              <span className="text-white font-bold text-xs group-hover:text-[#A8DADC] transition-colors">{entry.rate.toFixed(1)}%</span>
             </div>
           ))}
         </div>

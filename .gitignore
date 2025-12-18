@@ -12,7 +12,7 @@ dist-ssr
 *.local
 server/node_modules
 server/.env
-server/uploads/*
+server/*
 
 
 .vscode/*

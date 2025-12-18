@@ -16,20 +16,22 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="rounded-lg border border-white/20 bg-[#1A1A1C] p-3 shadow-lg">
-        <p className="text-sm font-medium text-white mb-2">{data.contactName}</p>
+      <div className="rounded-lg border border-white/20 bg-[#1A1A1C]/95 backdrop-blur-sm p-4 shadow-2xl">
+        <p className="text-sm font-bold text-white mb-2 pb-2 border-b border-white/10">{data.contactName}</p>
         {data.companyName && (
-          <p className="text-xs text-white/50 mb-2">Company: {data.companyName}</p>
+          <p className="text-xs text-white/60 mb-2 font-medium">Company: <span className="text-white/80">{data.companyName}</span></p>
         )}
-        <p className="text-xs text-white/70">
-          Deals: <span className="text-[#A8DADC] font-semibold"><AnimatedNumber value={data.dealCount} format="number" decimals={0} /></span>
-        </p>
-        <p className="text-xs text-white/70">
-          Total Value: <span className="text-[#B39CD0] font-semibold"><AnimatedNumber value={data.totalValue} format="currency" /></span>
-        </p>
-        <p className="text-xs text-white/70">
-          Avg Value: <span className="text-[#A8DADC] font-semibold"><AnimatedNumber value={data.avgValue} format="currency" /></span>
-        </p>
+        <div className="space-y-1.5">
+          <p className="text-xs text-white/70">
+            Deals: <span className="text-[#A8DADC] font-bold text-sm ml-1"><AnimatedNumber value={data.dealCount} format="number" decimals={0} /></span>
+          </p>
+          <p className="text-xs text-white/70">
+            Total Value: <span className="text-[#B39CD0] font-bold text-sm ml-1"><AnimatedNumber value={data.totalValue} format="currency" /></span>
+          </p>
+          <p className="text-xs text-white/70">
+            Avg Value: <span className="text-[#A8DADC] font-bold text-sm ml-1"><AnimatedNumber value={data.avgValue} format="currency" /></span>
+          </p>
+        </div>
       </div>
     );
   }
@@ -72,10 +74,15 @@ export function ContactDealPerformanceChart({ data }: ContactDealPerformanceChar
               tick={{ fill: '#ffffff60' }}
               tickFormatter={(value) => formatCurrency(value)}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(168, 218, 220, 0.1)' }} />
-            <Bar dataKey="totalValue" radius={[8, 8, 0, 0]} animationDuration={800}>
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(168, 218, 220, 0.15)', stroke: '#A8DADC', strokeWidth: 1 }} />
+            <Bar dataKey="totalValue" radius={[8, 8, 0, 0]} animationDuration={1000} animationBegin={0}>
               {chartData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={getContactColor(index)} />
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={getContactColor(index)}
+                  className="hover:opacity-90 transition-opacity cursor-pointer"
+                  style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.3))' }}
+                />
               ))}
             </Bar>
           </BarChart>
