@@ -1,5 +1,6 @@
 import { Eye, Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Document } from '../../types/documents';
+import { useAuth } from '../../context/AuthContext';
 
 interface DocumentListProps {
   documents: Document[];
@@ -78,6 +79,19 @@ export function DocumentList({
   sortOrder,
   onSort,
 }: DocumentListProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isEmployee = user?.role === 'employee';
+  
+  // Check if user can edit/delete a document
+  const canEditDocument = (document: Document) => {
+    if (isAdmin) return true;
+    if (isEmployee) {
+      return document.uploadedBy?._id === user?._id;
+    }
+    return false;
+  };
+  
   if (documents.length === 0) {
     return (
       <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/70 to-[#1A1A1C]/50 px-8 py-20 text-center backdrop-blur-sm">
@@ -197,13 +211,15 @@ export function DocumentList({
                     >
                       <Download className="h-4 w-4" />
                     </button>
-                    <button
-                      onClick={() => onDelete(document)}
-                      className="action-button action-button-delete"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {canEditDocument(document) && (
+                      <button
+                        onClick={() => onDelete(document)}
+                        className="action-button action-button-delete"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

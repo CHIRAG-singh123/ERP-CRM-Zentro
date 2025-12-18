@@ -16,9 +16,12 @@ import { getStageColor, getProbabilityColor } from '../../utils/dealUtils';
 import type { Deal } from '../../services/api/deals';
 import { formatDate } from '../../utils/formatting';
 import { AnimatedNumber } from '../../components/common/AnimatedNumber';
+import { useAuth } from '../../context/AuthContext';
 
 export function DealsListPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isEmployee = user?.role === 'employee';
   const [showDealForm, setShowDealForm] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | undefined>(undefined);
   const [deletingDeal, setDeletingDeal] = useState<Deal | undefined>(undefined);
@@ -114,20 +117,24 @@ export function DealsListPage() {
         description="Manage your sales pipeline and track deals through every stage of the sales process."
         actions={
           <>
-            <button
-              onClick={() => setShowImport(true)}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105"
-            >
-              Import
-            </button>
-            <ExportButton onExport={handleExport} filename="deals-export.csv" />
-            <button
-              onClick={handleCreateDeal}
-              className="flex items-center gap-2 rounded-full bg-[#A8DADC] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:bg-[#BCE7E5] hover:scale-105 active:scale-95"
-            >
-              <Plus className="h-4 w-4" />
-              Add Deal
-            </button>
+            {!isEmployee && (
+              <>
+                <button
+                  onClick={() => setShowImport(true)}
+                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105"
+                >
+                  Import
+                </button>
+                <ExportButton onExport={handleExport} filename="deals-export.csv" />
+                <button
+                  onClick={handleCreateDeal}
+                  className="flex items-center gap-2 rounded-full bg-[#A8DADC] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:bg-[#BCE7E5] hover:scale-105 active:scale-95"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Deal
+                </button>
+              </>
+            )}
           </>
         }
       >
@@ -236,6 +243,23 @@ export function DealsListPage() {
             actions={(row) => {
               const deal = row as Deal;
 
+              // Employees can only view
+              if (isEmployee) {
+                return (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewDeal(deal);
+                    }}
+                    className="action-button action-button-view"
+                    title="View Deal"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                );
+              }
+
+              // Admin gets full actions
               return (
                 <div className="flex items-center gap-2">
                   <button

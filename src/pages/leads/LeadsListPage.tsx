@@ -16,9 +16,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getStatusColor, getSourceDisplayName } from '../../utils/leadUtils';
 import type { Lead } from '../../services/api/leads';
 import { AnimatedNumber } from '../../components/common/AnimatedNumber';
+import { useAuth } from '../../context/AuthContext';
 
 export function LeadsListPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isEmployee = user?.role === 'employee';
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | undefined>(undefined);
@@ -137,20 +140,24 @@ export function LeadsListPage() {
                 <KanbanSquare className="h-4 w-4" />
               </button>
             </div>
-            <button
-              onClick={() => setShowImport(true)}
-              className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105"
-            >
-              Import
-            </button>
-            <ExportButton onExport={handleExport} filename="leads-export.csv" />
-            <button
-              onClick={handleCreateLead}
-              className="flex items-center gap-2 rounded-full bg-[#A8DADC] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:bg-[#BCE7E5] hover:scale-105 active:scale-95"
-            >
-              <Plus className="h-4 w-4" />
-              Add Lead
-            </button>
+            {!isEmployee && (
+              <>
+                <button
+                  onClick={() => setShowImport(true)}
+                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105"
+                >
+                  Import
+                </button>
+                <ExportButton onExport={handleExport} filename="leads-export.csv" />
+                <button
+                  onClick={handleCreateLead}
+                  className="flex items-center gap-2 rounded-full bg-[#A8DADC] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:bg-[#BCE7E5] hover:scale-105 active:scale-95"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Lead
+                </button>
+              </>
+            )}
           </>
         }
       >
@@ -250,6 +257,23 @@ export function LeadsListPage() {
             actions={(row) => {
               const lead = row as Lead;
 
+              // Employees can only view
+              if (isEmployee) {
+                return (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewLead(lead);
+                    }}
+                    className="action-button action-button-view"
+                    title="View Lead"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                );
+              }
+
+              // Admin gets full actions
               return (
                 <div className="flex items-center gap-2">
                   <button

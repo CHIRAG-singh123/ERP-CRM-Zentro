@@ -1,6 +1,7 @@
 import { Download, Trash2, Eye, MoreVertical } from 'lucide-react';
 import { useState } from 'react';
 import type { Document } from '../../types/documents';
+import { useAuth } from '../../context/AuthContext';
 
 interface DocumentCardProps {
   document: Document;
@@ -47,6 +48,20 @@ const formatDate = (dateString: string): string => {
 };
 
 export function DocumentCard({ document, onView, onDownload, onDelete }: DocumentCardProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isEmployee = user?.role === 'employee';
+  
+  // Check if user can edit/delete this document
+  const canEditDocument = () => {
+    if (isAdmin) return true;
+    if (isEmployee) {
+      return document.uploadedBy?._id === user?._id;
+    }
+    return false;
+  };
+  
+  const canEdit = canEditDocument();
   const [showMenu, setShowMenu] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -117,18 +132,22 @@ export function DocumentCard({ document, onView, onDownload, onDelete }: Documen
                   <Download className="h-4 w-4 text-white/60" />
                   Download
                 </button>
-                <div className="my-1 border-t border-white/10" />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(document);
-                    setShowMenu(false);
-                  }}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </button>
+                {canEdit && (
+                  <>
+                    <div className="my-1 border-t border-white/10" />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(document);
+                        setShowMenu(false);
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}

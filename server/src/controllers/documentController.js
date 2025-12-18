@@ -245,9 +245,23 @@ export const uploadDocument = asyncHandler(async (req, res) => {
       // PDF might not exist, ignore error
     }
 
+    // Provide more helpful error messages based on file type
+    let errorMessage = 'Failed to convert document to PDF.';
+    let suggestion = '';
+
+    if (fileType === 'powerpoint') {
+      suggestion = 'For PowerPoint files, please install LibreOffice on the server for full conversion support.';
+    } else if (fileType === 'excel') {
+      suggestion = 'For Excel files, LibreOffice is recommended for best results, or the system will attempt table rendering.';
+    } else if (fileType === 'word') {
+      suggestion = 'Word conversion should work with available converters. Please try again or contact support.';
+    }
+
     return res.status(500).json({ 
-      error: 'Failed to convert document to PDF. Please try again or contact support.',
-      details: conversionError.message 
+      error: errorMessage,
+      details: conversionError.message,
+      suggestion: suggestion,
+      fileType: fileType
     });
   }
 });

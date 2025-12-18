@@ -96,15 +96,19 @@ export function MessageThread({ chatId }: MessageThreadProps) {
         
         qc.setQueryData(['messages', cid], (old: any) => {
           if (!old) {
-            // If no old data, refetch
-            qc.invalidateQueries({ queryKey: ['messages', cid] });
-            return old;
+            // If no old data, create structure with the new message
+            return {
+              messages: [message],
+              total: 1,
+              page: 1,
+              limit: 50,
+            };
           }
           
           // Check if message already exists by ID
           const existingIndex = old.messages.findIndex((m: Message) => m._id === message._id);
           if (existingIndex !== -1) {
-            // Replace existing message (might be optimistic)
+            // Replace existing message (might be optimistic) - update with server data
             const updatedMessages = [...old.messages];
             updatedMessages[existingIndex] = message;
             return {
@@ -133,23 +137,23 @@ export function MessageThread({ chatId }: MessageThreadProps) {
             };
           }
           
-          // Add new message
+          // Add new message (from another user or new message)
           return {
             ...old,
             messages: [...old.messages, message],
           };
         });
         
-        // Optimistically update chat list cache
+        // Update chat list cache without invalidating (prevents refetch)
         qc.setQueryData(['chats'], (old: any) => {
           if (!old?.chats) {
-            qc.invalidateQueries({ queryKey: ['chats'] });
+            // If no cache, silently return - don't invalidate to prevent refetch
             return old;
           }
 
           const chatIndex = old.chats.findIndex((c: any) => c._id === cid);
           if (chatIndex === -1) {
-            qc.invalidateQueries({ queryKey: ['chats'] });
+            // Chat not in cache, silently return - don't invalidate
             return old;
           }
 
@@ -167,9 +171,6 @@ export function MessageThread({ chatId }: MessageThreadProps) {
 
           return { ...old, chats: updatedChats };
         });
-
-        // Also invalidate to sync with server
-        qc.invalidateQueries({ queryKey: ['chats'] });
         
         // Mark as read if it's not from current user and we're viewing the chat
         const senderId = typeof message.senderId === 'object' ? message.senderId._id : message.senderId;
@@ -197,7 +198,27 @@ export function MessageThread({ chatId }: MessageThreadProps) {
             messages: old.messages.filter((m: Message) => m._id !== data.messageId),
           };
         });
-        qc.invalidateQueries({ queryKey: ['chats'] });
+        // Update chat list without invalidating
+        qc.setQueryData(['chats'], (old: any) => {
+          if (!old?.chats) return old;
+          const chatIndex = old.chats.findIndex((c: any) => c._id === cid);
+          if (chatIndex === -1) return old;
+          const updatedChats = [...old.chats];
+          const chat = { ...updatedChats[chatIndex] };
+          // Update last message if deleted message was the last one
+          if (chat.lastMessage?._id === data.messageId) {
+            // Find the most recent non-deleted message
+            const messages = qc.getQueryData(['messages', cid]) as any;
+            if (messages?.messages?.length > 0) {
+              const nonDeletedMessages = messages.messages.filter((m: Message) => !m.isDeleted);
+              chat.lastMessage = nonDeletedMessages[nonDeletedMessages.length - 1] || null;
+            } else {
+              chat.lastMessage = null;
+            }
+          }
+          updatedChats[chatIndex] = chat;
+          return { ...old, chats: updatedChats };
+        });
       }
     };
 
@@ -213,14 +234,25 @@ export function MessageThread({ chatId }: MessageThreadProps) {
       });
     };
 
+    const handleMessageError = (error: { message: string; chatId?: string }) => {
+      if (error.chatId === chatIdRef.current || !error.chatId) {
+        console.error('Message error:', error);
+        // Error handling can be enhanced here - e.g., show toast notification
+      }
+    };
+
     socket.on('newMessage', handleNewMessage);
     socket.on('messageDeleted', handleMessageDeleted);
     socket.on('userTyping', handleUserTyping);
+    socket.on('messageError', handleMessageError);
+    socket.on('error', handleMessageError);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
       socket.off('messageDeleted', handleMessageDeleted);
       socket.off('userTyping', handleUserTyping);
+      socket.off('messageError', handleMessageError);
+      socket.off('error', handleMessageError);
     };
   }, [socket, chatId]);
 

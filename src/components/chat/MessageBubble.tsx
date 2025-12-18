@@ -1,6 +1,6 @@
 import { formatMessageTime } from '../../utils/formatting';
 import { UserAvatar } from '../common/UserAvatar';
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, Clock } from 'lucide-react';
 import type { Message } from '../../types/chat';
 
 interface MessageBubbleProps {
@@ -14,6 +14,44 @@ export function MessageBubble({ message, isOwn, showAvatar = true, showTimestamp
   const sender = typeof message.senderId === 'object' ? message.senderId : null;
   const senderName = sender?.name || 'Unknown';
   const senderAvatar = sender?.profile?.avatar;
+
+  // Determine message status for own messages
+  const getMessageStatus = () => {
+    if (!isOwn) return null;
+    
+    // Check if message is optimistic (sending)
+    if (message._id?.startsWith('temp-')) {
+      return 'sending';
+    }
+    
+    // Check read status
+    const readBy = message.readBy || [];
+    if (readBy.length > 1) {
+      // More than just the sender has read it
+      return 'read';
+    } else if (readBy.length === 1) {
+      // Only sender has read it (sent but not delivered/read)
+      return 'sent';
+    }
+    
+    // Default to sent if no readBy info
+    return 'sent';
+  };
+
+  const messageStatus = getMessageStatus();
+  
+  const getStatusIcon = () => {
+    switch (messageStatus) {
+      case 'sending':
+        return <Clock className="h-3.5 w-3.5 text-white/40 animate-pulse" />;
+      case 'sent':
+        return <Check className="h-3.5 w-3.5 text-white/40" />;
+      case 'read':
+        return <CheckCheck className="h-3.5 w-3.5 text-[#A8DADC]" />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'} animate-fade-in group`}>
@@ -34,9 +72,13 @@ export function MessageBubble({ message, isOwn, showAvatar = true, showTimestamp
         <div
           className={`rounded-2xl px-4 py-2.5 shadow-sm ${
             isOwn
-              ? 'bg-gradient-to-br from-[#B39CD0] to-[#A68BC7] text-[#1A1A1C]'
+              ? messageStatus === 'sending'
+                ? 'bg-gradient-to-br from-[#B39CD0]/70 to-[#A68BC7]/70 text-[#1A1A1C]/70'
+                : 'bg-gradient-to-br from-[#B39CD0] to-[#A68BC7] text-[#1A1A1C]'
               : 'bg-white/10 text-white border border-white/20 backdrop-blur-sm'
-          } transition-all duration-200 hover:scale-[1.01] hover:shadow-md`}
+          } transition-all duration-200 hover:scale-[1.01] hover:shadow-md ${
+            messageStatus === 'sending' ? 'opacity-70' : ''
+          }`}
         >
           {message.replyTo && typeof message.replyTo === 'object' && (
             <div className="mb-2 pl-3 border-l-2 border-white/30 text-xs text-white/70">
@@ -69,12 +111,12 @@ export function MessageBubble({ message, isOwn, showAvatar = true, showTimestamp
           <div className="flex items-center gap-1.5 text-xs text-white/40">
             <span>{formatMessageTime(message.createdAt)}</span>
             {isOwn && (
-              <div className="flex items-center">
-                {message.readBy && message.readBy.length > 1 ? (
-                  <CheckCheck className="h-3.5 w-3.5 text-[#A8DADC]" />
-                ) : (
-                  <Check className="h-3.5 w-3.5 text-white/40" />
-                )}
+              <div className="flex items-center" title={
+                messageStatus === 'sending' ? 'Sending...' :
+                messageStatus === 'sent' ? 'Sent' :
+                messageStatus === 'read' ? 'Read' : 'Sent'
+              }>
+                {getStatusIcon()}
               </div>
             )}
           </div>

@@ -12,7 +12,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 // @access  Private
 export const getKPIs = asyncHandler(async (req, res) => {
   const tenantFilter = req.user.tenantId ? { tenantId: req.user.tenantId } : {};
-  const ownerFilter = req.user.role !== 'admin' ? { ownerId: req.user._id } : {};
+  // Employees can view all data like admin, only restrict for other roles
+  const ownerFilter = (req.user.role !== 'admin' && req.user.role !== 'employee') ? { ownerId: req.user._id } : {};
 
   // Extract filter parameters from query
   const { startDate, endDate, ownerId, stage } = req.query;
@@ -20,10 +21,10 @@ export const getKPIs = asyncHandler(async (req, res) => {
   // Build dynamic filter
   const dynamicFilter = { ...tenantFilter };
   
-  // Owner filter: if ownerId is provided and user is admin, use it; otherwise use default ownerFilter
-  if (ownerId && req.user.role === 'admin') {
+  // Owner filter: if ownerId is provided and user is admin/employee, use it; otherwise use default ownerFilter
+  if (ownerId && (req.user.role === 'admin' || req.user.role === 'employee')) {
     dynamicFilter.ownerId = ownerId;
-  } else if (req.user.role !== 'admin') {
+  } else if (req.user.role !== 'admin' && req.user.role !== 'employee') {
     Object.assign(dynamicFilter, ownerFilter);
   }
 

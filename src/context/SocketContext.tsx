@@ -197,6 +197,14 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     newSocket.on('error', (error: Error) => {
       console.error('Socket.IO error:', error);
+      setIsConnected(false);
+      setConnectionStatus('error');
+    });
+
+    // Listen for message send errors
+    newSocket.on('messageError', (error: { message: string; chatId?: string }) => {
+      console.error('Message send error:', error);
+      // Error is handled by the component that sent the message
     });
 
     newSocket.on('reconnect', (attemptNumber) => {
@@ -247,7 +255,18 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     }) => {
       if (socket) {
         if (socket.connected) {
-          socket.emit('sendMessage', data);
+          try {
+            socket.emit('sendMessage', data, (response: { success?: boolean; error?: string }) => {
+              if (response && !response.success) {
+                console.error('Message send failed:', response.error);
+                // Emit error event for components to handle
+                socket.emit('messageError', { message: response.error || 'Failed to send message', chatId: data.chatId });
+              }
+            });
+          } catch (error) {
+            console.error('Error emitting sendMessage:', error);
+            socket.emit('messageError', { message: 'Failed to send message', chatId: data.chatId });
+          }
         } else {
           // Queue message if not connected
           queueMessage('sendMessage', data);

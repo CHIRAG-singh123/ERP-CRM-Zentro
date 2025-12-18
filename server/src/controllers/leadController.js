@@ -22,7 +22,8 @@ export const getLeads = asyncHandler(async (req, res) => {
   }
   if (ownerId) {
     query.ownerId = ownerId;
-  } else if (req.user.role !== 'admin') {
+  } else if (req.user.role !== 'admin' && req.user.role !== 'employee') {
+    // Employees can view all leads like admin
     query.ownerId = req.user._id;
   }
   if (search) {
@@ -258,7 +259,8 @@ export const exportLeads = asyncHandler(async (req, res) => {
   if (req.user.tenantId) {
     query.tenantId = req.user.tenantId;
   }
-  if (req.user.role !== 'admin') {
+  // Employees can export all leads like admin
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') {
     query.ownerId = req.user._id;
   }
 

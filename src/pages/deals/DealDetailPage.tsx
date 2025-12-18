@@ -10,10 +10,13 @@ import { getStageBgColor, calculateWeightedValue, getProbabilityColor } from '..
 import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import type { Deal } from '../../services/api/deals';
 import { formatDate } from '../../utils/formatting';
+import { useAuth } from '../../context/AuthContext';
 
 export function DealDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isEmployee = user?.role === 'employee';
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -91,22 +94,26 @@ export function DealDetailPage() {
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
-            {!isClosed && (
-              <button
-                onClick={handleEdit}
-                className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105"
-              >
-                <Edit className="h-4 w-4" />
-                Edit
-              </button>
+            {!isEmployee && (
+              <>
+                {!isClosed && (
+                  <button
+                    onClick={handleEdit}
+                    className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </button>
+                )}
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 rounded-full border border-red-500/50 px-4 py-2 text-sm text-red-400 transition-all duration-200 hover:border-red-500 hover:bg-red-500/10 hover:scale-105"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
+              </>
             )}
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-2 rounded-full border border-red-500/50 px-4 py-2 text-sm text-red-400 transition-all duration-200 hover:border-red-500 hover:bg-red-500/10 hover:scale-105"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </button>
           </>
         }
       />

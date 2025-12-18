@@ -9,10 +9,13 @@ import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { getStatusBgColor, getSourceDisplayName, formatExpectedCloseDate } from '../../utils/leadUtils';
 import { formatDate } from '../../utils/formatting';
 import { AnimatedNumber } from '../../components/common/AnimatedNumber';
+import { useAuth } from '../../context/AuthContext';
 
 export function LeadDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isEmployee = user?.role === 'employee';
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
@@ -107,29 +110,33 @@ export function LeadDetailPage() {
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
-            {!isConverted && (
-              <button
-                onClick={handleConvert}
-                className="flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:bg-[#C3ADD9] hover:scale-105 active:scale-95"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Convert to Deal
-              </button>
+            {!isEmployee && (
+              <>
+                {!isConverted && (
+                  <button
+                    onClick={handleConvert}
+                    className="flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:bg-[#C3ADD9] hover:scale-105 active:scale-95"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Convert to Deal
+                  </button>
+                )}
+                <button
+                  onClick={handleEdit}
+                  className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 rounded-full border border-red-500/50 px-4 py-2 text-sm text-red-400 transition-all duration-200 hover:border-red-500 hover:bg-red-500/10 hover:scale-105"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
+              </>
             )}
-            <button
-              onClick={handleEdit}
-              className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105"
-            >
-              <Edit className="h-4 w-4" />
-              Edit
-            </button>
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-2 rounded-full border border-red-500/50 px-4 py-2 text-sm text-red-400 transition-all duration-200 hover:border-red-500 hover:bg-red-500/10 hover:scale-105"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </button>
           </>
         }
       />
@@ -272,7 +279,7 @@ export function LeadDetailPage() {
                 </button>
               );
             })()}
-            {!isConverted && (
+            {!isEmployee && !isConverted && (
               <button
                 onClick={handleConvert}
                 className="w-full flex items-center justify-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:bg-[#C3ADD9] hover:scale-105"

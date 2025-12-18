@@ -25,11 +25,11 @@ export function useChats() {
   return useQuery({
     queryKey: ['chats'],
     queryFn: getChats,
-    staleTime: 5 * 1000, // 5 seconds
-    refetchInterval: 15 * 1000, // Poll every 15 seconds for better real-time feel
-    refetchOnWindowFocus: true,
-    refetchOnMount: true, // Always refetch on mount to ensure fresh data
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 30 * 1000, // 30 seconds - rely on socket updates instead of polling
+    refetchInterval: false, // Disable polling - use socket events for real-time updates
+    refetchOnWindowFocus: false, // Don't refetch on window focus - socket handles updates
+    refetchOnMount: true, // Only refetch on mount to ensure initial data
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 }
 
@@ -38,7 +38,8 @@ export function useChat(id: string | null) {
     queryKey: ['chat', id],
     queryFn: () => getChatById(id!),
     enabled: !!id,
-    staleTime: 10 * 1000,
+    staleTime: 60 * 1000, // 60 seconds - rely on socket updates
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 }
 
@@ -47,8 +48,9 @@ export function useMessages(chatId: string | null, params?: { page?: number; lim
     queryKey: ['messages', chatId, params],
     queryFn: () => getMessages(chatId!, params),
     enabled: !!chatId,
-    staleTime: 2 * 1000, // 2 seconds for messages
-    refetchOnWindowFocus: true,
+    staleTime: 60 * 1000, // 60 seconds - rely on socket updates for real-time
+    refetchOnWindowFocus: false, // Don't refetch on window focus - socket handles updates
+    refetchInterval: false, // Disable polling - use socket events
   });
 }
 
