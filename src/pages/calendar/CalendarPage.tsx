@@ -4,13 +4,15 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { EventClickArg, DatesSetArg } from '@fullcalendar/core';
+import type { EventClickArg, DatesSetArg, DayCellMountArg, EventMountArg } from '@fullcalendar/core';
+import type { DateClickArg } from '@fullcalendar/interaction';
 import { useAuth } from '../../context/AuthContext';
 import { useTaskEvents, useTask } from '../../hooks/queries/useTasks';
 import type { Task } from '../../services/api/tasks';
 import { PageHeader } from '../../components/common/PageHeader';
 import { TaskForm } from '../../components/tasks/TaskForm';
 import { TaskDetailsModal } from '../../components/tasks/TaskDetailsModal';
+import { DayTasksModal } from '../../components/tasks/DayTasksModal';
 
 export function CalendarPage() {
   const { user } = useAuth();
@@ -22,6 +24,7 @@ export function CalendarPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
+  const [dayTasksModalDate, setDayTasksModalDate] = useState<Date | null>(null);
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>(() => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -43,6 +46,46 @@ export function CalendarPage() {
     if (!data || !('events' in data)) return [];
     return data.events || [];
   }, [data]);
+
+  // Group events by date to count tasks per day and track first event per day
+  const tasksPerDay = useMemo(() => {
+    const counts: Record<string, number> = {};
+    events.forEach((event) => {
+      const dateKey = new Date(event.start).toDateString();
+      counts[dateKey] = (counts[dateKey] || 0) + 1;
+    });
+    return counts;
+  }, [events]);
+
+  // Track first event ID for each day (to show only first event when multiple tasks exist)
+  // Sort events by start time to ensure consistent first event selection
+  const firstEventPerDay = useMemo(() => {
+    const firstEvents: Record<string, string> = {};
+    const seenDates: Record<string, boolean> = {};
+    
+    // Sort events by start time to ensure consistent ordering
+    const sortedEvents = [...events].sort((a, b) => {
+      const timeA = new Date(a.start).getTime();
+      const timeB = new Date(b.start).getTime();
+      return timeA - timeB;
+    });
+    
+    sortedEvents.forEach((event) => {
+      const dateKey = new Date(event.start).toDateString();
+      if (!seenDates[dateKey] && tasksPerDay[dateKey] > 1) {
+        firstEvents[dateKey] = event.id;
+        seenDates[dateKey] = true;
+      }
+    });
+    
+    return firstEvents;
+  }, [events, tasksPerDay]);
+
+  // Check if a day has multiple tasks
+  const hasMultipleTasks = useCallback((date: Date) => {
+    const dateKey = date.toDateString();
+    return (tasksPerDay[dateKey] || 0) > 1;
+  }, [tasksPerDay]);
 
   // Calendar is view-only - date clicks are disabled
   // Tasks can only be created via the "New Task" button in the header
@@ -109,6 +152,85 @@ export function CalendarPage() {
     refetch();
   }, [refetch]);
 
+  // Handle date click for days with multiple tasks
+  // Only trigger if clicking on the day cell itself, not on an event
+  const handleDateClick = useCallback((arg: DateClickArg) => {
+    if (!canViewTasks) return;
+    
+    // Check if the click target is an event element
+    const target = arg.jsEvent?.target as HTMLElement;
+    if (target && (target.closest('.fc-event') || target.classList.contains('fc-event'))) {
+      // Click was on an event, let eventClick handle it
+      return;
+    }
+    
+    const clickedDate = arg.date;
+    if (hasMultipleTasks(clickedDate)) {
+      setDayTasksModalDate(clickedDate);
+    }
+  }, [canViewTasks, hasMultipleTasks]);
+
+  // Custom day cell mount to add badge
+  const handleDayCellDidMount = useCallback((arg: DayCellMountArg) => {
+    const dateKey = arg.date.toDateString();
+    const taskCount = tasksPerDay[dateKey] || 0;
+    
+    // Remove existing badge if any
+    const existingBadge = arg.el.querySelector('.fc-day-task-badge');
+    if (existingBadge) {
+      existingBadge.remove();
+    }
+    
+    // Remove clickable class if it exists
+    arg.el.classList.remove('fc-day-has-multiple-tasks');
+    
+    if (taskCount > 1) {
+      // Add class to make day clickable
+      arg.el.classList.add('fc-day-has-multiple-tasks');
+      
+      // Add badge to the day cell
+      const badge = document.createElement('div');
+      badge.className = 'fc-day-task-badge';
+      badge.textContent = taskCount > 9 ? '9+' : taskCount.toString();
+      
+      // Find the day number element and position badge relative to it
+      const dayNumberEl = arg.el.querySelector('.fc-daygrid-day-number');
+      if (dayNumberEl && dayNumberEl.parentElement) {
+        const parent = dayNumberEl.parentElement;
+        parent.style.position = 'relative';
+        parent.appendChild(badge);
+      }
+    }
+  }, [tasksPerDay]);
+
+  // Custom event mount to hide events after the first one on days with multiple tasks
+  const handleEventDidMount = useCallback((arg: EventMountArg) => {
+    if (!arg.event.start) return;
+    
+    const eventDate = new Date(arg.event.start);
+    const dateKey = eventDate.toDateString();
+    const taskCount = tasksPerDay[dateKey] || 0;
+    
+    // If there are multiple tasks on this day, hide all events except the first one
+    if (taskCount > 1) {
+      const firstEventId = firstEventPerDay[dateKey];
+      if (firstEventId && arg.event.id !== firstEventId) {
+        // Hide this event (it's not the first one)
+        arg.el.style.display = 'none';
+        arg.el.classList.add('fc-event-hidden-multiple');
+      } else {
+        // Show the first event
+        arg.el.style.display = '';
+        arg.el.classList.remove('fc-event-hidden-multiple');
+      }
+    } else {
+      // Show all events when there's only one task
+      arg.el.style.display = '';
+      arg.el.classList.remove('fc-event-hidden-multiple');
+    }
+  }, [tasksPerDay, firstEventPerDay]);
+
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -165,8 +287,9 @@ export function CalendarPage() {
               datesSet={handleDatesSet}
               eventClassNames="cursor-pointer transition-all duration-200 hover:scale-105"
               dayCellClassNames="calendar-view-only"
-              // Disable date click entirely - calendar is view-only
-              dateClick={undefined}
+              dayCellDidMount={handleDayCellDidMount}
+              eventDidMount={handleEventDidMount}
+              dateClick={handleDateClick}
             />
           </div>
         )}
@@ -192,6 +315,18 @@ export function CalendarPage() {
           onEdit={() => handleTaskDetailsEdit(taskData.task)}
           onDelete={handleTaskDetailsDelete}
           hideEditButton={true}
+        />
+      )}
+
+      {/* Day Tasks Modal */}
+      {canViewTasks && (
+        <DayTasksModal
+          selectedDate={dayTasksModalDate}
+          isOpen={!!dayTasksModalDate}
+          onClose={() => setDayTasksModalDate(null)}
+          onTaskDeleted={() => {
+            refetch();
+          }}
         />
       )}
     </div>

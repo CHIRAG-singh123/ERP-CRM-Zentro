@@ -450,6 +450,50 @@ button:hover svg {
   background-color: transparent !important;
 }
 
+/* Task count badge styling */
+.fc-day-task-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background-color: #A8DADC;
+  color: #1A1A1C;
+  font-size: 10px;
+  font-weight: 700;
+  pointer-events: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Make days with multiple tasks clickable */
+.fc-daygrid-day.fc-day-has-multiple-tasks {
+  cursor: pointer !important;
+}
+
+.fc-daygrid-day.fc-day-has-multiple-tasks:hover {
+  background-color: rgba(168, 218, 220, 0.1) !important;
+}
+
+.fc-daygrid-day.fc-day-has-multiple-tasks .fc-daygrid-day-frame {
+  cursor: pointer !important;
+}
+
+/* Hide events on days with multiple tasks except the first one */
+.fc-event-hidden-multiple {
+  display: none !important;
+}
+
+/* Ensure the visible event on days with multiple tasks doesn't block day clicks */
+.fc-day-has-multiple-tasks .fc-event:not(.fc-event-hidden-multiple) {
+  pointer-events: auto;
+}
+
 /* Ensure events (tasks) remain clickable */
 .fc-event {
   cursor: pointer !important;
