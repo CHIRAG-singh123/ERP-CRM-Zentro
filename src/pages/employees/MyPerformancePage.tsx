@@ -2,6 +2,7 @@ import { TrendingUp } from 'lucide-react';
 import { MetricCard } from '../../components/common/MetricCard';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useMyPerformance } from '../../hooks/queries/useEmployeePerformance';
+import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 
 export function MyPerformancePage() {
   const { data, isLoading } = useMyPerformance();
@@ -25,22 +26,22 @@ export function MyPerformancePage() {
           {/* KPI Cards */}
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <MetricCard
-              value={performance.productsCreated.toString()}
+              value={<AnimatedNumber value={performance.productsCreated} format="number" decimals={0} />}
               label="Products Created"
               icon={<TrendingUp className="h-5 w-5" />}
             />
             <MetricCard
-              value={performance.averageProductRating.toFixed(1)}
+              value={<AnimatedNumber value={performance.averageProductRating} format="number" decimals={1} />}
               label="Average Product Rating"
               icon={<TrendingUp className="h-5 w-5" />}
             />
             <MetricCard
-              value={performance.tasksCompleted.toString()}
+              value={<AnimatedNumber value={performance.tasksCompleted} format="number" decimals={0} />}
               label="Tasks Completed"
               icon={<TrendingUp className="h-5 w-5" />}
             />
             <MetricCard
-              value={performance.reviewsReceived.toString()}
+              value={<AnimatedNumber value={performance.reviewsReceived} format="number" decimals={0} />}
               label="Reviews Received"
               icon={<TrendingUp className="h-5 w-5" />}
             />

@@ -12,7 +12,7 @@ import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import { OverdueTasksModal } from '../../components/tasks/OverdueTasksModal';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
-import { formatAbbreviatedNumber, formatCurrency } from '../../utils/formatting';
+import { formatCurrency } from '../../utils/formatting';
 import { DealsByStagePieChart, type ChartFilterValues } from '../../components/dashboard/DealsByStagePieChart';
 import { LeadsBySourceBarChart } from '../../components/dashboard/LeadsBySourceBarChart';
 
@@ -127,7 +127,13 @@ export function DashboardPage() {
               let fullValueTooltip: string | undefined;
               
               if (metric.valueFormat === 'currency') {
-                valueDisplay = formatAbbreviatedNumber(metric.value, true);
+                valueDisplay = (
+                  <AnimatedNumber 
+                    value={metric.value} 
+                    format="currency" 
+                    decimals={0}
+                  />
+                );
                 fullValueTooltip = formatCurrency(metric.value);
               } else {
                 valueDisplay = (
