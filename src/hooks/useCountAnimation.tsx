@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 interface UseCountAnimationOptions {
   duration?: number;
-  format?: 'number' | 'currency' | 'percentage';
+  format?: 'number' | 'currency' | 'percentage' | 'abbreviatedCurrency';
   decimals?: number;
   startOnMount?: boolean;
 }

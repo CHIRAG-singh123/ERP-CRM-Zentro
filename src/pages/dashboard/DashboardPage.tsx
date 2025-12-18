@@ -130,7 +130,7 @@ export function DashboardPage() {
                 valueDisplay = (
                   <AnimatedNumber 
                     value={metric.value} 
-                    format="currency" 
+                    format="abbreviatedCurrency" 
                     decimals={0}
                   />
                 );

@@ -1,9 +1,9 @@
 import { useCountAnimation } from '../../hooks/useCountAnimation';
-import { formatCurrency } from '../../utils/formatting';
+import { formatCurrency, formatAbbreviatedNumber } from '../../utils/formatting';
 
 interface AnimatedNumberProps {
   value: number;
-  format?: 'number' | 'currency' | 'percentage';
+  format?: 'number' | 'currency' | 'percentage' | 'abbreviatedCurrency';
   duration?: number;
   decimals?: number;
   prefix?: string;
@@ -30,6 +30,9 @@ export function AnimatedNumber({
   const formatValue = (val: number): string => {
     if (format === 'currency') {
       return formatCurrency(val);
+    }
+    if (format === 'abbreviatedCurrency') {
+      return formatAbbreviatedNumber(val, true);
     }
     if (format === 'percentage') {
       return `${val.toFixed(decimals)}%`;
