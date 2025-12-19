@@ -2,8 +2,8 @@
 Zentro Next-Gen Unified Professional Business Management : A comprehensive, modular ERP &amp; CRM ecosystem designed to streamline enterprise operations, optimize customer lifecycles, and drive data-driven decision-making.
 <div align="center">
   <br />
-    <a href="https://github.com/CHIRAG-singh123/ERP-CRM-Zentro">
-      <img src="https://capsule-render.vercel.app/api?type=waving&color=0066ff&height=220&section=header&text=Zentro%20ERP%20%26%20CRM&fontSize=70&animation=fadeIn&fontAlignY=35&desc=Next-Gen%20Unified%20Business%20Architecture&descAlignY=55&descAlign=50" alt="Zentro Header" />
+     <a href="https://github.com/CHIRAG-singh123/ERP-CRM-Zentro">
+      <img width="1919" height="870" alt="Screenshot 2025-12-19 183138" src="https://github.com/user-attachments/assets/7e63127b-85dc-48b4-a29b-6789cbc623a8" />
     </a>
   <br />
 
