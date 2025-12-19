@@ -1155,3 +1155,195 @@ button:hover svg {
 }
 
 /* Sweep animation for rotating stroke ring - now handled by SVG animateTransform */
+
+/* ============================================
+   Dashboard Cards Wave Border Animation
+   ============================================ */
+
+/* Wave border animation - creates expanding ripple waves from card borders */
+.wave-border-animation {
+  position: relative;
+  overflow: visible;
+}
+
+/* First expanding wave - outermost layer */
+.wave-border-animation::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: inherit;
+  border: 2px solid transparent;
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Second expanding wave - middle layer */
+.wave-border-animation::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: inherit;
+  border: 2px solid transparent;
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Keyframe animation for first expanding wave */
+@keyframes waveBorderPulse1 {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  5% {
+    opacity: 0.8;
+  }
+  30% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+/* Keyframe animation for second expanding wave */
+@keyframes waveBorderPulse2 {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  8% {
+    opacity: 0.6;
+  }
+  35% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+/* Light mode - first wave */
+.light .wave-border-animation::before {
+  border-color: rgba(100, 37, 254, 0.6);
+  box-shadow: 0 0 0 0 rgba(100, 37, 254, 0.4),
+              0 0 0 0 rgba(100, 37, 254, 0.2);
+  animation: waveBorderPulse1 1s cubic-bezier(0.4, 0, 0.2, 1),
+             waveBorderGlow1Light 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light mode - second wave */
+.light .wave-border-animation::after {
+  border-color: rgba(179, 156, 208, 0.5);
+  box-shadow: 0 0 0 0 rgba(179, 156, 208, 0.3),
+              0 0 0 0 rgba(179, 156, 208, 0.15);
+  animation: waveBorderPulse2 1s cubic-bezier(0.4, 0, 0.2, 1) 0.15s,
+             waveBorderGlow2Light 1s cubic-bezier(0.4, 0, 0.2, 1) 0.15s;
+}
+
+/* Dark mode - first wave */
+.dark .wave-border-animation::before {
+  border-color: rgba(179, 156, 208, 0.7);
+  box-shadow: 0 0 0 0 rgba(179, 156, 208, 0.5),
+              0 0 0 0 rgba(179, 156, 208, 0.3);
+  animation: waveBorderPulse1 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+             waveBorderGlow1Dark 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark mode - second wave */
+.dark .wave-border-animation::after {
+  border-color: rgba(168, 218, 220, 0.6);
+  box-shadow: 0 0 0 0 rgba(168, 218, 220, 0.4),
+              0 0 0 0 rgba(168, 218, 220, 0.2);
+  animation: waveBorderPulse2 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.15s,
+             waveBorderGlow2Dark 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.15s;
+}
+
+/* Glow animation for light mode - first wave */
+@keyframes waveBorderGlow1Light {
+  0% {
+    box-shadow: 0 0 0 0 rgba(100, 37, 254, 0.4),
+                0 0 0 0 rgba(100, 37, 254, 0.2);
+  }
+  5% {
+    box-shadow: 0 0 0 1px rgba(100, 37, 254, 0.5),
+                0 0 4px 2px rgba(100, 37, 254, 0.3);
+  }
+  30% {
+    box-shadow: 0 0 0 3px rgba(100, 37, 254, 0.4),
+                0 0 10px 5px rgba(100, 37, 254, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(100, 37, 254, 0),
+                0 0 20px 12px rgba(100, 37, 254, 0);
+  }
+}
+
+/* Glow animation for light mode - second wave */
+@keyframes waveBorderGlow2Light {
+  0% {
+    box-shadow: 0 0 0 0 rgba(179, 156, 208, 0.3),
+                0 0 0 0 rgba(179, 156, 208, 0.15);
+  }
+  8% {
+    box-shadow: 0 0 0 2px rgba(179, 156, 208, 0.4),
+                0 0 6px 3px rgba(179, 156, 208, 0.2);
+  }
+  35% {
+    box-shadow: 0 0 0 4px rgba(179, 156, 208, 0.3),
+                0 0 14px 7px rgba(179, 156, 208, 0.15);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(179, 156, 208, 0),
+                0 0 24px 16px rgba(179, 156, 208, 0);
+  }
+}
+
+/* Glow animation for dark mode - first wave */
+@keyframes waveBorderGlow1Dark {
+  0% {
+    box-shadow: 0 0 0 0 rgba(179, 156, 208, 0.5),
+                0 0 0 0 rgba(179, 156, 208, 0.3);
+  }
+  5% {
+    box-shadow: 0 0 0 1px rgba(179, 156, 208, 0.6),
+                0 0 4px 2px rgba(179, 156, 208, 0.4);
+  }
+  30% {
+    box-shadow: 0 0 0 3px rgba(179, 156, 208, 0.5),
+                0 0 10px 5px rgba(179, 156, 208, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(179, 156, 208, 0),
+                0 0 20px 12px rgba(179, 156, 208, 0);
+  }
+}
+
+/* Glow animation for dark mode - second wave */
+@keyframes waveBorderGlow2Dark {
+  0% {
+    box-shadow: 0 0 0 0 rgba(168, 218, 220, 0.4),
+                0 0 0 0 rgba(168, 218, 220, 0.2);
+  }
+  8% {
+    box-shadow: 0 0 0 2px rgba(168, 218, 220, 0.5),
+                0 0 6px 3px rgba(168, 218, 220, 0.3);
+  }
+  35% {
+    box-shadow: 0 0 0 4px rgba(168, 218, 220, 0.4),
+                0 0 14px 7px rgba(168, 218, 220, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(168, 218, 220, 0),
+                0 0 24px 16px rgba(168, 218, 220, 0);
+  }
+}

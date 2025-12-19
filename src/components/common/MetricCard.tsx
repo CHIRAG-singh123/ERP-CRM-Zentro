@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 
 interface MetricCardProps {
   value: string | ReactNode;
@@ -12,11 +12,26 @@ interface MetricCardProps {
 
 export function MetricCard({ value, label, trend, icon, index = 0, onClick, fullValue }: MetricCardProps) {
   const delay = index * 100;
+  const [showWaveAnimation, setShowWaveAnimation] = useState(true);
+
+  useEffect(() => {
+    // Trigger wave animation on mount
+    setShowWaveAnimation(true);
+
+    // Remove animation after 1.5 seconds
+    const timer = setTimeout(() => {
+      setShowWaveAnimation(false);
+    }, 1000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
 
   return (
     <div
       onClick={onClick}
-      className={`card-hover float-animation animate-fade-in rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:scale-[1.03] hover:border-accent/40 hover:shadow-xl hover:shadow-accent/10 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`card-hover float-animation animate-fade-in rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:scale-[1.03] hover:border-accent/40 hover:shadow-xl hover:shadow-accent/10 ${onClick ? 'cursor-pointer' : ''} ${showWaveAnimation ? 'wave-border-animation' : ''}`}
       style={{ animationDelay: `${delay}ms` }}
       title={fullValue || undefined}
     >
