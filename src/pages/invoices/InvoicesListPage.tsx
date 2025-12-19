@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Eye, Trash2 } from 'lucide-react';
+import { Search, Eye, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '../../components/common/DataGrid';
 import { DataGridPlaceholder } from '../../components/common/DataGridPlaceholder';
@@ -57,16 +57,7 @@ export function InvoicesListPage() {
     <div className="space-y-8">
       <PageHeader
         title="Invoices"
-        description="Manage invoices and track payments."
-        actions={
-          <button
-            onClick={() => navigate('/invoices/new')}
-            className="flex items-center gap-2 rounded-full bg-[#A8DADC] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition hover:bg-[#BCE7E5]"
-          >
-            <Plus className="h-4 w-4" />
-            New Invoice
-          </button>
-        }
+        description="Manage invoices and track payments. Invoices are automatically generated from orders, quotes, and deals."
       >
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex flex-1 min-w-[220px] items-center gap-2 rounded-full border border-white/10 bg-[#1A1A1C] px-4 py-2 text-sm text-white/60">
