@@ -4,7 +4,17 @@ export const errorHandler = (err, req, res, next) => {
   // Mongoose validation error
   if (err.name === 'ValidationError') {
     const errors = Object.values(err.errors).map((e) => e.message);
-    return res.status(400).json({ error: 'Validation error', details: errors });
+    const errorMessage = errors.length > 0 ? errors.join(', ') : 'Validation error';
+    console.error('Validation Error Details:', {
+      errors: errors,
+      path: err.path,
+      value: err.value,
+    });
+    return res.status(400).json({ 
+      error: 'Validation error', 
+      details: errorMessage,
+      fields: errors 
+    });
   }
 
   // Mongoose duplicate key error

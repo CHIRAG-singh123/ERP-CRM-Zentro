@@ -1,4 +1,5 @@
-import { fetchJson } from './http';
+import { fetchJson, getAccessToken } from './http';
+import { API_BASE_URL } from './config';
 
 export interface InvoiceLineItem {
   productId?: {
@@ -139,13 +140,104 @@ export const deleteInvoice = async (id: string): Promise<{ message: string }> =>
 };
 
 export const downloadInvoicePDF = async (id: string): Promise<Blob> => {
-  const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/invoices/${id}/pdf`, {
-    credentials: 'include',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
-    },
-  });
-  if (!response.ok) throw new Error('Failed to download PDF');
-  return response.blob();
+  // Build URL using API_BASE_URL from config
+  const path = `/invoices/${id}/pdf`;
+  const url = path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  
+  const token = getAccessToken();
+
+  console.log('[PDF Download] Starting download for invoice:', id);
+  console.log('[PDF Download] URL:', url);
+
+  try {
+    const headers: HeadersInit = {
+      Accept: 'application/pdf',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers,
+    });
+
+    console.log('[PDF Download] Response status:', response.status, response.statusText);
+    console.log('[PDF Download] Content-Type:', response.headers.get('Content-Type'));
+
+    if (!response.ok) {
+      // Try to get error message from response
+      let errorMessage = 'Failed to download PDF';
+      
+      try {
+        const contentType = response.headers.get('Content-Type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          if (errorData.details) {
+            errorMessage += `: ${errorData.details}`;
+          }
+        } else {
+          const errorText = await response.text();
+          if (errorText) {
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch {
+              errorMessage = errorText || errorMessage;
+            }
+          }
+        }
+      } catch (parseError) {
+        console.error('[PDF Download] Error parsing error response:', parseError);
+        if (response.status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (response.status === 403) {
+          errorMessage = 'You do not have permission to download this invoice.';
+        } else if (response.status === 404) {
+          errorMessage = 'Route not found. Please check the invoice ID.';
+        } else if (response.status === 500) {
+          errorMessage = 'Server error while generating PDF.';
+        }
+      }
+
+      console.error('[PDF Download] Error response:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    // Check if response is actually a PDF
+    const contentType = response.headers.get('Content-Type');
+    if (contentType && !contentType.includes('application/pdf')) {
+      console.warn('[PDF Download] Unexpected content type:', contentType);
+    }
+
+    const blob = await response.blob();
+    console.log('[PDF Download] Blob received, size:', blob.size, 'bytes, type:', blob.type);
+
+    if (blob.size === 0) {
+      throw new Error('Received empty PDF file from server');
+    }
+
+    // Verify it's actually a PDF by checking the first bytes
+    const arrayBuffer = await blob.slice(0, 4).arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    const pdfHeader = String.fromCharCode(...bytes);
+    
+    if (pdfHeader !== '%PDF') {
+      console.error('[PDF Download] Invalid PDF header:', pdfHeader);
+      throw new Error('Received file is not a valid PDF');
+    }
+
+    console.log('[PDF Download] PDF validated successfully');
+    return blob;
+  } catch (error: any) {
+    console.error('[PDF Download] Download failed:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(error?.message || 'Failed to download PDF');
+  }
 };
 

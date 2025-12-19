@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { useInvoice, useDeleteInvoice, useUpdateInvoiceStatus } from '../../hooks/queries/useInvoices';
 import { InvoiceView } from '../../components/invoices/InvoiceView';
 import { DownloadPDFButton } from '../../components/invoices/DownloadPDFButton';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
-import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
 import type { Invoice } from '../../services/api/invoices';
 
@@ -14,7 +14,10 @@ export function InvoiceDetailPage() {
   const { data, isLoading } = useInvoice(id);
   const invoice = data?.invoice;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { success } = useToast();
+  const { user } = useAuth();
+  
+  const canEdit = user?.role === 'admin' || user?.role === 'employee';
+  const canDelete = user?.role === 'admin' || user?.role === 'employee';
 
   const deleteInvoice = useDeleteInvoice();
   const updateStatus = useUpdateInvoiceStatus();
@@ -73,31 +76,37 @@ export function InvoiceDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <DownloadPDFButton invoiceId={invoice._id} invoiceNumber={invoice.invoiceNumber} />
-          <select
-            value={invoice.status}
-            onChange={(e) => handleStatusUpdate(e.target.value as Invoice['status'])}
-            className="rounded-md border border-white/10 bg-[#1A1A1C] px-3 py-2 text-sm text-white focus:border-white/20 focus:outline-none"
-          >
-            <option value="Draft">Draft</option>
-            <option value="Sent">Sent</option>
-            <option value="Paid">Paid</option>
-            <option value="Overdue">Overdue</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-          <button
-            onClick={() => navigate(`/invoices/${id}/edit`)}
-            className="flex items-center gap-2 rounded-md border border-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
-          >
-            <Edit className="h-4 w-4" />
-            Edit
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="flex items-center gap-2 rounded-md border border-red-500/30 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </button>
+          {canEdit && (
+            <>
+              <select
+                value={invoice.status}
+                onChange={(e) => handleStatusUpdate(e.target.value as Invoice['status'])}
+                className="rounded-md border border-white/10 bg-[#1A1A1C] px-3 py-2 text-sm text-white focus:border-white/20 focus:outline-none"
+              >
+                <option value="Draft">Draft</option>
+                <option value="Sent">Sent</option>
+                <option value="Paid">Paid</option>
+                <option value="Overdue">Overdue</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+              <button
+                onClick={() => navigate(`/invoices/${id}/edit`)}
+                className="flex items-center gap-2 rounded-md border border-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+              >
+                <Edit className="h-4 w-4" />
+                Edit
+              </button>
+            </>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-2 rounded-md border border-red-500/30 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          )}
         </div>
       </div>
 

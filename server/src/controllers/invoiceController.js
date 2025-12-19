@@ -1,6 +1,8 @@
 import Invoice from '../models/Invoice.js';
 import Quote from '../models/Quote.js';
 import Deal from '../models/Deal.js';
+import { Product } from '../models/Product.js';
+import Contact from '../models/Contact.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { generateInvoicePDF } from '../utils/pdfGenerator.js';
 
@@ -24,15 +26,54 @@ const calculateInvoiceTotals = (lineItems) => {
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
-// @access  Private
+// @access  Private (RBAC filtered)
 export const getInvoices = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search, status, contactId, companyId } = req.query;
   const skip = (page - 1) * limit;
 
   const query = {};
-  if (req.user.tenantId) {
-    query.tenantId = req.user.tenantId;
+
+  // Role-based filtering
+  if (req.user.role === 'admin') {
+    // Admin sees all invoices
+    if (req.user.tenantId) {
+      query.tenantId = req.user.tenantId;
+    }
+  } else if (req.user.role === 'employee') {
+    // Employee sees invoices where lineItems contain products created by employee
+    const employeeProducts = await Product.find({ createdBy: req.user._id }).select('_id');
+    const productIds = employeeProducts.map((p) => p._id);
+    query['lineItems.productId'] = { $in: productIds };
+    if (req.user.tenantId) {
+      query.tenantId = req.user.tenantId;
+    }
+  } else if (req.user.role === 'customer') {
+    // Customer sees invoices where contactId matches their user record
+    // First, find contact for this customer
+    const Contact = (await import('../models/Contact.js')).default;
+    const contact = await Contact.findOne({
+      'emails.email': req.user.email,
+      tenantId: req.user.tenantId || null,
+    });
+    if (contact) {
+      query.contactId = contact._id;
+    } else {
+      // No contact found, return empty result
+      return res.json({
+        invoices: [],
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: 0,
+          pages: 0,
+        },
+      });
+    }
+  } else {
+    return res.status(403).json({ error: 'Access denied' });
   }
+
+  // Additional filters
   if (status) {
     query.status = status;
   }
@@ -288,9 +329,39 @@ export const updateInvoiceStatus = asyncHandler(async (req, res) => {
 // @route   GET /api/invoices/:id/pdf
 // @access  Private
 export const downloadInvoicePDF = asyncHandler(async (req, res) => {
+  console.log('[PDF Download] Request received');
+  console.log('[PDF Download] Invoice ID:', req.params.id);
+  console.log('[PDF Download] Original URL:', req.originalUrl);
+  console.log('[PDF Download] Path:', req.path);
+  console.log('[PDF Download] Method:', req.method);
+  console.log('[PDF Download] User:', req.user?._id, req.user?.role);
+  
+  // Validate invoice ID
+  if (!req.params.id || req.params.id === 'pdf') {
+    console.error('[PDF Download] Invalid invoice ID:', req.params.id);
+    return res.status(400).json({ error: 'Invalid invoice ID' });
+  }
+  
   const query = { _id: req.params.id };
-  if (req.user.tenantId) {
-    query.tenantId = req.user.tenantId;
+
+  // Role-based access control
+  if (req.user.role === 'admin') {
+    // Admin can access all invoices within their tenant
+    if (req.user.tenantId) {
+      query.tenantId = req.user.tenantId;
+    }
+  } else if (req.user.role === 'employee') {
+    // Employee can access invoices for products they created
+    if (req.user.tenantId) {
+      query.tenantId = req.user.tenantId;
+    }
+    // Additional check will be done after fetching invoice
+  } else if (req.user.role === 'customer') {
+    // Customer can only access invoices where contactId matches their user
+    // This will be checked after fetching the invoice
+    if (req.user.tenantId) {
+      query.tenantId = req.user.tenantId;
+    }
   }
 
   const invoice = await Invoice.findOne(query)
@@ -302,13 +373,96 @@ export const downloadInvoicePDF = asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Invoice not found' });
   }
 
+  // Additional RBAC checks
+  if (req.user.role === 'employee') {
+    // Check if invoice contains products created by this employee
+    const productIds = invoice.lineItems
+      .map((item) => item.productId?._id || item.productId)
+      .filter(Boolean);
+    
+    if (productIds.length > 0) {
+      const employeeProducts = await Product.find({
+        _id: { $in: productIds },
+        createdBy: req.user._id,
+      });
+      
+      if (employeeProducts.length === 0) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+  } else if (req.user.role === 'customer') {
+    // Check if invoice contact matches customer's contact
+    const customerContact = await Contact.findOne({
+      'emails.email': req.user.email,
+      tenantId: req.user.tenantId || null,
+    });
+    
+    if (!customerContact || invoice.contactId?._id?.toString() !== customerContact._id.toString()) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+  }
+
+  // Validate invoice has required data
+  if (!invoice.invoiceNumber) {
+    console.error('Invoice missing invoiceNumber:', invoice._id);
+    return res.status(500).json({ error: 'Invoice data is incomplete' });
+  }
+
   try {
+    // Ensure invoice is properly populated before PDF generation
+    if (!invoice.contactId) {
+      console.error('Invoice missing contactId:', invoice._id);
+      return res.status(500).json({ error: 'Invoice data is incomplete: missing contact information' });
+    }
+
+    // Log invoice data for debugging
+    console.log('Generating PDF for invoice:', {
+      id: invoice._id,
+      invoiceNumber: invoice.invoiceNumber,
+      hasContact: !!invoice.contactId,
+      hasCompany: !!invoice.companyId,
+      lineItemsCount: invoice.lineItems?.length || 0,
+    });
+
     const pdfBuffer = await generateInvoicePDF(invoice);
+    
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      console.error('PDF generation returned empty buffer for invoice:', invoice._id);
+      return res.status(500).json({ error: 'Failed to generate PDF: Empty PDF buffer' });
+    }
+
+    console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes');
+
+    // Set headers before sending
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice.invoiceNumber}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice.invoiceNumber || invoice._id}.pdf`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    // Send the PDF buffer
     res.send(pdfBuffer);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to generate PDF' });
+    console.error('Error generating PDF for invoice:', invoice._id);
+    console.error('Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+    });
+    
+    const errorMessage = error?.message || 'Failed to generate PDF';
+    
+    // Only send error details in development
+    if (process.env.NODE_ENV === 'development') {
+      return res.status(500).json({ 
+        error: 'Failed to generate PDF',
+        details: errorMessage,
+        stack: error?.stack
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to generate PDF. Please try again later.'
+    });
   }
 });
 

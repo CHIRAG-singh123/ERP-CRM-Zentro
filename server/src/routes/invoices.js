@@ -16,8 +16,13 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get('/', getInvoices);
-router.get('/:id', getInvoice);
+
+// PDF route - must be defined before /:id to avoid route conflicts
+// Express matches routes in order, so more specific routes should come first
 router.get('/:id/pdf', downloadInvoicePDF);
+
+// Get single invoice - this must come after /:id/pdf
+router.get('/:id', getInvoice);
 router.post('/', createInvoice);
 router.put('/:id', updateInvoice);
 router.patch('/:id/status', updateInvoiceStatus);

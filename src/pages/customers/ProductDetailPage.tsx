@@ -5,11 +5,12 @@ import { useProductReviews, useCreateReview, useDeleteReview } from '../../hooks
 import { StarRating } from '../../components/common/StarRating';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { logger } from '../../utils/logger';
 import { getImageUrl } from '../../utils/imageUtils';
 import type { User } from '../../services/api/auth';
+import { OrderModal } from '../../components/orders/OrderModal';
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export function ProductDetailPage() {
   const queryClient = useQueryClient();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   const { data: productData, isLoading: productLoading } = useProduct(id || '');
   const { data: reviewsData, isLoading: reviewsLoading } = useProductReviews(id || '', {
@@ -159,6 +161,17 @@ export function ProductDetailPage() {
           <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-4">
             <div className="text-3xl font-bold text-[#B39CD0]">${product.price.toFixed(2)}</div>
           </div>
+
+          {/* Place Order Button - Only for authenticated customers */}
+          {isAuthenticated && user?.role === 'customer' && (
+            <button
+              onClick={() => setIsOrderModalOpen(true)}
+              className="w-full rounded-lg bg-[#B39CD0] px-6 py-3 text-lg font-medium text-[#1A1A1C] transition hover:bg-[#C3ADD9] flex items-center justify-center gap-2"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              Place Order
+            </button>
+          )}
 
           {product.description && (
             <div>
@@ -317,6 +330,19 @@ export function ProductDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Order Modal */}
+      {product && (
+        <OrderModal
+          isOpen={isOrderModalOpen}
+          onClose={() => setIsOrderModalOpen(false)}
+          product={product}
+          onSuccess={(order) => {
+            logger.info('Order placed successfully:', order);
+            // Optionally show a success message or navigate
+          }}
+        />
+      )}
     </div>
   );
 }

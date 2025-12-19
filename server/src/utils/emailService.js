@@ -692,6 +692,304 @@ export const sendGeneralEmail = async (toEmail, fromEmail, subject, message, fro
 };
 
 /**
+ * Generate simple HTML email template for order confirmation (similar to forgot password)
+ */
+const generateOrderConfirmationTemplate = (order, invoice, userName = 'Customer') => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const appName = process.env.APP_NAME || 'ERP-CRM';
+  const invoiceId = invoice?._id || invoice?.id || 'unknown';
+  const invoiceUrl = `${frontendUrl}/invoices/${invoiceId}`;
+  const invoiceNumber = invoice?.invoiceNumber || 'N/A';
+
+  // Simple items list
+  const itemsList = (order.items || []).map((item) => {
+    const productName = item.productName || 'Product';
+    const quantity = item.quantity || 1;
+    const price = item.price || 0;
+    const total = quantity * price;
+    return `${productName} x ${quantity} - $${total.toFixed(2)}`;
+  }).join('<br>');
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      background-color: #f4f4f4;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .email-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .email-header h1 {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .email-body {
+      padding: 40px 30px;
+    }
+    .email-body h2 {
+      color: #333333;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .email-body p {
+      color: #666666;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .order-info {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 20px 0;
+      word-break: break-all;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #495057;
+    }
+    .button-container {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .invoice-button {
+      display: inline-block;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 16px;
+      transition: opacity 0.3s;
+    }
+    .invoice-button:hover {
+      opacity: 0.9;
+    }
+    .invoice-link {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 20px 0;
+      word-break: break-all;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #495057;
+    }
+    .email-footer {
+      background-color: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e9ecef;
+    }
+    .email-footer p {
+      color: #6c757d;
+      font-size: 14px;
+      margin: 5px 0;
+    }
+    .email-footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    @media only screen and (max-width: 600px) {
+      .email-body {
+        padding: 30px 20px;
+      }
+      .email-header {
+        padding: 30px 20px;
+      }
+      .invoice-button {
+        display: block;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${appName}</h1>
+    </div>
+    <div class="email-body">
+      <h2>Order Confirmation</h2>
+      <p>Hello ${userName},</p>
+      <p>Thank you for your order! Your order has been received and is being processed.</p>
+      
+      <div class="order-info">
+        <p><strong>Order Number:</strong> ${order.orderNumber || 'N/A'}</p>
+        <p><strong>Invoice Number:</strong> ${invoiceNumber}</p>
+        <p><strong>Total Amount:</strong> $${(order.totalAmount || 0).toFixed(2)}</p>
+        <p><strong>Payment Status:</strong> ${order.paymentStatus || 'Paid'}</p>
+        <p><strong>Items:</strong><br>${itemsList || 'No items'}</p>
+      </div>
+      
+      <div class="button-container">
+        <a href="${invoiceUrl}" class="invoice-button">View Invoice</a>
+      </div>
+      
+      <p>Or copy and paste this link into your browser:</p>
+      <div class="invoice-link">${invoiceUrl}</div>
+      
+      <p>If you have any questions about your order, please contact our support team.</p>
+    </div>
+    <div class="email-footer">
+      <p>This is an automated message, please do not reply to this email.</p>
+      <p>&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
+      <p><a href="${frontendUrl}">Visit our website</a></p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+};
+
+/**
+ * Generate plain text version of order confirmation email
+ */
+const generateOrderConfirmationText = (order, invoice, userName = 'Customer') => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const appName = process.env.APP_NAME || 'ERP-CRM';
+  const invoiceId = invoice?._id || invoice?.id || 'unknown';
+  const invoiceUrl = `${frontendUrl}/invoices/${invoiceId}`;
+  const invoiceNumber = invoice?.invoiceNumber || 'N/A';
+
+  const itemsText = (order.items || []).map((item) => {
+    const productName = item.productName || 'Product';
+    const quantity = item.quantity || 1;
+    const price = item.price || 0;
+    const total = quantity * price;
+    return `  - ${productName} x ${quantity} - $${total.toFixed(2)}`;
+  }).join('\n');
+
+  return `
+Order Confirmation
+
+Hello ${userName},
+
+Thank you for your order! Your order has been received and is being processed.
+
+Order Number: ${order.orderNumber || 'N/A'}
+Invoice Number: ${invoiceNumber}
+Total Amount: $${(order.totalAmount || 0).toFixed(2)}
+Payment Status: ${order.paymentStatus || 'Paid'}
+
+Items:
+${itemsText}
+
+View your invoice: ${invoiceUrl}
+
+If you have any questions about your order, please contact our support team.
+
+---
+This is an automated message, please do not reply to this email.
+© ${new Date().getFullYear()} ${appName}. All rights reserved.
+  `.trim();
+};
+
+/**
+ * Send order confirmation email
+ * @param {Object} user - User object with email and name
+ * @param {Object} order - Order object
+ * @param {Object} invoice - Invoice object
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
+ */
+export const sendOrderConfirmationEmail = async (user, order, invoice) => {
+  // Initialize transporter if not already done
+  const emailTransporter = initializeEmailService();
+  
+  const userName = user.name || 'Customer';
+  const userEmail = user.email;
+  const defaultFromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER || 'noreply@example.com';
+  const defaultFromName = process.env.FROM_NAME || process.env.APP_NAME || 'ERP-CRM';
+  
+  // Development mode - console logging
+  if (!emailTransporter) {
+    const htmlContent = generateOrderConfirmationTemplate(order, invoice, userName);
+    const textContent = generateOrderConfirmationText(order, invoice, userName);
+    
+    console.log('\n📧 ========== ORDER CONFIRMATION EMAIL (DEVELOPMENT MODE) ==========');
+    console.log(`To: ${userEmail}`);
+    console.log(`From: ${defaultFromName} <${defaultFromEmail}>`);
+    console.log(`Subject: Order Confirmation - ${order.orderNumber}`);
+    console.log('\n--- HTML Content Preview ---');
+    console.log(htmlContent.substring(0, 500) + '...');
+    console.log('\n--- Plain Text Content ---');
+    console.log(textContent);
+    console.log('📧 ============================================================\n');
+    
+    return { success: true, mode: 'development' };
+  }
+
+  // Production mode - send actual email
+  const mailOptions = {
+    from: `"${defaultFromName}" <${defaultFromEmail}>`,
+    to: userEmail,
+    subject: `Order Confirmation - ${order.orderNumber}`,
+    html: generateOrderConfirmationTemplate(order, invoice, userName),
+    text: generateOrderConfirmationText(order, invoice, userName),
+  };
+
+  try {
+    // Verify connection first
+    await emailTransporter.verify();
+    
+    // Send email with retry logic
+    const info = await retryWithBackoff(async () => {
+      return await emailTransporter.sendMail(mailOptions);
+    });
+
+    console.log(`✅ Order confirmation email sent successfully to ${userEmail}`);
+    console.log(`📧 Message ID: ${info.messageId}`);
+    
+    return {
+      success: true,
+      messageId: info.messageId,
+      provider: emailProvider,
+    };
+  } catch (error) {
+    // Log detailed error information
+    console.error(`❌ Failed to send order confirmation email to ${userEmail}:`);
+    console.error(`   Error: ${error.message}`);
+    
+    if (error.code) {
+      console.error(`   Error Code: ${error.code}`);
+    }
+    
+    if (error.response) {
+      console.error(`   SMTP Response: ${error.response}`);
+    }
+
+    return {
+      success: false,
+      error: error.message,
+      provider: emailProvider,
+    };
+  }
+};
+
+/**
  * Verify email service configuration
  * @returns {Promise<{valid: boolean, message: string, provider?: string}>}
  */

@@ -13,6 +13,7 @@ dist-ssr
 server/node_modules
 server/.env
 server/*
+plan_incoice_management.md
 
 
 .vscode/*

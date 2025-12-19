@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Plus, Search, Download } from 'lucide-react';
+import { Plus, Search, Eye, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '../../components/common/DataGrid';
 import { DataGridPlaceholder } from '../../components/common/DataGridPlaceholder';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useInvoices, useDeleteInvoice } from '../../hooks/queries/useInvoices';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { DownloadPDFButton } from '../../components/invoices/DownloadPDFButton';
+import { useAuth } from '../../context/AuthContext';
 import type { Invoice } from '../../services/api/invoices';
 
 export function InvoicesListPage() {
@@ -13,6 +15,9 @@ export function InvoicesListPage() {
   const [statusFilter, setStatusFilter] = useState<Invoice['status'] | ''>('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const canDelete = user?.role === 'admin' || user?.role === 'employee';
 
   const { data, isLoading } = useInvoices({
     search: searchTerm || undefined,
@@ -142,16 +147,26 @@ export function InvoicesListPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => navigate(`/invoices/${invoice._id}`)}
-                      className="rounded px-2 py-1 text-xs text-[#A8DADC] hover:bg-white/5"
+                      title="View invoice"
+                      className="flex items-center justify-center rounded-md border border-white/10 p-2 text-[#A8DADC] transition hover:bg-white/10 hover:text-[#A8DADC]"
+                      aria-label="View invoice"
                     >
-                      View
+                      <Eye className="h-4 w-4" />
                     </button>
-                    <button
-                      onClick={() => setDeleteId(invoice._id)}
-                      className="rounded px-2 py-1 text-xs text-red-400 hover:bg-white/5"
-                    >
-                      Delete
-                    </button>
+                    <DownloadPDFButton
+                      invoiceId={invoice._id}
+                      invoiceNumber={invoice.invoiceNumber}
+                    />
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeleteId(invoice._id)}
+                        title="Delete invoice"
+                        className="flex items-center justify-center rounded-md border border-white/10 p-2 text-red-400 transition hover:bg-white/10 hover:text-red-300"
+                        aria-label="Delete invoice"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 );
               },
