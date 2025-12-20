@@ -716,7 +716,7 @@ const generateOrderConfirmationTemplate = (order, invoice, userName = 'Customer'
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Confirmation</title>
+  <title>Order Confirmation - ${appName}</title>
   <style>
     * {
       margin: 0;
@@ -724,111 +724,239 @@ const generateOrderConfirmationTemplate = (order, invoice, userName = 'Customer'
       box-sizing: border-box;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
       color: #333333;
-      background-color: #f4f4f4;
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+      padding: 20px;
     }
     .email-container {
       max-width: 600px;
       margin: 0 auto;
       background-color: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.15);
     }
     .email-header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 40px 30px;
+      padding: 50px 30px;
       text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .email-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 300px;
+      height: 300px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+    .email-header::after {
+      content: '';
+      position: absolute;
+      bottom: -50%;
+      left: -50%;
+      width: 250px;
+      height: 250px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
     }
     .email-header h1 {
       color: #ffffff;
-      font-size: 28px;
-      font-weight: 600;
+      font-size: 32px;
+      font-weight: 700;
       margin: 0;
+      position: relative;
+      z-index: 1;
+      letter-spacing: 0.5px;
+    }
+    .success-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 12px;
+      position: relative;
+      z-index: 1;
     }
     .email-body {
       padding: 40px 30px;
     }
-    .email-body h2 {
+    .greeting {
+      font-size: 18px;
       color: #333333;
-      font-size: 24px;
-      margin-bottom: 20px;
+      margin-bottom: 8px;
+      font-weight: 600;
     }
-    .email-body p {
+    .subheading {
       color: #666666;
       font-size: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
+      line-height: 1.5;
     }
     .order-info {
-      background-color: #ffffff;
-      border: 1px solid #e9ecef;
+      background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+      border-left: 4px solid #667eea;
+      border-radius: 8px;
+      padding: 24px;
+      margin: 30px 0;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+    }
+    .order-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+      font-size: 15px;
+    }
+    .order-row:last-child {
+      border-bottom: none;
+    }
+    .order-label {
+      font-weight: 600;
+      color: #667eea;
+    }
+    .order-value {
+      color: #333333;
+      text-align: right;
+      font-weight: 500;
+    }
+    .items-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(102, 126, 234, 0.1);
+    }
+    .items-label {
+      font-weight: 600;
+      color: #667eea;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .item-line {
+      color: #666666;
+      font-size: 14px;
+      margin: 6px 0;
+      padding-left: 12px;
+      border-left: 2px solid #764ba2;
+    }
+    .amount-highlight {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 8px 16px;
       border-radius: 6px;
-      padding: 20px;
-      margin: 20px 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      font-size: 16px;
-      color: #333333;
-    }
-    .order-info p {
-      margin: 8px 0;
-      color: #333333;
-    }
-    .order-info strong {
-      color: #495057;
+      font-weight: 700;
+      font-size: 18px;
+      margin: 12px 0;
     }
     .button-container {
       text-align: center;
-      margin: 30px 0;
+      margin: 35px 0;
     }
     .invoice-button {
       display: inline-block;
-      padding: 14px 32px;
+      padding: 16px 40px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #ffffff !important;
       text-decoration: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-weight: 600;
       font-size: 16px;
-      transition: opacity 0.3s;
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 0.3px;
     }
     .invoice-button:hover {
-      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
     }
     .invoice-link {
-      background-color: #f8f9fa;
-      border: 1px solid #e9ecef;
+      background-color: #f8f9ff;
+      border: 1px dashed #667eea;
       border-radius: 6px;
-      padding: 15px;
+      padding: 14px;
       margin: 20px 0;
       word-break: break-all;
       font-family: 'Courier New', monospace;
       font-size: 12px;
-      color: #495057;
+      color: #667eea;
+      line-height: 1.4;
+    }
+    .support-text {
+      color: #666666;
+      font-size: 15px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
     }
     .email-footer {
-      background-color: #f8f9fa;
-      padding: 30px;
+      background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+      padding: 35px 30px;
       text-align: center;
       border-top: 1px solid #e9ecef;
     }
-    .email-footer p {
-      color: #6c757d;
-      font-size: 14px;
-      margin: 5px 0;
+    .footer-text {
+      color: #999999;
+      font-size: 13px;
+      margin: 6px 0;
+      line-height: 1.5;
     }
-    .email-footer a {
+    .footer-text a {
       color: #667eea;
       text-decoration: none;
+      font-weight: 600;
+      transition: color 0.3s ease;
+    }
+    .footer-text a:hover {
+      color: #764ba2;
+    }
+    .copyright {
+      font-size: 12px;
+      color: #999999;
+      margin-top: 10px;
+    }
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #667eea, transparent);
+      margin: 15px 0;
+      opacity: 0.3;
     }
     @media only screen and (max-width: 600px) {
       .email-body {
-        padding: 30px 20px;
+        padding: 25px 20px;
       }
       .email-header {
-        padding: 30px 20px;
+        padding: 35px 20px;
+      }
+      .email-header h1 {
+        font-size: 26px;
+      }
+      .order-info {
+        padding: 16px;
+      }
+      .order-row {
+        flex-direction: column;
+      }
+      .order-value {
+        text-align: left;
+        margin-top: 4px;
       }
       .invoice-button {
         display: block;
         margin: 0 auto;
+        width: 100%;
+      }
+      .email-footer {
+        padding: 25px 20px;
       }
     }
   </style>
@@ -836,34 +964,69 @@ const generateOrderConfirmationTemplate = (order, invoice, userName = 'Customer'
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>${appName}</h1>
+      <h1>✓ ${appName}</h1>
+      <div class="success-badge">ORDER RECEIVED</div>
     </div>
     <div class="email-body">
-      <h2>Order Confirmation</h2>
-      <p>Hello ${userName},</p>
-      <p>Thank you for your order! Your order has been received and is being processed.</p>
+      <div class="greeting">Hello ${userName},</div>
+      <div class="subheading">Thank you for your order! Your order has been received and is being processed.</div>
       
       <div class="order-info">
-        <p><strong>Order Number:</strong> ${order.orderNumber || 'N/A'}</p>
-        <p><strong>Invoice Number:</strong> ${invoiceNumber}</p>
-        <p><strong>Total Amount:</strong> $${(order.totalAmount || 0).toFixed(2)}</p>
-        <p><strong>Payment Status:</strong> ${order.paymentStatus || 'Paid'}</p>
-        <p><strong>Items:</strong><br>${itemsList || 'No items'}</p>
+        <div class="order-row">
+          <span class="order-label">Order Number</span>
+          <span class="order-value">${order.orderNumber || 'N/A'}</span>
+        </div>
+        <div class="order-row">
+          <span class="order-label">Invoice Number</span>
+          <span class="order-value">${invoiceNumber}</span>
+        </div>
+        <div class="order-row">
+          <span class="order-label">Order Status</span>
+          <span class="order-value">Pending Processing</span>
+        </div>
+        <div class="order-row">
+          <span class="order-label">Payment Status</span>
+          <span class="order-value" style="color: #28a745; font-weight: 700;">✓ ${order.paymentStatus || 'Paid'}</span>
+        </div>
+        <div class="divider"></div>
+        <div class="order-row">
+          <span class="order-label">Total Amount</span>
+          <span class="order-value" style="font-size: 18px; font-weight: 700; color: #667eea;">$${(order.totalAmount || 0).toFixed(2)}</span>
+        </div>
+        <div class="items-section">
+          <span class="items-label">📦 Items Ordered</span>
+          ${itemsList.split('<br>').map(item => `<div class="item-line">${item}</div>`).join('')}
+        </div>
       </div>
       
       <div class="button-container">
-        <a href="${invoiceUrl}" class="invoice-button">View Invoice</a>
+        <a href="${invoiceUrl}" class="invoice-button">📄 View Invoice</a>
       </div>
       
-      <p>Or copy and paste this link into your browser:</p>
-      <div class="invoice-link">${invoiceUrl}</div>
+      <div style="font-size: 14px; color: #666666; margin-top: 25px;">
+        <strong>Or copy and paste this link:</strong>
+        <div class="invoice-link">${invoiceUrl}</div>
+      </div>
       
-      <p>If you have any questions about your order, please contact our support team.</p>
+      <div class="support-text">
+        <strong style="color: #333333;">Questions about your order?</strong><br>
+        Our support team is here to help. Feel free to reach out anytime.
+      </div>
     </div>
     <div class="email-footer">
-      <p>This is an automated message, please do not reply to this email.</p>
-      <p>&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
-      <p><a href="${frontendUrl}">Visit our website</a></p>
+      <div class="footer-text">
+        <strong style="color: #667eea;">Thank you for shopping with us!</strong>
+      </div>
+      <div class="footer-text">
+        Track your order status and access your invoices anytime from your account
+      </div>
+      <div class="footer-text">
+        <a href="${frontendUrl}">Visit our website</a>
+      </div>
+      <div class="copyright">
+        &copy; ${new Date().getFullYear()} ${appName}. All rights reserved.<br>
+        This is an automated message, please do not reply to this email.
+      </div>
     </div>
   </div>
 </body>
