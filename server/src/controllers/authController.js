@@ -1,9 +1,9 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { createUser, validateUserCredentials } from '../services/authService.js';
-import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils/jwt.js';
+import { generateAccessToken, generateRefreshToken, verifyToken, generateVerificationToken, verifyVerificationToken, generateSessionToken, verifySessionToken, generateLoginLinkToken, verifyLoginLinkToken } from '../utils/jwt.js';
 import { User } from '../models/User.js';
-import { sendPasswordResetEmail } from '../utils/emailService.js';
+import { sendPasswordResetEmail, sendGeneralEmail } from '../utils/emailService.js';
 
 export const register = async (req, res, next) => {
   try {
@@ -310,6 +310,514 @@ export const resetPassword = async (req, res, next) => {
       message: 'Password has been reset successfully. You can now login with your new password.',
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Send verification email to user
+ * @param {Object} user - User object
+ */
+export const sendVerificationEmail = async (user) => {
+  try {
+    const token = generateVerificationToken(user._id.toString());
+    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-email?token=${token}`;
+
+    const subject = 'Verify Your Email Address';
+    const appName = process.env.APP_NAME || 'ERP-CRM-Zentro';
+    const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER || 'noreply@example.com';
+    const fromName = process.env.FROM_NAME || appName;
+
+    const message = `Hello ${user.name || 'User'}!
+
+Thank you for signing up with ${appName}!
+
+To complete your registration and activate your account, please verify your email address by clicking the link below:
+
+${verificationUrl}
+
+This verification link will expire in 1 hour.
+
+If you did not create an account with ${appName}, please ignore this email.
+
+Best regards,
+The ${appName} Team`;
+
+    await sendGeneralEmail(
+      user.email,
+      fromEmail,
+      subject,
+      message,
+      fromName
+    );
+
+    // Store verification token in user document
+    user.verificationToken = token;
+    user.verificationTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send login link email (for Google OAuth signup completion)
+ * Contains a direct login link that logs user in and redirects to dashboard
+ */
+export const sendLoginLinkEmail = async (user) => {
+  try {
+    // Simple login page link - no token needed
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const loginUrl = `${frontendUrl}/login`;
+
+    const subject = 'Welcome! Your Account is Ready';
+    const appName = process.env.APP_NAME || 'ERP-CRM-Zentro';
+    const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER || 'noreply@example.com';
+    const fromName = process.env.FROM_NAME || appName;
+
+    const message = `Hello ${user.name || 'User'}!
+
+Welcome to ${appName}! Your account has been successfully created.
+
+Click the link below to log in to your account:
+
+${loginUrl}
+
+If you did not create an account with ${appName}, please ignore this email.
+
+Best regards,
+The ${appName} Team`;
+
+    await sendGeneralEmail(
+      user.email,
+      fromEmail,
+      subject,
+      message,
+      fromName
+    );
+
+    console.log(`✅ Welcome email sent to ${user.email}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending login link email:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get Google profile from session token (for frontend to pre-fill form)
+ */
+export const getGoogleProfile = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Session token is required' });
+    }
+
+    try {
+      const decoded = verifySessionToken(token);
+      const profile = decoded.profile;
+
+      if (!profile || !profile.googleId || !profile.email) {
+        return res.status(400).json({ error: 'Invalid session token - missing profile data' });
+      }
+
+      return res.json({
+        success: true,
+        profile: {
+          name: profile.name,
+          email: profile.email,
+          profilePicture: profile.profilePicture || null,
+        },
+      });
+    } catch (error) {
+      console.error('Session token verification error:', error);
+      return res.status(400).json({ error: 'Invalid or expired session token' });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Complete Google OAuth signup with password
+ */
+export const completeGoogleSignup = async (req, res, next) => {
+  try {
+    console.log('\n🔐 ========== Complete Google Signup Request ==========');
+    console.log('   Request body keys:', Object.keys(req.body || {}));
+    console.log('   Has sessionToken:', !!req.body?.sessionToken);
+    console.log('   Has password:', !!req.body?.password);
+    console.log('   Has confirmPassword:', !!req.body?.confirmPassword);
+
+    const { sessionToken, password, confirmPassword } = req.body;
+
+    // Validate inputs
+    if (!sessionToken) {
+      console.error('❌ Missing session token');
+      return res.status(400).json({ 
+        error: 'Session token is required',
+        code: 'MISSING_SESSION_TOKEN'
+      });
+    }
+
+    if (!password || !confirmPassword) {
+      console.error('❌ Missing password fields');
+      return res.status(400).json({ 
+        error: 'Password and confirm password are required',
+        code: 'MISSING_PASSWORD'
+      });
+    }
+
+    if (password !== confirmPassword) {
+      console.error('❌ Passwords do not match');
+      return res.status(400).json({ 
+        error: 'Passwords do not match',
+        code: 'PASSWORD_MISMATCH'
+      });
+    }
+
+    if (password.length < 6) {
+      console.error('❌ Password too short');
+      return res.status(400).json({ 
+        error: 'Password must be at least 6 characters',
+        code: 'PASSWORD_TOO_SHORT'
+      });
+    }
+
+    // Verify session token and get Google profile
+    let decoded;
+    try {
+      decoded = verifySessionToken(sessionToken);
+      console.log('✅ Session token verified');
+      console.log('   Profile email:', decoded.profile?.email);
+      console.log('   Profile googleId:', decoded.profile?.googleId);
+    } catch (error) {
+      console.error('❌ Session token verification error:', error.message);
+      return res.status(400).json({ 
+        error: 'Invalid or expired session token. Please try signing up with Google again.',
+        code: 'INVALID_SESSION_TOKEN',
+        details: error.message
+      });
+    }
+
+    const googleProfile = decoded.profile;
+
+    if (!googleProfile || !googleProfile.googleId || !googleProfile.email) {
+      console.error('❌ Invalid Google profile data:', {
+        hasProfile: !!googleProfile,
+        hasGoogleId: !!googleProfile?.googleId,
+        hasEmail: !!googleProfile?.email
+      });
+      return res.status(400).json({ 
+        error: 'Invalid Google profile data',
+        code: 'INVALID_PROFILE'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [
+        { email: googleProfile.email.toLowerCase() },
+        { googleId: googleProfile.googleId },
+      ],
+    });
+
+    if (existingUser) {
+      console.log('⚠️  User already exists:', {
+        email: existingUser.email,
+        userId: existingUser._id,
+        hasPassword: !!existingUser.passwordHash
+      });
+      
+      // If user exists but doesn't have a password, allow them to set it
+      if (!existingUser.passwordHash) {
+        console.log('   User exists without password - updating password');
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+        existingUser.passwordHash = passwordHash;
+        await existingUser.save();
+        
+        // Send login link email
+        try {
+          await sendLoginLinkEmail(existingUser);
+          console.log(`✅ Login link email sent to ${existingUser.email}`);
+        } catch (emailError) {
+          console.error('Error sending login link email:', emailError);
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Password set successfully. Please check your email for the login link.',
+          user: {
+            email: existingUser.email,
+            name: existingUser.name,
+          },
+        });
+      }
+      
+      // User exists with password - redirect to login
+      return res.status(400).json({ 
+        error: 'An account with this email already exists. Please sign in instead.',
+        code: 'USER_EXISTS',
+        redirectTo: '/login'
+      });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    console.log('   Creating new user...');
+    // Create user with Google data and password
+    const user = await User.create({
+      name: googleProfile.name,
+      email: googleProfile.email.toLowerCase(),
+      passwordHash: passwordHash,
+      googleId: googleProfile.googleId,
+      registrationMethod: 'google',
+      isVerified: true, // Google email is already verified
+      role: 'customer',
+      profile: {
+        avatar: googleProfile.profilePicture || '',
+        timezone: 'UTC',
+        companyInfo: '',
+      },
+    });
+
+    console.log(`✅ Google signup completed for ${user.email}`);
+    console.log(`   User ID: ${user._id}`);
+    console.log('==========================================\n');
+
+    // Send login link email
+    try {
+      await sendLoginLinkEmail(user);
+      console.log(`✅ Login link email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error('Error sending login link email:', emailError);
+      // Don't fail the request if email fails - user can still login
+    }
+
+    // Return success (don't log them in yet - they need to use the email link)
+    return res.json({
+      success: true,
+      message: 'Account created successfully. Please check your email for the login link.',
+      user: {
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (error) {
+    console.error('\n❌ ========== Complete Google Signup Error ==========');
+    console.error('   Error:', error.message);
+    console.error('   Stack:', error.stack);
+    console.error('   Error code:', error.code);
+    console.error('==========================================\n');
+    
+    // Handle duplicate key error (email or googleId already exists)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0];
+      return res.status(400).json({ 
+        error: `An account with this ${field === 'email' ? 'email' : 'Google account'} already exists. Please sign in instead.`,
+        code: 'DUPLICATE_USER',
+        redirectTo: '/login'
+      });
+    }
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors || {}).map((e) => e.message);
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        code: 'VALIDATION_ERROR',
+        details: errors
+      });
+    }
+
+    next(error);
+  }
+};
+
+/**
+ * Handle login link from email
+ */
+export const handleLoginLink = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=missing_token`);
+    }
+
+    try {
+      const decoded = verifyLoginLinkToken(token);
+      const user = await User.findById(decoded.userId);
+
+      if (!user) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=user_not_found`);
+      }
+
+      if (!user.isActive) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=account_deactivated`);
+      }
+
+      // Generate JWT tokens
+      const accessToken = generateAccessToken(user._id.toString());
+      const refreshToken = generateRefreshToken(user._id.toString());
+
+      // Set refresh token as httpOnly cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      // Clear login token from user document
+      user.verificationToken = null;
+      user.verificationTokenExpiry = null;
+      await user.save();
+
+      console.log(`✅ Login link used successfully for ${user.email}`);
+
+      // Redirect to success page with token
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/success?token=${accessToken}`);
+    } catch (error) {
+      console.error('Login link token verification error:', error);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=invalid_or_expired_link`);
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Verify email using token
+ */
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-email?error=missing_token`);
+    }
+
+    try {
+      const decoded = verifyVerificationToken(token);
+      const user = await User.findById(decoded.userId);
+
+      if (!user) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-email?error=user_not_found`);
+      }
+
+      // Check if token matches stored token
+      if (user.verificationToken !== token) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-email?error=invalid_token`);
+      }
+
+      // Check if token has expired
+      if (user.verificationTokenExpiry && user.verificationTokenExpiry < new Date()) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-email?error=expired_token`);
+      }
+
+      // Mark user as verified and clear verification token
+      user.isVerified = true;
+      user.verificationToken = null;
+      user.verificationTokenExpiry = null;
+      await user.save();
+
+      // Generate tokens for immediate login
+      const accessToken = generateAccessToken(user._id.toString());
+      const refreshToken = generateRefreshToken(user._id.toString());
+
+      // Redirect to success page with token
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/success?token=${accessToken}&refreshToken=${refreshToken}`);
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-email?error=invalid_token`);
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handle Google OAuth callback
+ */
+export const googleCallback = async (req, res, next) => {
+  try {
+    console.log('\n✅ ========== Google OAuth Callback ==========');
+    const userOrProfile = req.user;
+
+    if (!userOrProfile) {
+      console.error('❌ No user/profile in request after OAuth authentication');
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=oauth_failed`);
+    }
+
+    // Check if this is a Google profile (new user) or existing user
+    if (userOrProfile._isGoogleProfile) {
+      // New user - redirect to signup page with session token
+      console.log('📝 New Google user - redirecting to signup page');
+      console.log(`   Email: ${userOrProfile.email}`);
+      console.log(`   Name: ${userOrProfile.name}`);
+      
+      // Generate session token with Google profile data
+      const sessionToken = generateSessionToken({
+        googleId: userOrProfile.googleId,
+        email: userOrProfile.email,
+        name: userOrProfile.name,
+        profilePicture: userOrProfile.profilePicture,
+      });
+
+      console.log(`   Session token generated (expires in 15 minutes)`);
+      console.log('   Redirecting to signup page...');
+      console.log('==========================================\n');
+
+      // Redirect to signup page with session token
+      return res.redirect(
+        `${process.env.FRONTEND_URL || 'http://localhost:5173'}/register?google=true&token=${sessionToken}`
+      );
+    }
+
+    // Existing user - proceed with normal login flow
+    const user = userOrProfile;
+    console.log(`   Existing user: ${user.email} (${user._id})`);
+    console.log(`   Verified: ${user.isVerified}, Method: ${user.registrationMethod}`);
+
+    // If user is not verified and registered via Google, send verification email
+    if (!user.isVerified && user.registrationMethod === 'google') {
+      try {
+        await sendVerificationEmail(user);
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-pending?email=${encodeURIComponent(user.email)}`);
+      } catch (emailError) {
+        console.error('Error sending verification email:', emailError);
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-pending?email=${encodeURIComponent(user.email)}&error=email_failed`);
+      }
+    }
+
+    // User is verified or existing user - generate tokens and redirect
+    const accessToken = generateAccessToken(user._id.toString());
+    const refreshToken = generateRefreshToken(user._id.toString());
+
+    // Set refresh token as httpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    console.log('   ✅ Login successful - redirecting to dashboard');
+    console.log('==========================================\n');
+
+    // Redirect to success page with token
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/success?token=${accessToken}`);
+  } catch (error) {
+    console.error('❌ Google callback error:', error);
     next(error);
   }
 };

@@ -22,6 +22,7 @@
     "@fullcalendar/interaction": "^6.1.19",
     "@fullcalendar/react": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.19",
+    "@react-oauth/google": "^0.12.1",
     "@tanstack/react-query": "^5.90.8",
     "formik": "^2.4.9",
     "lucide-react": "^0.344.0",

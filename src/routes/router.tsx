@@ -46,6 +46,10 @@ const LoginPage = createLazyRoute(() => import('../pages/auth/LoginPage').then(m
 const RegisterPage = createLazyRoute(() => import('../pages/auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = createLazyRoute(() => import('../pages/auth/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = createLazyRoute(() => import('../pages/auth/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
+const VerifyPendingPage = createLazyRoute(() => import('../pages/auth/VerifyPendingPage').then(m => ({ default: m.VerifyPendingPage })));
+const VerifyEmailPage = createLazyRoute(() => import('../pages/auth/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })));
+const AuthSuccessPage = createLazyRoute(() => import('../pages/auth/AuthSuccessPage').then(m => ({ default: m.AuthSuccessPage })));
+const SignupSuccessPage = createLazyRoute(() => import('../pages/auth/SignupSuccessPage').then(m => ({ default: m.SignupSuccessPage })));
 const DashboardPage = createLazyRoute(() => import('../pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 
 // Preload critical routes
@@ -167,6 +171,26 @@ export const appRouter = createBrowserRouter([
   {
     path: '/reset-password',
     element: <LazyWrapper><ResetPasswordPage /></LazyWrapper>,
+    errorElement: <LazyWrapper><NotFoundPage /></LazyWrapper>,
+  },
+  {
+    path: '/auth/verify-pending',
+    element: <LazyWrapper><VerifyPendingPage /></LazyWrapper>,
+    errorElement: <LazyWrapper><NotFoundPage /></LazyWrapper>,
+  },
+  {
+    path: '/auth/verify-email',
+    element: <LazyWrapper><VerifyEmailPage /></LazyWrapper>,
+    errorElement: <LazyWrapper><NotFoundPage /></LazyWrapper>,
+  },
+  {
+    path: '/auth/success',
+    element: <LazyWrapper><AuthSuccessPage /></LazyWrapper>,
+    errorElement: <LazyWrapper><NotFoundPage /></LazyWrapper>,
+  },
+  {
+    path: '/auth/signup-success',
+    element: <LazyWrapper><SignupSuccessPage /></LazyWrapper>,
     errorElement: <LazyWrapper><NotFoundPage /></LazyWrapper>,
   },
   {

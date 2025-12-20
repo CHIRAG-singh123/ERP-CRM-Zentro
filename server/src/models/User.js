@@ -18,8 +18,34 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, 'Password is required'],
+      required: function() {
+        // Password is required only for email registration
+        return this.registrationMethod === 'email';
+      },
       minlength: [6, 'Password must be at least 6 characters'],
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows multiple null values
+      default: null,
+    },
+    registrationMethod: {
+      type: String,
+      enum: ['email', 'google'],
+      default: 'email',
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
+      default: null,
+    },
+    verificationTokenExpiry: {
+      type: Date,
+      default: null,
     },
     role: {
       type: String,

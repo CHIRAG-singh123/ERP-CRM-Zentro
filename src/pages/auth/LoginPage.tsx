@@ -1,6 +1,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -113,6 +114,17 @@ export function LoginPage() {
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-[#1F1F21] px-4 text-white/60">OR</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton text="signin_with" />
 
           <p className="text-center text-sm text-white/60">
             Don't have an account?{' '}

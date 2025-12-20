@@ -1,5 +1,6 @@
 import { StrictMode, startTransition } from 'react';
 import { createRoot } from 'react-dom/client';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import App from './App.tsx';
 import { AppProviders } from './providers/AppProviders.tsx';
@@ -104,15 +105,20 @@ const initializeApp = () => {
     
     logger.debug('[App] Rendering application...');
     
+    // Get Google Client ID from environment
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '435625982072-97bpjjd4sudfhgqmof5mieb26241sik3.apps.googleusercontent.com';
+
     // Use startTransition for non-blocking render
     startTransition(() => {
       root.render(
         <StrictMode>
-          <ErrorBoundary>
-            <AppProviders>
-              <App />
-            </AppProviders>
-          </ErrorBoundary>
+          <GoogleOAuthProvider clientId={googleClientId}>
+            <ErrorBoundary>
+              <AppProviders>
+                <App />
+              </AppProviders>
+            </ErrorBoundary>
+          </GoogleOAuthProvider>
         </StrictMode>,
       );
     });

@@ -152,3 +152,63 @@ export const resetPassword = async (data: ResetPasswordData): Promise<{ message:
   });
 };
 
+export interface VerifyEmailData {
+  token: string;
+}
+
+export const verifyEmail = async (token: string): Promise<{ message: string }> => {
+  // Note: Email verification is typically handled via GET request with token in query string
+  // This function is provided for programmatic verification if needed
+  return fetchJson<{ message: string }>(`/auth/verify-email?token=${encodeURIComponent(token)}`, {
+    method: 'GET',
+    skipAuth: true,
+  });
+};
+
+export interface GoogleProfile {
+  name: string;
+  email: string;
+  profilePicture?: string;
+}
+
+export interface GetGoogleProfileResponse {
+  success: boolean;
+  profile: GoogleProfile;
+}
+
+export interface CompleteGoogleSignupData {
+  sessionToken: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface CompleteGoogleSignupResponse {
+  success: boolean;
+  message: string;
+  user: {
+    email: string;
+    name: string;
+  };
+}
+
+/**
+ * Get Google profile from session token (for pre-filling signup form)
+ */
+export const getGoogleProfile = async (token: string): Promise<GetGoogleProfileResponse> => {
+  return fetchJson<GetGoogleProfileResponse>(`/auth/google-profile?token=${encodeURIComponent(token)}`, {
+    method: 'GET',
+    skipAuth: true,
+  });
+};
+
+/**
+ * Complete Google OAuth signup with password
+ */
+export const completeGoogleSignup = async (data: CompleteGoogleSignupData): Promise<CompleteGoogleSignupResponse> => {
+  return fetchJson<CompleteGoogleSignupResponse>('/auth/complete-google-signup', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    skipAuth: true,
+  });
+};
+

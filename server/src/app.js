@@ -2,9 +2,11 @@ import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
 import dotenv from 'dotenv';
 import path from 'path';
 import { connectDB } from './config/db.js';
+import passport from './config/passport.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import productRoutes from './routes/products.js';
@@ -44,6 +46,25 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Session configuration for OAuth
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'your-super-secret-session-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    },
+  })
+);
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Serve uploads with authentication for documents
 app.use('/uploads/documents', authenticate, express.static(path.join(process.cwd(), 'server', 'uploads', 'documents')));
