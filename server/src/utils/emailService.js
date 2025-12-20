@@ -759,14 +759,20 @@ const generateOrderConfirmationTemplate = (order, invoice, userName = 'Customer'
       margin-bottom: 20px;
     }
     .order-info {
-      background-color: #f8f9fa;
+      background-color: #ffffff;
       border: 1px solid #e9ecef;
       border-radius: 6px;
-      padding: 15px;
+      padding: 20px;
       margin: 20px 0;
-      word-break: break-all;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 16px;
+      color: #333333;
+    }
+    .order-info p {
+      margin: 8px 0;
+      color: #333333;
+    }
+    .order-info strong {
       color: #495057;
     }
     .button-container {
