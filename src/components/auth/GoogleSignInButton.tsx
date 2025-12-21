@@ -3,9 +3,10 @@ import { useState } from 'react';
 interface GoogleSignInButtonProps {
   text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
   className?: string;
+  mode?: 'login' | 'signup';
 }
 
-export function GoogleSignInButton({ text = 'signin_with', className = '' }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ text = 'signin_with', className = '', mode = 'signup' }: GoogleSignInButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = () => {
@@ -35,10 +36,12 @@ export function GoogleSignInButton({ text = 'signin_with', className = '' }: Goo
     }
     
     // Construct the full OAuth URL - MUST point directly to backend
-    const oauthUrl = `${backendBaseUrl}/api/auth/google`;
+    // Include mode parameter to distinguish between login and signup flows
+    const oauthUrl = `${backendBaseUrl}/api/auth/google?mode=${mode}`;
     
     console.log('🔐 Initiating Google OAuth:');
     console.log('   Backend URL:', backendBaseUrl);
+    console.log('   Mode:', mode);
     console.log('   OAuth URL:', oauthUrl);
     console.log('   ⚠️  This MUST match the callback URL in Google Cloud Console');
     

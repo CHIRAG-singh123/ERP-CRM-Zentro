@@ -788,8 +788,41 @@ export const googleCallback = async (req, res, next) => {
     console.log(`   Existing user: ${user.email} (${user._id})`);
     console.log(`   Verified: ${user.isVerified}, Method: ${user.registrationMethod}`);
 
-    // If user is not verified and registered via Google, send verification email
+    // Get mode from request object (passed from route handler, since session is disabled)
+    const mode = req.oauthMode || req.session?.oauthMode || req.query?.state || 'signup';
+    const isLoginMode = mode === 'login';
+
+    console.log(`   Mode: ${mode} (isLogin: ${isLoginMode})`);
+
+    // For login mode: Skip ALL verification email logic and directly log in
+    // For signup mode: Send verification email if user is not verified
+    if (isLoginMode) {
+      // Login mode: Directly log in without any verification email
+      console.log('   🔐 Login mode: Skipping verification email, directly logging in');
+      
+      // Generate tokens and redirect directly to appropriate dashboard
+      const accessToken = generateAccessToken(user._id.toString());
+      const refreshToken = generateRefreshToken(user._id.toString());
+
+      // Set refresh token as httpOnly cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      console.log(`   ✅ Login successful - redirecting to Google login callback`);
+      console.log('==========================================\n');
+
+      // For login mode: Redirect to dedicated Google login callback route
+      // This route runs BEFORE ProtectedRoute and handles session setup synchronously
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/google-callback?token=${accessToken}`);
+    }
+
+    // Signup mode: Send verification email if user is not verified and registered via Google
     if (!user.isVerified && user.registrationMethod === 'google') {
+      console.log('   📧 Signup mode: User not verified, sending verification email');
       try {
         await sendVerificationEmail(user);
         return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-pending?email=${encodeURIComponent(user.email)}`);
@@ -799,7 +832,7 @@ export const googleCallback = async (req, res, next) => {
       }
     }
 
-    // User is verified or existing user - generate tokens and redirect
+    // Signup mode: User is verified or not Google-registered - generate tokens and redirect
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 

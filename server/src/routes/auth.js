@@ -56,6 +56,15 @@ router.get('/google', (req, res, next) => {
     });
   }
   
+  // Extract mode parameter (login or signup)
+  const mode = req.query.mode || 'signup';
+  
+  // Store mode in session so it's available in the strategy callback
+  if (!req.session) {
+    req.session = {};
+  }
+  req.session.oauthMode = mode;
+  
   // Build callback URL for reference and validation
   const port = process.env.PORT || 5000;
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
@@ -65,6 +74,7 @@ router.get('/google', (req, res, next) => {
   // Log request details for debugging
   console.log(`\n🔐 ========== Google OAuth Request ==========`);
   console.log(`   Request from: ${req.protocol}://${req.get('host')}${req.originalUrl}`);
+  console.log(`   Mode: ${mode}`);
   console.log(`   Client IP: ${req.ip}`);
   console.log(`   User-Agent: ${req.get('user-agent')?.substring(0, 50)}...`);
   console.log(`   Callback URL configured: ${callbackURL}`);
@@ -87,7 +97,11 @@ router.get('/google', (req, res, next) => {
   
   try {
     // Use passport authenticate if strategy is available
-    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+    // Pass state parameter with mode to preserve it through OAuth flow
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      state: mode // Pass mode as state parameter
+    })(req, res, next);
   } catch (error) {
     console.error('❌ Google OAuth authentication error:', error.message);
     console.error('   Stack:', error.stack);
@@ -106,6 +120,15 @@ router.get(
     console.log('   Request URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
     console.log('   Query params:', JSON.stringify(req.query, null, 2));
     console.log('   Referer:', req.get('referer') || 'none');
+    
+    // Restore mode from state parameter (passed through OAuth flow)
+    const mode = req.query.state || req.session?.oauthMode || 'signup';
+    if (!req.session) {
+      req.session = {};
+    }
+    req.session.oauthMode = mode;
+    
+    console.log('   Mode:', mode);
     
     // Check if Google OAuth is configured
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET ||
@@ -149,6 +172,13 @@ router.get(
       }, async (err, userOrProfile, info) => {
         if (err) {
           console.error('❌ Google OAuth authentication error:', err);
+          // Check if this is a login mode validation error
+          const isLoginMode = mode === 'login';
+          if (isLoginMode && err.message) {
+            // For login mode, redirect with specific error message
+            const errorMsg = encodeURIComponent(err.message);
+            return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=${errorMsg}`);
+          }
           return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=oauth_failed`);
         }
 
@@ -156,6 +186,9 @@ router.get(
           console.error('❌ No user/profile returned from Google OAuth');
           return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=oauth_failed`);
         }
+
+        // Pass mode to callback via request object (since session is disabled)
+        req.oauthMode = mode;
 
         // Check if this is a Google profile (new user) or existing user
         if (userOrProfile._isGoogleProfile) {

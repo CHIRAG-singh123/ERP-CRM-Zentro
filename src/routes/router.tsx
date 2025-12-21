@@ -50,6 +50,7 @@ const VerifyPendingPage = createLazyRoute(() => import('../pages/auth/VerifyPend
 const VerifyEmailPage = createLazyRoute(() => import('../pages/auth/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })));
 const AuthSuccessPage = createLazyRoute(() => import('../pages/auth/AuthSuccessPage').then(m => ({ default: m.AuthSuccessPage })));
 const SignupSuccessPage = createLazyRoute(() => import('../pages/auth/SignupSuccessPage').then(m => ({ default: m.SignupSuccessPage })));
+const GoogleLoginCallback = createLazyRoute(() => import('../pages/auth/GoogleLoginCallback').then(m => ({ default: m.GoogleLoginCallback })));
 const DashboardPage = createLazyRoute(() => import('../pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 
 // Preload critical routes
@@ -191,6 +192,11 @@ export const appRouter = createBrowserRouter([
   {
     path: '/auth/signup-success',
     element: <LazyWrapper><SignupSuccessPage /></LazyWrapper>,
+    errorElement: <LazyWrapper><NotFoundPage /></LazyWrapper>,
+  },
+  {
+    path: '/auth/google-callback',
+    element: <LazyWrapper><GoogleLoginCallback /></LazyWrapper>,
     errorElement: <LazyWrapper><NotFoundPage /></LazyWrapper>,
   },
   {

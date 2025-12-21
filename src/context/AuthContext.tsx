@@ -363,6 +363,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updatedUser);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
     setApiUnavailable(false);
+    
+    // Setup token refresh and session validation after user update
+    // This ensures complete session initialization (matching login/register behavior)
+    setupTokenRefresh();
+    setupSessionValidation();
+    
+    logger.debug('[AuthContext] User updated, token refresh and session validation initialized');
   };
 
   const value: AuthContextType = {

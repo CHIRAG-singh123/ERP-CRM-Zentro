@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
 
@@ -10,6 +10,20 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login, user, isAuthenticated, isLoading: authLoading, apiUnavailable } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Read error from URL query parameters (for OAuth errors)
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      // Decode the error message
+      const decodedError = decodeURIComponent(errorParam);
+      setError(decodedError);
+      // Remove error from URL to clean it up
+      searchParams.delete('error');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Redirect authenticated users to their appropriate dashboard
   useEffect(() => {
@@ -124,7 +138,7 @@ export function LoginPage() {
             </div>
           </div>
 
-          <GoogleSignInButton text="signin_with" />
+          <GoogleSignInButton text="signin_with" mode="login" />
 
           <p className="text-center text-sm text-white/60">
             Don't have an account?{' '}
