@@ -369,6 +369,584 @@ const retryWithBackoff = async (fn, maxRetries = 3, initialDelay = 1000) => {
  * @param {string} resetUrl - Full reset URL
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
+/**
+ * Generate professional HTML email template for email verification
+ */
+const generateVerificationEmailTemplate = (verificationUrl, dashboardUrl, userName = 'User') => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const appName = process.env.APP_NAME || 'ERP-CRM-Zentro';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Email Address</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      background-color: #f4f4f4;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .email-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .email-header h1 {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .email-body {
+      padding: 40px 30px;
+    }
+    .email-body h2 {
+      color: #333333;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .email-body p {
+      color: #666666;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .button-container {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .email-button {
+      display: inline-block;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 16px;
+      transition: opacity 0.3s;
+      margin: 10px;
+    }
+    .email-button:hover {
+      opacity: 0.9;
+    }
+    .email-button.secondary {
+      background: linear-gradient(135deg, #A8DADC 0%, #B39CD0 100%);
+      color: #1A1A1C !important;
+    }
+    .link-box {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 20px 0;
+      word-break: break-all;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #495057;
+    }
+    .info-box {
+      background-color: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .info-box p {
+      color: #0d47a1;
+      font-size: 14px;
+      margin: 5px 0;
+    }
+    .security-notice {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .security-notice p {
+      color: #856404;
+      font-size: 14px;
+      margin: 0;
+    }
+    .email-footer {
+      background-color: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e9ecef;
+    }
+    .email-footer p {
+      color: #6c757d;
+      font-size: 14px;
+      margin: 5px 0;
+    }
+    .email-footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    @media only screen and (max-width: 600px) {
+      .email-body {
+        padding: 30px 20px;
+      }
+      .email-header {
+        padding: 30px 20px;
+      }
+      .email-button {
+        display: block;
+        margin: 10px auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${appName}</h1>
+    </div>
+    <div class="email-body">
+      <h2>Welcome! Verify Your Email Address</h2>
+      <p>Hello ${userName}!</p>
+      <p>Thank you for signing up with ${appName}! 🎉</p>
+      <p>Your account has been created successfully. To complete your registration and activate all features, please verify your email address.</p>
+      
+      <div class="button-container">
+        <a href="${verificationUrl}" class="email-button">Verify Email Address</a>
+      </div>
+      
+      <div class="info-box">
+        <p><strong>💡 Quick Access:</strong></p>
+        <p>You can access your dashboard right now, even before verifying your email!</p>
+      </div>
+      
+      <div class="button-container">
+        <a href="${dashboardUrl}" class="email-button secondary">Go to Dashboard</a>
+      </div>
+      
+      <p>Or copy and paste these links into your browser:</p>
+      <div class="link-box">
+        <strong>Verification Link:</strong><br>
+        ${verificationUrl}
+      </div>
+      <div class="link-box">
+        <strong>Dashboard Link:</strong><br>
+        ${dashboardUrl}
+      </div>
+      
+      <div class="security-notice">
+        <p><strong>Important Information:</strong></p>
+        <p>• The verification link will expire in 1 hour</p>
+        <p>• You can access your dashboard now, but some features may be limited until you verify your email</p>
+        <p>• After verification, you'll have full access to all features</p>
+        <p>• If you didn't create an account with ${appName}, please ignore this email</p>
+      </div>
+      
+      <p>If you continue to have problems, please contact our support team.</p>
+    </div>
+    <div class="email-footer">
+      <p>This is an automated message, please do not reply to this email.</p>
+      <p>&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
+      <p><a href="${frontendUrl}">Visit our website</a></p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+};
+
+/**
+ * Generate plain text version of verification email
+ */
+const generateVerificationEmailText = (verificationUrl, dashboardUrl, userName = 'User') => {
+  const appName = process.env.APP_NAME || 'ERP-CRM-Zentro';
+  
+  return `
+Welcome! Verify Your Email Address
+
+Hello ${userName}!
+
+Thank you for signing up with ${appName}! 🎉
+
+Your account has been created successfully. To complete your registration and activate all features, please verify your email address.
+
+VERIFY YOUR EMAIL:
+${verificationUrl}
+
+ACCESS YOUR DASHBOARD:
+${dashboardUrl}
+
+Important Information:
+• The verification link will expire in 1 hour
+• You can access your dashboard now, but some features may be limited until you verify your email
+• After verification, you'll have full access to all features
+• If you didn't create an account with ${appName}, please ignore this email
+
+If you continue to have problems, please contact our support team.
+
+---
+This is an automated message, please do not reply to this email.
+© ${new Date().getFullYear()} ${appName}. All rights reserved.
+  `.trim();
+};
+
+/**
+ * Generate professional HTML email template for welcome email with dashboard link
+ */
+const generateWelcomeEmailTemplate = (dashboardUrl, userName = 'User') => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const appName = process.env.APP_NAME || 'ERP-CRM-Zentro';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome! Your Account is Ready</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      background-color: #f4f4f4;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .email-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 30px;
+      text-align: center;
+    }
+    .email-header h1 {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .email-body {
+      padding: 40px 30px;
+    }
+    .email-body h2 {
+      color: #333333;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .email-body p {
+      color: #666666;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .button-container {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .email-button {
+      display: inline-block;
+      padding: 16px 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 18px;
+      transition: opacity 0.3s;
+    }
+    .email-button:hover {
+      opacity: 0.9;
+    }
+    .link-box {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 20px 0;
+      word-break: break-all;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #495057;
+    }
+    .info-box {
+      background-color: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .info-box p {
+      color: #0d47a1;
+      font-size: 14px;
+      margin: 5px 0;
+    }
+    .email-footer {
+      background-color: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e9ecef;
+    }
+    .email-footer p {
+      color: #6c757d;
+      font-size: 14px;
+      margin: 5px 0;
+    }
+    .email-footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    @media only screen and (max-width: 600px) {
+      .email-body {
+        padding: 30px 20px;
+      }
+      .email-header {
+        padding: 30px 20px;
+      }
+      .email-button {
+        display: block;
+        margin: 10px auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${appName}</h1>
+    </div>
+    <div class="email-body">
+      <h2>Welcome! Your Account is Ready</h2>
+      <p>Hello ${userName}!</p>
+      <p>Welcome to ${appName}! 🎉</p>
+      <p>Your account has been successfully created and is ready to use.</p>
+      
+      <div class="info-box">
+        <p><strong>🚀 Get Started:</strong></p>
+        <p>Click the button below to access your dashboard. You'll be automatically logged in!</p>
+      </div>
+      
+      <div class="button-container">
+        <a href="${dashboardUrl}" class="email-button">Go to Dashboard</a>
+      </div>
+      
+      <p>Or copy and paste this link into your browser:</p>
+      <div class="link-box">
+        ${dashboardUrl}
+      </div>
+      
+      <p>If you did not create an account with ${appName}, please ignore this email.</p>
+      
+      <p>If you continue to have problems, please contact our support team.</p>
+    </div>
+    <div class="email-footer">
+      <p>This is an automated message, please do not reply to this email.</p>
+      <p>&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
+      <p><a href="${frontendUrl}">Visit our website</a></p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+};
+
+/**
+ * Generate plain text version of welcome email
+ */
+const generateWelcomeEmailText = (dashboardUrl, userName = 'User') => {
+  const appName = process.env.APP_NAME || 'ERP-CRM-Zentro';
+  
+  return `
+Welcome! Your Account is Ready
+
+Hello ${userName}!
+
+Welcome to ${appName}! 🎉
+
+Your account has been successfully created and is ready to use.
+
+GET STARTED:
+Click the link below to access your dashboard. You'll be automatically logged in!
+
+${dashboardUrl}
+
+If you did not create an account with ${appName}, please ignore this email.
+
+If you continue to have problems, please contact our support team.
+
+---
+This is an automated message, please do not reply to this email.
+© ${new Date().getFullYear()} ${appName}. All rights reserved.
+  `.trim();
+};
+
+/**
+ * Send welcome email with dashboard link (for signup completion)
+ */
+export const sendWelcomeEmailWithDashboard = async (email, dashboardUrl, userName = 'User') => {
+  // Initialize transporter if not already done
+  const emailTransporter = initializeEmailService();
+  
+  // Development mode - console logging
+  if (!emailTransporter) {
+    const htmlContent = generateWelcomeEmailTemplate(dashboardUrl, userName);
+    const textContent = generateWelcomeEmailText(dashboardUrl, userName);
+    
+    console.log('\n📧 ========== WELCOME EMAIL (DEVELOPMENT MODE) ==========');
+    console.log(`To: ${email}`);
+    console.log(`Subject: Welcome! Your Account is Ready`);
+    console.log(`Dashboard URL: ${dashboardUrl}`);
+    console.log('\n--- HTML Content Preview ---');
+    console.log(htmlContent.substring(0, 500) + '...');
+    console.log('\n--- Plain Text Content ---');
+    console.log(textContent);
+    console.log('📧 ============================================================\n');
+    
+    return { success: true, mode: 'development' };
+  }
+
+  // Production mode - send actual email
+  const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER || 'noreply@example.com';
+  const fromName = process.env.FROM_NAME || process.env.APP_NAME || 'ERP-CRM-Zentro';
+  
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to: email,
+    subject: 'Welcome! Your Account is Ready',
+    html: generateWelcomeEmailTemplate(dashboardUrl, userName),
+    text: generateWelcomeEmailText(dashboardUrl, userName),
+  };
+
+  try {
+    // Verify connection first
+    await emailTransporter.verify();
+    
+    // Send email with retry logic
+    const info = await retryWithBackoff(async () => {
+      return await emailTransporter.sendMail(mailOptions);
+    });
+
+    console.log(`✅ Welcome email sent successfully to ${email}`);
+    console.log(`📧 Message ID: ${info.messageId}`);
+    
+    return {
+      success: true,
+      messageId: info.messageId,
+      provider: emailProvider,
+    };
+  } catch (error) {
+    // Log detailed error information
+    console.error(`❌ Failed to send welcome email to ${email}:`);
+    console.error(`   Error: ${error.message}`);
+    
+    if (error.code) {
+      console.error(`   Error Code: ${error.code}`);
+    }
+    
+    if (error.response) {
+      console.error(`   SMTP Response: ${error.response}`);
+    }
+
+    return {
+      success: false,
+      error: error.message,
+      provider: emailProvider,
+    };
+  }
+};
+
+/**
+ * Send verification email with dashboard link
+ */
+export const sendVerificationEmailWithDashboard = async (email, verificationUrl, dashboardUrl, userName = 'User') => {
+  // Initialize transporter if not already done
+  const emailTransporter = initializeEmailService();
+  
+  // Development mode - console logging
+  if (!emailTransporter) {
+    const htmlContent = generateVerificationEmailTemplate(verificationUrl, dashboardUrl, userName);
+    const textContent = generateVerificationEmailText(verificationUrl, dashboardUrl, userName);
+    
+    console.log('\n📧 ========== VERIFICATION EMAIL (DEVELOPMENT MODE) ==========');
+    console.log(`To: ${email}`);
+    console.log(`Subject: Verify Your Email Address - Welcome to Zentro!`);
+    console.log(`Verification URL: ${verificationUrl}`);
+    console.log(`Dashboard URL: ${dashboardUrl}`);
+    console.log('\n--- HTML Content Preview ---');
+    console.log(htmlContent.substring(0, 500) + '...');
+    console.log('\n--- Plain Text Content ---');
+    console.log(textContent);
+    console.log('📧 ============================================================\n');
+    
+    return { success: true, mode: 'development' };
+  }
+
+  // Production mode - send actual email
+  const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER || 'noreply@example.com';
+  const fromName = process.env.FROM_NAME || process.env.APP_NAME || 'ERP-CRM-Zentro';
+  
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to: email,
+    subject: 'Verify Your Email Address - Welcome to Zentro!',
+    html: generateVerificationEmailTemplate(verificationUrl, dashboardUrl, userName),
+    text: generateVerificationEmailText(verificationUrl, dashboardUrl, userName),
+  };
+
+  try {
+    // Verify connection first
+    await emailTransporter.verify();
+    
+    // Send email with retry logic
+    const info = await retryWithBackoff(async () => {
+      return await emailTransporter.sendMail(mailOptions);
+    });
+
+    console.log(`✅ Verification email sent successfully to ${email}`);
+    console.log(`📧 Message ID: ${info.messageId}`);
+    
+    return {
+      success: true,
+      messageId: info.messageId,
+      provider: emailProvider,
+    };
+  } catch (error) {
+    // Log detailed error information
+    console.error(`❌ Failed to send verification email to ${email}:`);
+    console.error(`   Error: ${error.message}`);
+    
+    if (error.code) {
+      console.error(`   Error Code: ${error.code}`);
+    }
+    
+    if (error.response) {
+      console.error(`   SMTP Response: ${error.response}`);
+    }
+
+    return {
+      success: false,
+      error: error.message,
+      provider: emailProvider,
+    };
+  }
+};
+
 export const sendPasswordResetEmail = async (email, resetToken, resetUrl) => {
   // Initialize transporter if not already done
   const emailTransporter = initializeEmailService();

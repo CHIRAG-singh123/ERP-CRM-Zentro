@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar';
 import { MobileSidebar } from './MobileSidebar';
 import { Topbar } from './Topbar';
 import { Chatbot } from '../chatbot/Chatbot';
+import { TokenHandler } from '../auth/TokenHandler';
 
 export function AppLayout() {
   const location = useLocation();
@@ -23,6 +24,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
+      <TokenHandler />
       <Sidebar />
       <MobileSidebar isOpen={isMobileSidebarOpen} onClose={() => setIsMobileSidebarOpen(false)} />
       <div className="flex min-h-screen flex-1 flex-col">

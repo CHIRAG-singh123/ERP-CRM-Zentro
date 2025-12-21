@@ -27,6 +27,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const validationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isRefreshingRef = useRef(false);
+  
+  // Ref to store updateUserState function for event listeners
+  // This ensures event listeners always use the latest function
+  const updateUserStateRef = useRef<((user: User) => void) | null>(null);
 
   // Token refresh function
   const refreshAccessToken = async (): Promise<boolean> => {
@@ -134,13 +138,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 5 * 60 * 1000); // 5 minutes
   };
 
+
   // Load user from localStorage on mount - non-blocking
   useEffect(() => {
     let isMounted = true;
+    let periodicCheckInterval: ReturnType<typeof setInterval> | null = null;
 
     const loadUser = async () => {
       try {
         logger.debug('[AuthContext] Loading user from storage...');
+
+        // Check if there's a token in URL (from email link) - if so, wait longer for TokenHandler to process it
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenInUrl = urlParams.get('token');
+        if (tokenInUrl) {
+          logger.debug('[AuthContext] Token detected in URL, waiting for TokenHandler to process...');
+          // Wait longer to allow TokenHandler to process the token (increased from 200ms to 500ms)
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Re-check localStorage after waiting (TokenHandler should have saved user by now)
+          const userAfterWait = localStorage.getItem(USER_STORAGE_KEY);
+          if (userAfterWait) {
+            try {
+              const parsedUser = JSON.parse(userAfterWait) as User;
+              logger.debug('[AuthContext] User found in localStorage after token wait, updating immediately');
+              if (isMounted) {
+                setUser(parsedUser);
+                setIsLoading(false);
+                // Don't return - continue with token verification in background
+              }
+            } catch (error) {
+              logger.error('[AuthContext] Failed to parse user after token wait:', error);
+            }
+          }
+          
+          // Continue checking localStorage periodically while token is in URL
+          let checkCount = 0;
+          const maxChecks = 5; // Check 5 more times (every 100ms)
+          periodicCheckInterval = setInterval(() => {
+            if (!isMounted) {
+              if (periodicCheckInterval) clearInterval(periodicCheckInterval);
+              return;
+            }
+            
+            checkCount++;
+            const periodicUser = localStorage.getItem(USER_STORAGE_KEY);
+            if (periodicUser) {
+              try {
+                const parsedUser = JSON.parse(periodicUser) as User;
+                logger.debug('[AuthContext] User found in periodic check, updating immediately');
+                if (isMounted) {
+                  setUser(parsedUser);
+                  setIsLoading(false);
+                  if (periodicCheckInterval) clearInterval(periodicCheckInterval);
+                }
+              } catch (error) {
+                logger.error('[AuthContext] Failed to parse user in periodic check:', error);
+              }
+            }
+            if (checkCount >= maxChecks) {
+              if (periodicCheckInterval) clearInterval(periodicCheckInterval);
+            }
+          }, 100);
+        }
 
         const storedUser = localStorage.getItem(USER_STORAGE_KEY);
         if (!storedUser) {
@@ -273,6 +333,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (validationIntervalRef.current) {
         clearInterval(validationIntervalRef.current);
       }
+      // Clear periodic check interval if it exists
+      if (periodicCheckInterval) {
+        clearInterval(periodicCheckInterval);
+        periodicCheckInterval = null;
+      }
     };
   }, []);
 
@@ -371,6 +436,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     logger.debug('[AuthContext] User updated, token refresh and session validation initialized');
   };
+  
+  // Keep ref updated with latest function
+  updateUserStateRef.current = updateUserState;
+
+  // Listen for custom auth events (when TokenHandler saves user to localStorage)
+  // This ensures immediate authentication when user clicks dashboard link from email
+  useEffect(() => {
+    // Listen for custom auth events (from TokenHandler)
+    const handleAuthUpdate = (e: CustomEvent) => {
+      const { user: userData } = e.detail as { user: User; token?: string };
+      if (userData && updateUserStateRef.current) {
+        logger.debug('[AuthContext] Custom auth event detected, updating user immediately');
+        // Use ref to ensure we always use the latest updateUserState function
+        updateUserStateRef.current(userData);
+        setIsLoading(false);
+        setApiUnavailable(false);
+      } else if (userData) {
+        // Fallback: if ref is not set yet, check localStorage
+        logger.debug('[AuthContext] Custom auth event detected but ref not ready, checking localStorage');
+        handleStorageCheck();
+      }
+    };
+
+    // Also check localStorage directly when event fires (in case event detail is missing)
+    const handleStorageCheck = () => {
+      const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser) as User;
+          logger.debug('[AuthContext] Storage check detected user, updating immediately');
+          if (updateUserStateRef.current) {
+            updateUserStateRef.current(parsedUser);
+          } else {
+            // Fallback: direct state update if ref not ready
+            setUser(parsedUser);
+            setIsLoading(false);
+            setApiUnavailable(false);
+          }
+        } catch (error) {
+          logger.error('[AuthContext] Failed to parse user from storage:', error);
+        }
+      }
+    };
+
+    window.addEventListener('auth:user-updated', handleAuthUpdate as EventListener);
+    
+    // Also listen for storage events (for cross-tab sync, though same-tab uses custom events)
+    window.addEventListener('storage', (e: StorageEvent) => {
+      if (e.key === USER_STORAGE_KEY && e.newValue) {
+        handleStorageCheck();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('auth:user-updated', handleAuthUpdate as EventListener);
+    };
+  }, []);
 
   const value: AuthContextType = {
     user,

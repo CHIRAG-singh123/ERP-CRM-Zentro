@@ -26,8 +26,10 @@ export function TokenHandler() {
       return;
     }
 
-    // Don't process on auth/success page (let that page handle it)
-    if (location.pathname === '/auth/success') {
+    // Don't process on auth callback pages (let those pages handle it)
+    if (location.pathname === '/auth/success' || 
+        location.pathname === '/auth/google-callback' || 
+        location.pathname === '/auth/google-signup-callback') {
       return;
     }
 
@@ -44,11 +46,13 @@ export function TokenHandler() {
     hasProcessedRef.current = true;
     
     logger.debug('[TokenHandler] Token found in URL, processing...');
+    console.log('[TokenHandler] Token found in URL, processing...', { token: token.substring(0, 20) + '...' });
 
     // Set token immediately to localStorage (synchronous operation)
     // This ensures token is available before any API calls
     setAccessToken(token);
     logger.debug('[TokenHandler] Token saved to localStorage');
+    console.log('[TokenHandler] Token saved to localStorage');
 
     // Fetch user data and set up session
     const setupSession = async () => {
@@ -112,10 +116,34 @@ export function TokenHandler() {
         // This prevents race condition where ProtectedRoute checks before user is set
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
         logger.debug('[TokenHandler] User saved to localStorage (synchronous)');
+        console.log('[TokenHandler] User saved to localStorage', { userId: userData._id, email: userData.email, role: userData.role });
 
-        // Now update React state (which will also setup token refresh and validation)
+        // MULTIPLE UPDATE MECHANISMS for maximum reliability:
+        
+        // 1. Direct React state update (immediate)
         updateUser(userData);
-        logger.debug('[TokenHandler] User state updated, session setup initiated');
+        logger.debug('[TokenHandler] User state updated via updateUser (React state)');
+        console.log('[TokenHandler] User state updated via updateUser');
+
+        // 2. Dispatch custom event (with small delay to ensure listeners are ready)
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('auth:user-updated', {
+            detail: { user: userData, token },
+          }));
+          logger.debug('[TokenHandler] Custom auth event dispatched');
+        }, 50);
+
+        // 3. Dispatch another event after longer delay as backup
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('auth:user-updated', {
+            detail: { user: userData, token },
+          }));
+          logger.debug('[TokenHandler] Backup custom auth event dispatched');
+        }, 200);
+
+        // 4. Force a storage event (for cross-tab sync, though same-tab might not fire)
+        // Note: Storage events only fire for cross-tab changes, but we dispatch custom event above
+        logger.debug('[TokenHandler] All update mechanisms triggered');
 
         // Remove token from URL to clean it up
         searchParams.delete('token');
@@ -149,14 +177,9 @@ export function TokenHandler() {
       }
     };
 
-    // Small delay to ensure token is set
-    const timeoutId = setTimeout(() => {
-      setupSession();
-    }, 50);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
+    // Process immediately - no delay needed
+    // The token is already set synchronously above
+    setupSession();
   }, [searchParams, setSearchParams, location.pathname, updateUser, isAuthenticated, user]);
 
   // Reset processing flag when user becomes authenticated (session is set up)

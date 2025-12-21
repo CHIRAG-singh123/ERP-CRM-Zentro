@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { createUser, validateUserCredentials } from '../services/authService.js';
 import { generateAccessToken, generateRefreshToken, verifyToken, generateVerificationToken, verifyVerificationToken, generateSessionToken, verifySessionToken, generateLoginLinkToken, verifyLoginLinkToken } from '../utils/jwt.js';
 import { User } from '../models/User.js';
-import { sendPasswordResetEmail, sendGeneralEmail } from '../utils/emailService.js';
+import { sendPasswordResetEmail, sendGeneralEmail, sendVerificationEmailWithDashboard, sendWelcomeEmailWithDashboard } from '../utils/emailService.js';
 
 export const register = async (req, res, next) => {
   try {
@@ -318,37 +318,30 @@ export const resetPassword = async (req, res, next) => {
  * Send verification email to user
  * @param {Object} user - User object
  */
-export const sendVerificationEmail = async (user) => {
+export const sendVerificationEmail = async (user, accessToken = null) => {
   try {
     const token = generateVerificationToken(user._id.toString());
     const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-email?token=${token}`;
+    
+    // Determine dashboard URL based on user role
+    // If accessToken is provided, include it in the URL for automatic login (like Google login flow)
+    let dashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`;
+    if (user.role === 'customer') {
+      dashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/customers/dashboard`;
+    }
+    
+    // Add token to dashboard URL if provided (for automatic login when clicking email link)
+    if (accessToken) {
+      dashboardUrl = `${dashboardUrl}?token=${accessToken}`;
+      console.log(`   🔗 Dashboard URL with token: ${dashboardUrl}`);
+    }
 
-    const subject = 'Verify Your Email Address';
-    const appName = process.env.APP_NAME || 'ERP-CRM-Zentro';
-    const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER || 'noreply@example.com';
-    const fromName = process.env.FROM_NAME || appName;
-
-    const message = `Hello ${user.name || 'User'}!
-
-Thank you for signing up with ${appName}!
-
-To complete your registration and activate your account, please verify your email address by clicking the link below:
-
-${verificationUrl}
-
-This verification link will expire in 1 hour.
-
-If you did not create an account with ${appName}, please ignore this email.
-
-Best regards,
-The ${appName} Team`;
-
-    await sendGeneralEmail(
+    // Use dedicated verification email function with proper HTML template
+    const result = await sendVerificationEmailWithDashboard(
       user.email,
-      fromEmail,
-      subject,
-      message,
-      fromName
+      verificationUrl,
+      dashboardUrl,
+      user.name || 'User'
     );
 
     // Store verification token in user document
@@ -356,7 +349,13 @@ The ${appName} Team`;
     user.verificationTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     await user.save();
 
-    return { success: true };
+    if (result.success) {
+      console.log(`✅ Verification email sent to ${user.email} with dashboard link (with token): ${dashboardUrl}`);
+    } else {
+      console.error(`⚠️ Verification email failed for ${user.email}:`, result.error);
+    }
+
+    return { success: result.success };
   } catch (error) {
     console.error('Error sending verification email:', error);
     throw error;
@@ -364,45 +363,42 @@ The ${appName} Team`;
 };
 
 /**
- * Send login link email (for Google OAuth signup completion)
- * Contains a direct login link that logs user in and redirects to dashboard
+ * Send welcome email with dashboard link (for Google OAuth signup completion)
+ * Contains a direct dashboard link with token that automatically logs user in
  */
-export const sendLoginLinkEmail = async (user) => {
+export const sendLoginLinkEmail = async (user, accessToken = null) => {
   try {
-    // Simple login page link - no token needed
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const loginUrl = `${frontendUrl}/login`;
+    // Determine dashboard URL based on user role
+    let dashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`;
+    if (user.role === 'customer') {
+      dashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/customers/dashboard`;
+    }
+    
+    // Add token to dashboard URL if provided (for automatic login when clicking email link)
+    if (accessToken) {
+      dashboardUrl = `${dashboardUrl}?token=${accessToken}`;
+      console.log(`   🔗 Dashboard URL with token: ${dashboardUrl}`);
+    }
 
-    const subject = 'Welcome! Your Account is Ready';
-    const appName = process.env.APP_NAME || 'ERP-CRM-Zentro';
-    const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER || 'noreply@example.com';
-    const fromName = process.env.FROM_NAME || appName;
-
-    const message = `Hello ${user.name || 'User'}!
-
-Welcome to ${appName}! Your account has been successfully created.
-
-Click the link below to log in to your account:
-
-${loginUrl}
-
-If you did not create an account with ${appName}, please ignore this email.
-
-Best regards,
-The ${appName} Team`;
-
-    await sendGeneralEmail(
+    // Use dedicated welcome email function with proper HTML template
+    const result = await sendWelcomeEmailWithDashboard(
       user.email,
-      fromEmail,
-      subject,
-      message,
-      fromName
+      dashboardUrl,
+      user.name || 'User'
     );
 
-    console.log(`✅ Welcome email sent to ${user.email}`);
-    return { success: true };
+    if (result.success) {
+      console.log(`✅ Welcome email with dashboard link sent to ${user.email}`);
+      if (accessToken) {
+        console.log(`   📧 Dashboard link includes token for automatic login`);
+      }
+    } else {
+      console.error(`⚠️ Welcome email failed for ${user.email}:`, result.error);
+    }
+
+    return { success: result.success };
   } catch (error) {
-    console.error('Error sending login link email:', error);
+    console.error('Error sending welcome email:', error);
     throw error;
   }
 };
@@ -542,17 +538,29 @@ export const completeGoogleSignup = async (req, res, next) => {
         existingUser.passwordHash = passwordHash;
         await existingUser.save();
         
-        // Send login link email
+        // Generate access token and refresh token for email link
+        const accessToken = generateAccessToken(existingUser._id.toString());
+        const refreshToken = generateRefreshToken(existingUser._id.toString());
+
+        // Set refresh token as httpOnly cookie
+        res.cookie('refreshToken', refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+        
+        // Send welcome email with dashboard link (includes token for automatic login)
         try {
-          await sendLoginLinkEmail(existingUser);
-          console.log(`✅ Login link email sent to ${existingUser.email}`);
+          await sendLoginLinkEmail(existingUser, accessToken);
+          console.log(`✅ Welcome email with dashboard link sent to ${existingUser.email}`);
         } catch (emailError) {
-          console.error('Error sending login link email:', emailError);
+          console.error('Error sending welcome email:', emailError);
         }
         
         return res.json({
           success: true,
-          message: 'Password set successfully. Please check your email for the login link.',
+          message: 'Password set successfully. Please check your email for the dashboard link.',
           user: {
             email: existingUser.email,
             name: existingUser.name,
@@ -593,19 +601,31 @@ export const completeGoogleSignup = async (req, res, next) => {
     console.log(`   User ID: ${user._id}`);
     console.log('==========================================\n');
 
-    // Send login link email
+    // Generate access token and refresh token for email link
+    const accessToken = generateAccessToken(user._id.toString());
+    const refreshToken = generateRefreshToken(user._id.toString());
+
+    // Set refresh token as httpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Send welcome email with dashboard link (includes token for automatic login)
     try {
-      await sendLoginLinkEmail(user);
-      console.log(`✅ Login link email sent to ${user.email}`);
+      await sendLoginLinkEmail(user, accessToken);
+      console.log(`✅ Welcome email with dashboard link sent to ${user.email}`);
     } catch (emailError) {
-      console.error('Error sending login link email:', emailError);
+      console.error('Error sending welcome email:', emailError);
       // Don't fail the request if email fails - user can still login
     }
 
-    // Return success (don't log them in yet - they need to use the email link)
+    // Return success (user can click dashboard link from email to auto-login)
     return res.json({
       success: true,
-      message: 'Account created successfully. Please check your email for the login link.',
+      message: 'Account created successfully. Please check your email for the dashboard link.',
       user: {
         email: user.email,
         name: user.name,
@@ -820,19 +840,7 @@ export const googleCallback = async (req, res, next) => {
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/google-callback?token=${accessToken}`);
     }
 
-    // Signup mode: Send verification email if user is not verified and registered via Google
-    if (!user.isVerified && user.registrationMethod === 'google') {
-      console.log('   📧 Signup mode: User not verified, sending verification email');
-      try {
-        await sendVerificationEmail(user);
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-pending?email=${encodeURIComponent(user.email)}`);
-      } catch (emailError) {
-        console.error('Error sending verification email:', emailError);
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-pending?email=${encodeURIComponent(user.email)}&error=email_failed`);
-      }
-    }
-
-    // Signup mode: User is verified or not Google-registered - generate tokens and redirect
+    // Signup mode: Generate tokens first (user can access dashboard even if not verified)
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
@@ -844,11 +852,25 @@ export const googleCallback = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    console.log('   ✅ Login successful - redirecting to dashboard');
+    // Signup mode: Send verification email if user is not verified and registered via Google
+    if (!user.isVerified && user.registrationMethod === 'google') {
+      console.log('   📧 Signup mode: User not verified, sending verification email with dashboard link (with token)');
+      try {
+        // Send verification email (includes dashboard link with access token for automatic login)
+        await sendVerificationEmail(user, accessToken);
+        console.log('   ✅ Verification email sent successfully with dashboard token');
+      } catch (emailError) {
+        console.error('   ⚠️ Error sending verification email:', emailError);
+        // Continue even if email fails - user can still access dashboard
+      }
+    }
+
+    console.log('   ✅ Signup successful - redirecting to Google signup callback');
     console.log('==========================================\n');
 
-    // Redirect to success page with token
-    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/success?token=${accessToken}`);
+    // Redirect to dedicated Google signup callback route
+    // This route will show confirmation page and then redirect to dashboard
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/google-signup-callback?token=${accessToken}`);
   } catch (error) {
     console.error('❌ Google callback error:', error);
     next(error);
