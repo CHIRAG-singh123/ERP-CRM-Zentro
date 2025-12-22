@@ -24,6 +24,20 @@
   --color-chart-tertiary: #A8DADC;
   --color-chart-positive: #77b900;
   --color-chart-negative: #e8464c;
+  
+  /* Shadow variables - Light Mode */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.15);
+  
+  /* Overlay variables - Light Mode */
+  --overlay-light: rgba(0, 0, 0, 0.05);
+  --overlay-medium: rgba(0, 0, 0, 0.1);
+  --overlay-dark: rgba(0, 0, 0, 0.2);
+  --overlay-white-light: rgba(255, 255, 255, 0.05);
+  --overlay-white-medium: rgba(255, 255, 255, 0.1);
+  --overlay-white-dark: rgba(255, 255, 255, 0.2);
 }
 
 .dark {
@@ -47,6 +61,20 @@
   --color-chart-tertiary: #6425fe;
   --color-chart-positive: #77b900;
   --color-chart-negative: #e8464c;
+  
+  /* Shadow variables - Dark Mode */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.4);
+  
+  /* Overlay variables - Dark Mode */
+  --overlay-light: rgba(255, 255, 255, 0.05);
+  --overlay-medium: rgba(255, 255, 255, 0.1);
+  --overlay-dark: rgba(255, 255, 255, 0.15);
+  --overlay-white-light: rgba(255, 255, 255, 0.05);
+  --overlay-white-medium: rgba(255, 255, 255, 0.1);
+  --overlay-white-dark: rgba(255, 255, 255, 0.2);
 }
 
 /* Prevent white screen flash */
@@ -123,7 +151,7 @@ button {
 
 button:not(:disabled):hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 button:not(:disabled):active {
@@ -213,12 +241,12 @@ button:hover svg {
 
 /* Icon in light mode */
 .light .icon-light-mode {
-  color: #1a1a1a;
+  color: var(--color-foreground);
   opacity: 1;
 }
 
 .dark .icon-light-mode {
-  color: #e4e4e4;
+  color: var(--color-foreground);
   opacity: 0.9;
 }
 
@@ -248,6 +276,11 @@ button:hover svg {
   transform: scale(1.1);
 }
 
+.light .action-button-view:hover {
+  color: #0891b2;
+  background-color: var(--color-muted);
+}
+
 .dark .action-button-view:hover {
   color: #a6f3e3;
   background-color: rgba(168, 218, 220, 0.15);
@@ -265,6 +298,11 @@ button:hover svg {
   transform: scale(1.1);
 }
 
+.light .action-button-edit:hover {
+  color: #9333ea;
+  background-color: var(--color-muted);
+}
+
 .dark .action-button-edit:hover {
   color: #d8b4fe;
   background-color: rgba(179, 156, 208, 0.15);
@@ -280,6 +318,11 @@ button:hover svg {
   color: #dc2626;
   background-color: var(--color-muted);
   transform: scale(1.1);
+}
+
+.light .action-button-delete:hover {
+  color: #dc2626;
+  background-color: var(--color-muted);
 }
 
 .dark .action-button-delete:hover {
@@ -329,9 +372,14 @@ button:hover svg {
   box-shadow: 0 4px 12px rgba(100, 37, 254, 0.3);
 }
 
+.light .crud-button-primary:hover:not(:disabled) {
+  background-color: var(--color-accent);
+  box-shadow: 0 4px 12px rgba(100, 37, 254, 0.3);
+}
+
 .dark .crud-button-primary:hover:not(:disabled) {
   background-color: #d8b4fe;
-  color: #1A1A1C;
+  color: var(--color-card);
   box-shadow: 0 4px 12px rgba(216, 180, 254, 0.3);
 }
 
@@ -345,12 +393,17 @@ button:hover svg {
 .crud-button-secondary:hover:not(:disabled) {
   background-color: var(--color-border);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+}
+
+.light .crud-button-secondary:hover:not(:disabled) {
+  background-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .dark .crud-button-secondary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background-color: var(--overlay-light);
+  box-shadow: var(--shadow-md);
 }
 
 /* Danger CRUD buttons (Delete) */
@@ -389,10 +442,18 @@ button:hover svg {
 
 /* Glassmorphism utility */
 .glass {
-  background: rgba(26, 26, 28, 0.7);
+  background: var(--overlay-medium);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border);
+}
+
+.light .glass {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.dark .glass {
+  background: rgba(26, 26, 28, 0.7);
 }
 
 /* Custom scrollbar */
@@ -411,6 +472,22 @@ button:hover svg {
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted-foreground);
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: var(--overlay-medium);
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: var(--overlay-dark);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: var(--color-muted-foreground);
 }
 
@@ -435,6 +512,10 @@ button:hover svg {
   --fc-neutral-bg-color: var(--color-card);
   --fc-neutral-text-color: var(--color-foreground);
   --fc-list-event-hover-bg-color: var(--color-muted);
+}
+
+.light .fc {
+  --fc-event-bg-color: rgba(100, 37, 254, 0.15);
 }
 
 .dark .fc {
@@ -464,11 +545,11 @@ button:hover svg {
   padding: 0 6px;
   border-radius: 10px;
   background-color: #A8DADC;
-  color: #1A1A1C;
+  color: var(--color-card);
   font-size: 10px;
   font-weight: 700;
   pointer-events: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Make days with multiple tasks clickable */
@@ -477,6 +558,14 @@ button:hover svg {
 }
 
 .fc-daygrid-day.fc-day-has-multiple-tasks:hover {
+  background-color: rgba(168, 218, 220, 0.1) !important;
+}
+
+.light .fc-daygrid-day.fc-day-has-multiple-tasks:hover {
+  background-color: rgba(100, 37, 254, 0.1) !important;
+}
+
+.dark .fc-daygrid-day.fc-day-has-multiple-tasks:hover {
   background-color: rgba(168, 218, 220, 0.1) !important;
 }
 
@@ -507,7 +596,7 @@ button:hover svg {
 
 /* Calendar container */
 .fc-theme-standard .fc-scrollgrid {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-border);
   background-color: transparent;
 }
 
@@ -537,7 +626,7 @@ button:hover svg {
   border-color: var(--color-accent) !important;
   color: var(--color-accent-foreground) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(100, 37, 254, 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .fc-button:active {
@@ -597,6 +686,49 @@ button:hover svg {
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+/* Light mode today's date - ensure white text on purple background with creative styling */
+.light .fc-day-today .fc-daygrid-day-number {
+  background: linear-gradient(135deg, var(--color-accent) 0%, rgba(100, 37, 254, 0.9) 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 0 0 2px rgba(100, 37, 254, 0.2),
+              0 4px 12px rgba(100, 37, 254, 0.4),
+              0 0 20px rgba(100, 37, 254, 0.3) !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  animation: todayPulse 2s ease-in-out infinite !important;
+}
+
+/* Dark mode today's date - ensure proper contrast with creative styling */
+.dark .fc-day-today .fc-daygrid-day-number {
+  background: linear-gradient(135deg, var(--color-accent) 0%, rgba(179, 156, 208, 0.9) 100%) !important;
+  color: var(--color-card) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 0 0 2px rgba(179, 156, 208, 0.2),
+              0 4px 12px rgba(179, 156, 208, 0.4),
+              0 0 20px rgba(179, 156, 208, 0.3) !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Subtle pulse animation for today's date */
+@keyframes todayPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 2px rgba(100, 37, 254, 0.2),
+                0 4px 12px rgba(100, 37, 254, 0.4),
+                0 0 20px rgba(100, 37, 254, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px rgba(100, 37, 254, 0.3),
+                0 6px 16px rgba(100, 37, 254, 0.5),
+                0 0 25px rgba(100, 37, 254, 0.4);
+  }
 }
 
 /* Other month days */
@@ -616,6 +748,14 @@ button:hover svg {
 
 .fc-event:hover {
   transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(168, 218, 220, 0.3);
+}
+
+.light .fc-event:hover {
+  box-shadow: 0 2px 8px rgba(100, 37, 254, 0.3);
+}
+
+.dark .fc-event:hover {
   box-shadow: 0 2px 8px rgba(168, 218, 220, 0.3);
 }
 
@@ -646,6 +786,10 @@ button:hover svg {
 .fc-popover {
   background-color: var(--color-card) !important;
   border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-lg);
+}
+
+.light .fc-popover {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
@@ -666,24 +810,48 @@ button:hover svg {
 
 /* Time grid */
 .fc-timegrid-slot {
+  border-color: var(--color-border);
+}
+
+.light .fc-timegrid-slot {
+  border-color: var(--overlay-light);
+}
+
+.dark .fc-timegrid-slot {
   border-color: rgba(255, 255, 255, 0.05);
 }
 
 .fc-timegrid-slot-label {
-  color: rgba(228, 228, 228, 0.6) !important;
+  color: var(--color-muted-foreground) !important;
   font-size: 0.75rem;
 }
 
 .fc-timegrid-col {
+  border-color: var(--color-border);
+}
+
+.light .fc-timegrid-col {
+  border-color: var(--overlay-medium);
+}
+
+.dark .fc-timegrid-col {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
 .fc-timegrid-axis {
+  border-color: var(--color-border);
+}
+
+.light .fc-timegrid-axis {
+  border-color: var(--overlay-medium);
+}
+
+.dark .fc-timegrid-axis {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
 .fc-timegrid-axis-cushion {
-  color: rgba(228, 228, 228, 0.6) !important;
+  color: var(--color-muted-foreground) !important;
 }
 
 /* Week view */
@@ -694,17 +862,21 @@ button:hover svg {
 
 /* List view */
 .fc-list-day-cushion {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: #E4E4E4 !important;
+  background-color: var(--overlay-light);
+  color: var(--color-foreground) !important;
   font-weight: 600;
 }
 
 .fc-list-event {
-  color: #E4E4E4 !important;
+  color: var(--color-foreground) !important;
 }
 
 .fc-list-event:hover td {
   background-color: rgba(168, 218, 220, 0.1) !important;
+}
+
+.light .fc-list-event:hover td {
+  background-color: rgba(100, 37, 254, 0.1) !important;
 }
 
 /* Scrollbar for calendar */
@@ -714,15 +886,39 @@ button:hover svg {
 }
 
 .fc-scroller::-webkit-scrollbar-track {
+  background: var(--color-muted);
+}
+
+.light .fc-scroller::-webkit-scrollbar-track {
+  background: var(--color-muted);
+}
+
+.dark .fc-scroller::-webkit-scrollbar-track {
   background: #1a1a1c;
 }
 
 .fc-scroller::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-border);
   border-radius: 4px;
 }
 
 .fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted-foreground);
+}
+
+.light .fc-scroller::-webkit-scrollbar-thumb {
+  background: var(--overlay-medium);
+}
+
+.light .fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: var(--overlay-dark);
+}
+
+.dark .fc-scroller::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .fc-scroller::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
@@ -760,7 +956,15 @@ button:hover svg {
 
 .card-hover:hover {
   transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(168, 218, 220, 0.2);
+  box-shadow: var(--shadow-lg), 0 0 20px rgba(168, 218, 220, 0.2);
+}
+
+.light .card-hover:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 20px rgba(100, 37, 254, 0.2);
+}
+
+.dark .card-hover:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 218, 220, 0.2);
 }
 
 /* Button press animation */
@@ -770,19 +974,37 @@ button:hover svg {
 
 .button-press:active {
   transform: scale(0.95);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Loading skeleton with shimmer */
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,
+    var(--overlay-light) 0%,
+    var(--overlay-medium) 50%,
+    var(--overlay-light) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+.light .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
     rgba(255, 255, 255, 0.05) 0%,
     rgba(255, 255, 255, 0.1) 50%,
     rgba(255, 255, 255, 0.05) 100%
   );
-  background-size: 200% 100%;
-  animation: shimmer 2s linear infinite;
 }
 
 /* Stagger animations for lists */
@@ -816,6 +1038,44 @@ button:hover svg {
   animation: gradientShift 8s ease infinite;
 }
 
+.light .gradient-animated {
+  background: linear-gradient(
+    -45deg,
+    rgba(100, 37, 254, 0.1),
+    rgba(179, 156, 208, 0.1),
+    rgba(100, 37, 254, 0.1),
+    rgba(179, 156, 208, 0.1)
+  );
+}
+
+.dark .gradient-animated {
+  background: linear-gradient(
+    -45deg,
+    rgba(168, 218, 220, 0.1),
+    rgba(179, 156, 208, 0.1),
+    rgba(168, 218, 220, 0.1),
+    rgba(179, 156, 208, 0.1)
+  );
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* ============================================
    Sidebar Navigation Animations
    ============================================ */
@@ -834,6 +1094,12 @@ button:hover svg {
     border-color: var(--color-accent);
     opacity: 1;
   }
+}
+
+/* Light mode border animation adjustment */
+.light .sidebar-active {
+  border-color: var(--color-accent);
+  opacity: 1;
 }
 
 /* Dark mode border animation adjustment */
@@ -863,6 +1129,14 @@ button:hover svg {
   box-shadow: 0 0 0 3px rgba(168, 218, 220, 0.3), 0 0 20px rgba(168, 218, 220, 0.2);
 }
 
+.light .glow-focus:focus {
+  box-shadow: 0 0 0 3px rgba(100, 37, 254, 0.3), 0 0 20px rgba(100, 37, 254, 0.2);
+}
+
+.dark .glow-focus:focus {
+  box-shadow: 0 0 0 3px rgba(168, 218, 220, 0.3), 0 0 20px rgba(168, 218, 220, 0.2);
+}
+
 /* Smooth fade-in for loading states */
 .loading-fade-in {
   animation: fadeIn 0.4s ease-out;
@@ -875,7 +1149,15 @@ button:hover svg {
 
 .hover-lift:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
+}
+
+.light .hover-lift:hover {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.dark .hover-lift:hover {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
 /* Pulse glow effect */
@@ -1014,10 +1296,20 @@ button:hover svg {
 }
 
 .loading-spinner {
-  border: 4px solid rgba(255, 255, 255, 0.1);
+  border: 4px solid var(--overlay-light);
   border-top-color: #A8DADC;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+.light .loading-spinner {
+  border-color: rgba(0, 0, 0, 0.1);
+  border-top-color: #6425fe;
+}
+
+.dark .loading-spinner {
+  border-color: rgba(255, 255, 255, 0.1);
+  border-top-color: #A8DADC;
 }
 
 /* Pulse loading animation */
@@ -1038,13 +1330,31 @@ button:hover svg {
 .skeleton-loading {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
+    var(--overlay-light) 0%,
+    var(--overlay-medium) 50%,
+    var(--overlay-light) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 4px;
+}
+
+.light .skeleton-loading {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+
+.dark .skeleton-loading {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
 }
 
 /* Loading dots */
@@ -1095,18 +1405,42 @@ button:hover svg {
 }
 
 .datagrid-scrollable::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-border);
   border-radius: 4px;
   transition: background 0.2s ease;
 }
 
 .datagrid-scrollable::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted-foreground);
+}
+
+.light .datagrid-scrollable::-webkit-scrollbar-thumb {
+  background: var(--overlay-medium);
+}
+
+.light .datagrid-scrollable::-webkit-scrollbar-thumb:hover {
+  background: var(--overlay-dark);
+}
+
+.dark .datagrid-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .datagrid-scrollable::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
 /* Firefox scrollbar */
 .datagrid-scrollable {
   scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.light .datagrid-scrollable {
+  scrollbar-color: var(--overlay-medium) transparent;
+}
+
+.dark .datagrid-scrollable {
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
@@ -1294,13 +1628,19 @@ button:hover svg {
 
 .chart-container-enhanced:hover {
   transform: translateY(-2px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3),
+  box-shadow: var(--shadow-lg),
               0 0 30px rgba(168, 218, 220, 0.2);
   border-color: rgba(168, 218, 220, 0.4);
 }
 
 .chart-container-enhanced:hover::before {
   opacity: 1;
+}
+
+.light .chart-container-enhanced:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15),
+              0 0 30px rgba(100, 37, 254, 0.2);
+  border-color: rgba(100, 37, 254, 0.4);
 }
 
 .dark .chart-container-enhanced:hover {
@@ -1353,6 +1693,24 @@ button:hover svg {
     rgba(179, 156, 208, 0.05)
   );
   transform: translateX(4px);
+  box-shadow: -4px 0 12px rgba(168, 218, 220, 0.2);
+}
+
+.light .table-row-enhanced:hover {
+  background: linear-gradient(
+    to right,
+    rgba(100, 37, 254, 0.05),
+    rgba(179, 156, 208, 0.05)
+  );
+  box-shadow: -4px 0 12px rgba(100, 37, 254, 0.15);
+}
+
+.dark .table-row-enhanced:hover {
+  background: linear-gradient(
+    to right,
+    rgba(168, 218, 220, 0.05),
+    rgba(179, 156, 208, 0.05)
+  );
   box-shadow: -4px 0 12px rgba(168, 218, 220, 0.2);
 }
 
@@ -1459,9 +1817,17 @@ button:hover svg {
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--overlay-white-medium);
   transform: translate(-50%, -50%);
   transition: width 0.6s ease, height 0.6s ease;
+}
+
+.light .button-enhanced::before {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.dark .button-enhanced::before {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .button-enhanced:hover::before {
@@ -1480,13 +1846,31 @@ button:hover svg {
 .skeleton-enhanced {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
+    var(--overlay-light) 0%,
+    var(--overlay-medium) 50%,
+    var(--overlay-light) 100%
   );
   background-size: 200% 100%;
   animation: skeletonShimmer 1.5s ease-in-out infinite;
   border-radius: 8px;
+}
+
+.light .skeleton-enhanced {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+
+.dark .skeleton-enhanced {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
 }
 
 @keyframes skeletonShimmer {
@@ -1654,6 +2038,18 @@ button:hover svg {
               0 0 20px rgba(168, 218, 220, 0.3);
 }
 
+.light .focus-glow:focus-visible {
+  box-shadow: 0 0 0 3px rgba(100, 37, 254, 0.4),
+              0 0 0 6px rgba(100, 37, 254, 0.2),
+              0 0 20px rgba(100, 37, 254, 0.3);
+}
+
+.dark .focus-glow:focus-visible {
+  box-shadow: 0 0 0 3px rgba(168, 218, 220, 0.4),
+              0 0 0 6px rgba(168, 218, 220, 0.2),
+              0 0 20px rgba(168, 218, 220, 0.3);
+}
+
 /* ============================================
    Page Transition Animations
    ============================================ */
@@ -1757,5 +2153,1151 @@ button:hover svg {
   100% {
     box-shadow: 0 0 0 12px rgba(168, 218, 220, 0),
                 0 0 24px 16px rgba(168, 218, 220, 0);
+  }
+}
+
+/* ============================================
+   Light Mode Text Readability Fixes
+   Dashboard & Reports Sections
+   ============================================ */
+
+/* Fix white text in light mode - make it dark and readable */
+.light .text-white,
+.light [class*="text-white"] {
+  color: var(--color-foreground) !important;
+}
+
+.light .text-white\/50,
+.light [class*="text-white/50"] {
+  color: var(--color-muted-foreground) !important;
+  opacity: 0.8;
+}
+
+.light .text-white\/60,
+.light [class*="text-white/60"] {
+  color: var(--color-muted-foreground) !important;
+  opacity: 0.9;
+}
+
+.light .text-white\/70,
+.light [class*="text-white/70"] {
+  color: var(--color-foreground) !important;
+  opacity: 0.85;
+}
+
+.light .text-white\/80,
+.light [class*="text-white/80"] {
+  color: var(--color-foreground) !important;
+  opacity: 0.9;
+}
+
+/* Fix white borders in light mode */
+.light .border-white\/10,
+.light [class*="border-white/10"] {
+  border-color: var(--color-border) !important;
+}
+
+.light .border-white\/20,
+.light [class*="border-white/20"] {
+  border-color: var(--overlay-medium) !important;
+}
+
+/* Fix white backgrounds in light mode */
+.light .bg-white\/5,
+.light [class*="bg-white/5"] {
+  background-color: var(--overlay-light) !important;
+}
+
+.light .bg-white\/10,
+.light [class*="bg-white/10"] {
+  background-color: var(--overlay-medium) !important;
+}
+
+.light .bg-white\/15,
+.light [class*="bg-white/15"] {
+  background-color: var(--overlay-dark) !important;
+}
+
+/* Fix dark card backgrounds in light mode */
+.light .bg-\[\#1A1A1C\]\/70,
+.light [class*="bg-[#1A1A1C]/70"],
+.light [class*="bg-[#1A1A1C]/90"] {
+  background-color: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+.light .bg-\[\#1A1A1C\]\/90,
+.light [class*="bg-[#1A1A1C]/90"] {
+  background-color: var(--color-card) !important;
+}
+
+/* Metric Card Light Mode Enhancements */
+.light .card-gradient-hover {
+  background: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.light .card-gradient-hover:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent) !important;
+  transform: translateY(-2px);
+}
+
+/* Dashboard Section Light Mode */
+.light .chart-container-enhanced {
+  background: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+.light .chart-container-enhanced:hover {
+  border-color: var(--color-accent) !important;
+}
+
+/* Reports Section Light Mode */
+.light [class*="bg-gradient-to-br"][class*="from-[#1A1A1C]"] {
+  background: linear-gradient(to bottom right, var(--color-card), var(--color-card)) !important;
+}
+
+.light [class*="bg-gradient-to-r"][class*="from-white/5"] {
+  background: linear-gradient(to right, var(--overlay-light), var(--overlay-light)) !important;
+}
+
+.light [class*="bg-gradient-to-br"][class*="from-[#A8DADC]/5"] {
+  background: linear-gradient(to bottom right, rgba(100, 37, 254, 0.05), transparent) !important;
+}
+
+/* Chart Card Headers in Light Mode */
+.light h3.text-white,
+.light h3[class*="text-white"],
+.light .text-xl.text-white {
+  color: var(--color-foreground) !important;
+}
+
+.light p.text-white\/50,
+.light p[class*="text-white/50"],
+.light .text-sm.text-white\/50 {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Tooltip Light Mode */
+.light .tooltip-enhanced {
+  background-color: var(--color-card) !important;
+  color: var(--color-foreground) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Loading Text Light Mode */
+.light .text-white\/60.animate-pulse,
+.light [class*="text-white/60"][class*="animate-pulse"] {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Export Button Light Mode */
+.light .bg-\[\#B39CD0\].text-\[\#1A1A1C\] {
+  background-color: var(--color-accent) !important;
+  color: var(--color-accent-foreground) !important;
+}
+
+.light .bg-\[\#B39CD0\].text-\[\#1A1A1C\]:hover {
+  background-color: var(--color-accent) !important;
+  opacity: 0.9;
+}
+
+/* Icon Colors in Light Mode */
+.light .text-\[\#A8DADC\] {
+  color: var(--color-chart-primary) !important;
+}
+
+.light .text-\[\#B39CD0\] {
+  color: var(--color-accent) !important;
+}
+
+/* Empty State Text Light Mode */
+.light .text-center.text-sm.text-white\/50,
+.light [class*="text-white/50"][class*="text-center"] {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Hover States for Light Mode */
+.light .hover\:border-\[\#A8DADC\]\/50:hover {
+  border-color: var(--color-accent) !important;
+}
+
+.light .hover\:text-white:hover {
+  color: var(--color-foreground) !important;
+}
+
+.light .hover\:text-\[\#A8DADC\]:hover {
+  color: var(--color-accent) !important;
+}
+
+/* Gradient Text Fixes */
+.light .from-white\/5,
+.light .to-white\/5 {
+  --tw-gradient-from: var(--overlay-light) !important;
+  --tw-gradient-to: var(--overlay-light) !important;
+}
+
+.light .from-white\/10,
+.light .to-white\/10 {
+  --tw-gradient-from: var(--overlay-medium) !important;
+  --tw-gradient-to: var(--overlay-medium) !important;
+}
+
+/* Chart Legend and Labels Light Mode */
+.light .recharts-legend-item-text,
+.light .recharts-label {
+  fill: var(--color-foreground) !important;
+  color: var(--color-foreground) !important;
+}
+
+.light .recharts-cartesian-axis-tick-value {
+  fill: var(--color-foreground) !important;
+}
+
+/* DataGrid Light Mode */
+.light .datagrid-scrollable {
+  color: var(--color-foreground) !important;
+}
+
+.light .datagrid-scrollable th {
+  color: var(--color-foreground) !important;
+  background-color: var(--color-muted) !important;
+}
+
+.light .datagrid-scrollable td {
+  color: var(--color-foreground) !important;
+}
+
+/* Enhanced Creative Light Mode Styles */
+.light .wave-border-animation::before,
+.light .wave-border-animation::after {
+  border-color: var(--color-accent) !important;
+}
+
+/* Metric Card Value Styling in Light Mode */
+.light .text-2xl.font-bold.text-white {
+  color: var(--color-foreground) !important;
+  font-weight: 700;
+}
+
+/* Section Headers Light Mode */
+.light section h3.text-white,
+.light section .text-xl.text-white {
+  color: var(--color-foreground) !important;
+}
+
+/* Chart Container Backgrounds Light Mode */
+.light [class*="rounded-2xl"][class*="border-white/10"][class*="bg-gradient"] {
+  background: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Animated Number Light Mode */
+.light .text-\[\#B39CD0\] {
+  color: var(--color-accent) !important;
+}
+
+/* Status Badges and Indicators Light Mode */
+.light [class*="bg-[#A8DADC]/20"] {
+  background-color: rgba(100, 37, 254, 0.1) !important;
+}
+
+.light [class*="bg-[#B39CD0]/20"] {
+  background-color: rgba(100, 37, 254, 0.15) !important;
+}
+
+/* Additional Dashboard & Reports Light Mode Fixes */
+
+/* Page Header Light Mode */
+.light .page-header h1,
+.light .page-header h2 {
+  color: var(--color-foreground) !important;
+}
+
+.light .page-header p,
+.light .page-header .description {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* KPI Cards Light Mode - Enhanced Styling */
+.light .glow-accent,
+.light .glow-purple {
+  box-shadow: 0 0 20px rgba(100, 37, 254, 0.15),
+              0 0 40px rgba(100, 37, 254, 0.1),
+              0 0 60px rgba(100, 37, 254, 0.05) !important;
+}
+
+.light .glow-accent:hover,
+.light .glow-purple:hover {
+  box-shadow: 0 0 30px rgba(100, 37, 254, 0.25),
+              0 0 60px rgba(100, 37, 254, 0.15),
+              0 0 90px rgba(100, 37, 254, 0.1) !important;
+}
+
+/* Chart Section Titles Light Mode */
+.light .chart-section h3,
+.light [class*="chart"] h3,
+.light section h3 {
+  color: var(--color-foreground) !important;
+}
+
+.light .chart-section p,
+.light [class*="chart"] p.subtitle,
+.light section p.text-sm {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Filter Buttons Light Mode */
+.light button[class*="border-white/10"],
+.light .filter-button {
+  border-color: var(--color-border) !important;
+  color: var(--color-foreground) !important;
+  background-color: var(--color-card) !important;
+}
+
+.light button[class*="border-white/10"]:hover,
+.light .filter-button:hover {
+  border-color: var(--color-accent) !important;
+  background-color: var(--color-muted) !important;
+}
+
+/* Recharts Tooltip Light Mode */
+.light .recharts-tooltip-wrapper,
+.light .recharts-default-tooltip {
+  background-color: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-foreground) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.light .recharts-tooltip-label {
+  color: var(--color-foreground) !important;
+}
+
+.light .recharts-tooltip-item {
+  color: var(--color-foreground) !important;
+}
+
+/* Recharts Grid Lines Light Mode */
+.light .recharts-cartesian-grid-horizontal line,
+.light .recharts-cartesian-grid-vertical line {
+  stroke: var(--color-border) !important;
+  opacity: 0.3;
+}
+
+/* Recharts Reference Lines Light Mode */
+.light .recharts-reference-line-line {
+  stroke: var(--color-muted-foreground) !important;
+}
+
+/* Pie Chart Labels Light Mode */
+.light .recharts-pie-label-text {
+  fill: var(--color-foreground) !important;
+  font-weight: 600;
+}
+
+/* Bar Chart Bars Light Mode - Ensure visibility */
+.light .recharts-bar-rectangle {
+  opacity: 0.9;
+}
+
+.light .recharts-bar-rectangle:hover {
+  opacity: 1;
+}
+
+/* Line Chart Lines Light Mode */
+.light .recharts-line {
+  stroke-width: 2;
+}
+
+/* Area Chart Areas Light Mode */
+.light .recharts-area {
+  opacity: 0.6;
+}
+
+/* Creative Enhancements for Light Mode */
+
+/* Subtle gradient overlays for cards in light mode */
+.light .card-gradient-hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(100, 37, 254, 0.05) 0%,
+    rgba(179, 156, 208, 0.05) 50%,
+    rgba(100, 37, 254, 0.05) 100%
+  ) !important;
+}
+
+/* Enhanced hover effects for light mode */
+.light .card-gradient-hover:hover {
+  background: linear-gradient(
+    to bottom right,
+    var(--color-card),
+    rgba(100, 37, 254, 0.02)
+  ) !important;
+}
+
+/* Metric card icon backgrounds in light mode */
+.light .bg-\[\#A8DADC\]\/20 {
+  background-color: rgba(100, 37, 254, 0.1) !important;
+}
+
+.light .bg-\[\#B39CD0\]\/20 {
+  background-color: rgba(100, 37, 254, 0.12) !important;
+}
+
+/* Icon pulse hover in light mode */
+.light .icon-pulse-hover:hover {
+  filter: drop-shadow(0 0 8px rgba(100, 37, 254, 0.4));
+}
+
+/* Wave border animation colors for light mode */
+.light .wave-border-animation::before {
+  border-color: rgba(100, 37, 254, 0.4) !important;
+}
+
+.light .wave-border-animation::after {
+  border-color: rgba(179, 156, 208, 0.3) !important;
+}
+
+/* Loading spinner in light mode */
+.light .animate-spin.text-\[\#A8DADC\] {
+  color: var(--color-accent) !important;
+}
+
+/* Empty state messages light mode */
+.light .empty-state,
+.light [class*="text-center"][class*="text-white/50"] {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Table headers and cells light mode */
+.light table th {
+  color: var(--color-foreground) !important;
+  background-color: var(--color-muted) !important;
+  border-color: var(--color-border) !important;
+}
+
+.light table td {
+  color: var(--color-foreground) !important;
+  border-color: var(--color-border) !important;
+}
+
+.light table tr:hover {
+  background-color: var(--overlay-light) !important;
+}
+
+/* Action buttons in tables light mode */
+.light .action-button-view,
+.light .action-button-edit,
+.light .action-button-delete {
+  color: var(--color-muted-foreground) !important;
+}
+
+.light .action-button-view:hover {
+  color: #0891b2 !important;
+  background-color: var(--color-muted) !important;
+}
+
+.light .action-button-edit:hover {
+  color: #9333ea !important;
+  background-color: var(--color-muted) !important;
+}
+
+.light .action-button-delete:hover {
+  color: #dc2626 !important;
+  background-color: var(--color-muted) !important;
+}
+
+/* Enhanced readability for all text elements - handled by specific selectors above */
+
+.light [style*="color: #ffffff"],
+.light [style*="color: white"],
+.light [style*="color: #fff"] {
+  color: var(--color-foreground) !important;
+}
+
+/* Ensure proper contrast for accessibility */
+.light .text-muted,
+.light [class*="text-white/"] {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Chart container backgrounds with better contrast */
+.light .chart-container-enhanced,
+.light [class*="chart-container"] {
+  background-color: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+/* Ensure all interactive elements are visible */
+.light button:not([class*="bg-"]):not([class*="text-"]) {
+  color: var(--color-foreground) !important;
+}
+
+.light a:not([class*="text-"]) {
+  color: var(--color-accent) !important;
+}
+
+/* Focus states for light mode */
+.light *:focus-visible {
+  outline-color: var(--color-accent) !important;
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Calendar Today's Date Readability Fix
+   ============================================ */
+
+/* Light mode today's date - ensure white text on purple background with creative styling */
+.light .fc-day-today .fc-daygrid-day-number {
+  background: linear-gradient(135deg, var(--color-accent) 0%, rgba(100, 37, 254, 0.9) 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 0 0 2px rgba(100, 37, 254, 0.2),
+              0 4px 12px rgba(100, 37, 254, 0.4),
+              0 0 20px rgba(100, 37, 254, 0.3) !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  animation: todayPulse 2s ease-in-out infinite !important;
+}
+
+/* Dark mode today's date - ensure proper contrast with creative styling */
+.dark .fc-day-today .fc-daygrid-day-number {
+  background: linear-gradient(135deg, var(--color-accent) 0%, rgba(179, 156, 208, 0.9) 100%) !important;
+  color: var(--color-card) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 0 0 2px rgba(179, 156, 208, 0.2),
+              0 4px 12px rgba(179, 156, 208, 0.4),
+              0 0 20px rgba(179, 156, 208, 0.3) !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Subtle pulse animation for today's date */
+@keyframes todayPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 2px rgba(100, 37, 254, 0.2),
+                0 4px 12px rgba(100, 37, 254, 0.4),
+                0 0 20px rgba(100, 37, 254, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px rgba(100, 37, 254, 0.3),
+                0 6px 16px rgba(100, 37, 254, 0.5),
+                0 0 25px rgba(100, 37, 254, 0.4);
+  }
+}
+
+/* ============================================
+   Calendar Task Modal Readability Fixes
+   ============================================ */
+
+/* Calendar Task Modal Light Mode - Creative Styling */
+.light [class*="bg-\[\#1A1A1C\]"] {
+  background-color: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Modal borders in light mode */
+.light .border-white\/10 {
+  border-color: var(--color-border) !important;
+}
+
+/* Task card backgrounds in modal - ensure proper contrast */
+.light .bg-white {
+  background-color: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.light .bg-white:hover {
+  background-color: var(--color-muted) !important;
+  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+/* Modal header text readability */
+.light h2.text-white,
+.light .text-xl.text-white,
+.light .text-2xl.text-white {
+  color: var(--color-foreground) !important;
+  font-weight: 700 !important;
+}
+
+/* Modal description text */
+.light p.text-white\/60,
+.light .text-sm.text-white\/60,
+.light .text-white\/60 {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Modal close button */
+.light .text-white\/50,
+.light button.text-white\/50 {
+  color: var(--color-muted-foreground) !important;
+}
+
+.light .text-white\/50:hover,
+.light button.text-white\/50:hover {
+  color: var(--color-foreground) !important;
+}
+
+/* Task card titles and descriptions in modal */
+.light .text-blue-600,
+.light .text-blue-700,
+.light [class*="text-blue"] {
+  color: var(--color-accent) !important;
+}
+
+.light .text-gray-600,
+.light .text-gray-700,
+.light [class*="text-gray"]:not([class*="bg-gray"]) {
+  color: var(--color-foreground) !important;
+}
+
+/* Task status and priority badges in light mode - Enhanced */
+.light .bg-gray-500\/20,
+.light .bg-gray-500\/30 {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  color: var(--color-foreground) !important;
+  border-color: var(--color-border) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.light .text-gray-300 {
+  color: var(--color-foreground) !important;
+}
+
+/* Priority badges in light mode */
+.light .bg-yellow-500\/20 {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(234, 179, 8, 0.15) 100%) !important;
+  color: #ca8a04 !important;
+  border-color: rgba(234, 179, 8, 0.4) !important;
+  font-weight: 600 !important;
+}
+
+.light .text-yellow-300 {
+  color: #ca8a04 !important;
+}
+
+.light .bg-orange-500\/20 {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0.15) 100%) !important;
+  color: #ea580c !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  font-weight: 600 !important;
+}
+
+.light .text-orange-300 {
+  color: #ea580c !important;
+}
+
+.light .bg-red-500\/20 {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.15) 100%) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  font-weight: 600 !important;
+}
+
+.light .text-red-300 {
+  color: #dc2626 !important;
+}
+
+/* Task status badges in light mode */
+.light .bg-blue-500\/20 {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.15) 100%) !important;
+  color: #1e40af !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  font-weight: 600 !important;
+}
+
+.light .text-blue-300 {
+  color: #1e40af !important;
+}
+
+.light .bg-green-500\/20 {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.15) 100%) !important;
+  color: #15803d !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  font-weight: 600 !important;
+}
+
+.light .text-green-300 {
+  color: #15803d !important;
+}
+
+/* Task card hover effects in modal */
+.light [class*="border-gray"][class*="bg-white"]:hover {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 4px 12px rgba(100, 37, 254, 0.15) !important;
+}
+
+/* Action buttons in task cards */
+.light button[class*="bg-gray"] {
+  background-color: var(--color-muted) !important;
+  color: var(--color-foreground) !important;
+  border-color: var(--color-border) !important;
+}
+
+.light button[class*="bg-gray"]:hover {
+  background-color: var(--overlay-medium) !important;
+}
+
+.light button[class*="bg-red"] {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+.light button[class*="bg-red"]:hover {
+  background-color: #b91c1c !important;
+}
+
+/* Modal backdrop */
+.light .bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Task assignee and time info */
+.light [class*="text-gray"][class*="text-sm"],
+.light [class*="text-gray"][class*="text-xs"] {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Icon colors in task cards */
+.light svg[class*="text-gray"],
+.light [class*="text-gray"] svg {
+  color: var(--color-muted-foreground) !important;
+}
+
+.light svg[class*="text-gray"]:hover,
+.light [class*="text-gray"] svg:hover {
+  color: var(--color-foreground) !important;
+}
+
+/* ============================================
+   Invoice Status Badge Readability Fixes
+   ============================================ */
+
+/* Invoice Status Badges Light Mode - Creative Enhanced Styling */
+.light .bg-gray-500\/30 {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.08) 100%) !important;
+  color: var(--color-foreground) !important;
+  border: 1.5px solid var(--color-border) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.light .text-gray-300 {
+  color: var(--color-foreground) !important;
+  font-weight: 600 !important;
+}
+
+/* Specific status colors for light mode - Creative Gradient Backgrounds */
+
+/* Draft Status - Enhanced */
+.light .bg-gray-500\/30.text-gray-300 {
+  background: linear-gradient(135deg, rgba(107, 114, 128, 0.15) 0%, rgba(107, 114, 128, 0.1) 100%) !important;
+  color: #374151 !important;
+  border-color: rgba(107, 114, 128, 0.3) !important;
+  font-weight: 700 !important;
+}
+
+/* Sent Status - Blue */
+.light .bg-blue-500\/30 {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.15) 100%) !important;
+  color: #1e40af !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.light .text-blue-300 {
+  color: #1e40af !important;
+  font-weight: 600 !important;
+}
+
+/* Paid Status - Green */
+.light .bg-green-500\/30 {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.15) 100%) !important;
+  color: #15803d !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.light .text-green-300 {
+  color: #15803d !important;
+  font-weight: 600 !important;
+}
+
+/* Overdue Status - Red */
+.light .bg-red-500\/30 {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.15) 100%) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: overduePulse 2s ease-in-out infinite;
+}
+
+.light .text-red-300 {
+  color: #dc2626 !important;
+  font-weight: 600 !important;
+}
+
+/* Cancelled Status - Yellow/Orange */
+.light .bg-yellow-500\/30 {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(234, 179, 8, 0.15) 100%) !important;
+  color: #ca8a04 !important;
+  border-color: rgba(234, 179, 8, 0.4) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 4px rgba(234, 179, 8, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.light .text-yellow-300 {
+  color: #ca8a04 !important;
+  font-weight: 600 !important;
+}
+
+/* Subtle pulse animation for overdue status */
+@keyframes overduePulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Status badge hover effects */
+.light .bg-gray-500\/30:hover,
+.light .bg-blue-500\/30:hover,
+.light .bg-green-500\/30:hover,
+.light .bg-red-500\/30:hover,
+.light .bg-yellow-500\/30:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.2s ease;
+}
+
+/* Invoice table status badges */
+.light table [class*="bg-gray-500\/30"],
+.light table [class*="bg-blue-500\/30"],
+.light table [class*="bg-green-500\/30"],
+.light table [class*="bg-red-500\/30"],
+.light table [class*="bg-yellow-500\/30"] {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* ============================================
+   Creative Enhancements for Better UX
+   ============================================ */
+
+/* Enhanced calendar event readability in light mode */
+.light .fc-event {
+  border-left: 3px solid currentColor !important;
+  font-weight: 500 !important;
+}
+
+.light .fc-event-title {
+  color: var(--color-foreground) !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Calendar task count badge in light mode */
+.light .fc-day-task-badge {
+  background: linear-gradient(135deg, var(--color-accent) 0%, rgba(100, 37, 254, 0.9) 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(100, 37, 254, 0.4),
+              0 0 10px rgba(100, 37, 254, 0.2) !important;
+  font-weight: 800 !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Modal task cards enhanced styling */
+.light [class*="rounded-lg"][class*="border-gray"][class*="bg-white"] {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.light [class*="rounded-lg"][class*="border-gray"][class*="bg-white"]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(100, 37, 254, 0.05),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.light [class*="rounded-lg"][class*="border-gray"][class*="bg-white"]:hover::before {
+  left: 100%;
+}
+
+/* Enhanced status badge with shimmer effect */
+.light [class*="bg-gray-500\/30"],
+.light [class*="bg-blue-500\/30"],
+.light [class*="bg-green-500\/30"],
+.light [class*="bg-red-500\/30"],
+.light [class*="bg-yellow-500\/30"] {
+  position: relative;
+  overflow: hidden;
+}
+
+.light [class*="bg-gray-500\/30"]::after,
+.light [class*="bg-blue-500\/30"]::after,
+.light [class*="bg-green-500\/30"]::after,
+.light [class*="bg-red-500\/30"]::after,
+.light [class*="bg-yellow-500\/30"]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.light [class*="bg-gray-500\/30"]:hover::after,
+.light [class*="bg-blue-500\/30"]:hover::after,
+.light [class*="bg-green-500\/30"]:hover::after,
+.light [class*="bg-red-500\/30"]:hover::after,
+.light [class*="bg-yellow-500\/30"]:hover::after {
+  left: 100%;
+}
+
+/* Calendar day hover effects in light mode */
+.light .fc-daygrid-day:hover {
+  background-color: var(--overlay-light) !important;
+}
+
+.light .fc-daygrid-day.fc-day-today:hover {
+  background-color: rgba(100, 37, 254, 0.05) !important;
+}
+
+/* Modal backdrop blur enhancement */
+.light .backdrop-blur-sm {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Task card divider in modal */
+.light [class*="border-gray"][class*="border-t"] {
+  border-color: var(--color-border) !important;
+  opacity: 0.5;
+}
+
+/* Enhanced button styles in task cards */
+.light button[class*="rounded"]:not([class*="bg-red"]) {
+  transition: all 0.2s ease !important;
+}
+
+.light button[class*="rounded"]:not([class*="bg-red"]):hover {
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* Invoice table row hover with status badge */
+.light table tr:hover [class*="bg-gray-500\/30"],
+.light table tr:hover [class*="bg-blue-500\/30"],
+.light table tr:hover [class*="bg-green-500\/30"],
+.light table tr:hover [class*="bg-red-500\/30"],
+.light table tr:hover [class*="bg-yellow-500\/30"] {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* ============================================
+   Chatbot Popup Box Enhancements
+   ============================================ */
+
+/* Chatbot window light mode styling */
+.light [data-chatbot-window] {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2),
+              0 0 40px rgba(100, 37, 254, 0.1) !important;
+}
+
+.light [data-chatbot-window] > div {
+  background-color: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-xl) !important;
+}
+
+/* Chatbot header light mode */
+.light [data-chatbot-window] h3.text-white {
+  color: var(--color-foreground) !important;
+}
+
+.light [data-chatbot-window] p.text-white\/60 {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Chatbot message bubbles light mode */
+.light [data-chatbot-window] .bg-\[\#1A1A1C\] {
+  background-color: var(--color-card) !important;
+}
+
+.light [data-chatbot-window] .border-white\/10 {
+  border-color: var(--color-border) !important;
+}
+
+/* Chatbot input field light mode */
+.light [data-chatbot-window] input,
+.light [data-chatbot-window] textarea {
+  background-color: var(--color-muted) !important;
+  color: var(--color-foreground) !important;
+  border-color: var(--color-border) !important;
+}
+
+.light [data-chatbot-window] input::placeholder,
+.light [data-chatbot-window] textarea::placeholder {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Chatbot scrollbar light mode */
+.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 37, 254, 0.2) !important;
+}
+
+.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 37, 254, 0.4) !important;
+}
+
+.light .custom-scrollbar {
+  scrollbar-color: rgba(100, 37, 254, 0.2) transparent !important;
+}
+
+/* Chatbot window enhanced styling */
+[data-chatbot-window] {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-chatbot-window]:hover {
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25),
+              0 0 50px rgba(168, 218, 220, 0.15) !important;
+}
+
+.light [data-chatbot-window]:hover {
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15),
+              0 0 50px rgba(100, 37, 254, 0.15) !important;
+}
+
+/* Chatbot header gradient enhancement */
+.light [data-chatbot-window] .bg-gradient-to-r {
+  background: linear-gradient(to right, var(--color-card), var(--color-muted), var(--color-card)) !important;
+}
+
+/* Chatbot close button light mode */
+.light [data-chatbot-window] button.text-white\/50 {
+  color: var(--color-muted-foreground) !important;
+}
+
+.light [data-chatbot-window] button.text-white\/50:hover {
+  color: var(--color-foreground) !important;
+}
+
+/* Chatbot message text light mode */
+.light [data-chatbot-window] .text-white {
+  color: var(--color-foreground) !important;
+}
+
+.light [data-chatbot-window] .text-white\/70,
+.light [data-chatbot-window] .text-white\/80 {
+  color: var(--color-foreground) !important;
+  opacity: 0.85;
+}
+
+/* Chatbot send button enhancement */
+[data-chatbot-window] button[type="submit"] {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-chatbot-window] button[type="submit"]:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 4px 12px rgba(100, 37, 254, 0.3);
+}
+
+.light [data-chatbot-window] button[type="submit"]:hover {
+  box-shadow: 0 4px 12px rgba(100, 37, 254, 0.3);
+}
+
+/* Chatbot empty state light mode */
+.light [data-chatbot-window] .text-center .text-white\/60 {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Enhanced chatbot ring glow */
+[data-chatbot-window] {
+  animation: chatbotGlow 3s ease-in-out infinite;
+}
+
+@keyframes chatbotGlow {
+  0%, 100% {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2),
+                0 0 40px rgba(168, 218, 220, 0.1);
+  }
+  50% {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25),
+                0 0 50px rgba(168, 218, 220, 0.15);
+  }
+}
+
+.light [data-chatbot-window] {
+  animation: chatbotGlowLight 3s ease-in-out infinite;
+}
+
+@keyframes chatbotGlowLight {
+  0%, 100% {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15),
+                0 0 40px rgba(100, 37, 254, 0.1);
+  }
+  50% {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2),
+                0 0 50px rgba(100, 37, 254, 0.15);
   }
 }
