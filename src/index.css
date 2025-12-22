@@ -3301,3 +3301,61 @@ button:hover svg {
                 0 0 50px rgba(100, 37, 254, 0.15);
   }
 }
+
+/* ============================================
+   Task Filter Select Dropdown Light Mode
+   ============================================ */
+
+/* Select dropdown background in light mode */
+.light select.bg-\[\#2A2A2C\] {
+  background-color: var(--color-card) !important;
+  color: var(--color-foreground) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Select dropdown hover state in light mode */
+.light select.bg-\[\#2A2A2C\]:hover,
+.light select.hover\:bg-\[\#3A3A3C\]:hover {
+  background-color: var(--color-muted) !important;
+  border-color: var(--color-accent) !important;
+}
+
+/* Select dropdown text in light mode */
+.light select.text-white {
+  color: var(--color-foreground) !important;
+}
+
+/* Select dropdown border in light mode */
+.light select.border-white\/10 {
+  border-color: var(--color-border) !important;
+}
+
+/* Select dropdown focus ring in light mode */
+.light select.focus\:ring-\[\#A8DADC\]:focus {
+  outline-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 2px rgba(100, 37, 254, 0.2) !important;
+}
+
+/* Filter icon in select dropdown - light mode */
+.light select + svg.text-white\/50,
+.light .lucide-filter.text-white\/50 {
+  color: var(--color-muted-foreground) !important;
+}
+
+/* Select option styling in light mode */
+.light select option {
+  background-color: var(--color-card) !important;
+  color: var(--color-foreground) !important;
+}
+
+/* Select dropdown container in light mode */
+.light .relative select {
+  background-color: var(--color-card) !important;
+  color: var(--color-foreground) !important;
+  border-color: var(--color-border) !important;
+}
+
+.light .relative select:hover {
+  background-color: var(--color-muted) !important;
+  border-color: var(--color-accent) !important;
+}

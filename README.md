@@ -105,45 +105,417 @@ ERP-CRM/
 ├── vite.config.ts       # Vite Configuration
 └── package.json         # Frontend dependencies
 ```
-**⚡ Installation & Setup**
-Follow these steps to get the project running locally.
+---
 
-**Prerequisites**
-Node.js (v18+)
+## ⚡ **Installation & Setup**
 
-MongoDB (Local or Atlas URL)
+Follow these comprehensive steps to get the project running locally.
 
-Git
+### **Prerequisites**
 
-**Step 1: Clone the Repository**
+Before you begin, ensure you have the following installed on your system:
+
+- **Node.js** (v18 or higher) - [Download Node.js](https://nodejs.org/)
+- **MongoDB** (Local installation or MongoDB Atlas account) - [Download MongoDB](https://www.mongodb.com/try/download/community) or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+- **Git** - [Download Git](https://git-scm.com/downloads)
+- **npm** or **yarn** (comes with Node.js)
+
+**Optional but Recommended:**
+- **MongoDB Compass** - GUI tool for MongoDB (optional, for easier database management)
+- **Postman** or **Insomnia** - For API testing (optional)
+
+---
+
+### **Step 1: Clone the Repository**
+
 ```bash
-git clone [https://github.com/CHIRAG-singh123/ERP-CRM-Zentro.git](https://github.com/CHIRAG-singh123/ERP-CRM-Zentro.git)
+git clone https://github.com/CHIRAG-singh123/ERP-CRM-Zentro.git
 cd ERP-CRM-Zentro
 ```
-**Step 2: Clone the Repository**
-```bash# Install frontend dependencies
-npm install
 
-# Create environment file
-echo "VITE_API_URL=http://localhost:5000/api" >> .env
+---
 
-# Start the Frontend
-npm run dev
-```
-**Step 3: Clone the Repository**
+### **Step 2: Backend Setup**
+
+#### **2.1 Install Backend Dependencies**
+
 ```bash
 cd server
-
-# Install backend dependencies
 npm install
+```
 
-# Setup Environment Variables
-echo "PORT=5000" >> .env
-echo "MONGO_URI=your_mongodb_connection_string" >> .env
-echo "JWT_SECRET=your_secret_key" >> .env
+#### **2.2 Configure Backend Environment Variables**
 
-# Start the Server
+Create a `.env` file in the `server/` directory. You can copy from the example file:
+
+```bash
+# On Windows (PowerShell)
+Copy-Item env.example .env
+
+# On Linux/Mac
+cp env.example .env
+```
+
+**Edit `server/.env` with your configuration:**
+
+```env
+# Environment
+NODE_ENV=development
+PORT=5000
+
+# Database Configuration
+# For Local MongoDB:
+MONGODB_URI=mongodb://localhost:27017/CRM_DB
+# For MongoDB Atlas (replace with your connection string):
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/CRM_DB?retryWrites=true&w=majority
+
+# JWT Configuration (Generate strong random strings)
+JWT_SECRET=your_512bit_jwt_secret_here_change_in_production
+JWT_REFRESH_SECRET=your_512bit_refresh_secret_here_change_in_production
+JWT_ACCESS_EXPIRES_IN=55m
+JWT_REFRESH_EXPIRES_IN=7d
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:5173
+
+# Email Configuration (Optional - for password reset functionality)
+# Options: 'development' (console logging), 'gmail', 'sendgrid', 'smtp'
+EMAIL_PROVIDER=development
+GMAIL_USER=your_email@gmail.com
+GMAIL_APP_PASSWORD=your_gmail_app_password
+FROM_EMAIL=your_email@gmail.com
+FROM_NAME=ERP-CRM-Zentro
+
+# Frontend URL (for password reset links)
+FRONTEND_URL=http://localhost:5173
+
+# App Information
+APP_NAME=ERP-CRM-Zentro
+
+# Google OAuth Configuration (Optional - for Google Sign-In)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+
+# Session Secret (for OAuth sessions)
+SESSION_SECRET=your_strong_session_secret_here_change_in_production
+```
+
+**🔐 Security Note:** Generate strong secrets for JWT and Session. You can use:
+```bash
+# Generate random secrets (Node.js)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+#### **2.3 Start MongoDB**
+
+**Option A: Local MongoDB**
+```bash
+# Windows (if installed as service, it should start automatically)
+# Or start manually:
+mongod
+
+# Linux/Mac
+sudo systemctl start mongod
+# Or
+mongod --dbpath /path/to/your/data/directory
+```
+
+**Option B: MongoDB Atlas (Cloud)**
+- Create a free cluster at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+- Get your connection string from Atlas dashboard
+- Update `MONGODB_URI` in `server/.env`
+
+#### **2.4 Seed Admin User (Optional but Recommended)**
+
+Create the default admin user to access the system:
+
+```bash
+cd server
+npm run seed:admin
+```
+
+**Default Admin Credentials:**
+- **Email:** `admin_erp-crm@gmail.com`
+- **Password:** `ABCdef@1234`
+
+**⚠️ Important:** Change the admin password after first login in production!
+
+#### **2.5 Seed Dummy Data (Optional - for Testing)**
+
+To populate the database with sample data for testing:
+
+```bash
+cd server
+npm run seed:dummy
+```
+
+#### **2.6 Start Backend Server**
+
+```bash
+# Development mode (with auto-reload)
 npm run dev
+
+# Production mode
+npm start
+```
+
+The backend server will start on `http://localhost:5000`
+
+**✅ Verify Backend:** Open `http://localhost:5000/api` in your browser (you should see API response or error message)
+
+---
+
+### **Step 3: Frontend Setup**
+
+Open a **new terminal window** (keep backend running) and navigate to the project root:
+
+#### **3.1 Install Frontend Dependencies**
+
+```bash
+# From project root (not server directory)
+npm install
+```
+
+#### **3.2 Configure Frontend Environment Variables**
+
+Create a `.env` file in the project root. You can copy from the example:
+
+```bash
+# On Windows (PowerShell)
+Copy-Item env.example .env
+
+# On Linux/Mac
+cp env.example .env
+```
+
+**Edit `.env` with your configuration:**
+
+```env
+# Environment
+NODE_ENV=development
+
+# Backend API URL
+VITE_API_URL=http://localhost:5000/api
+
+# Email Configuration (if needed on frontend)
+EMAIL_PROVIDER=gmail
+GMAIL_USER=your_email@gmail.com
+GMAIL_APP_PASSWORD=your_gmail_app_password
+FROM_EMAIL=your_email@gmail.com
+
+# AI/LLM API Configurations (Optional - for Chatbot feature)
+# OpenRouter API
+VITE_OPENROUTER_API_KEY=your_openrouter_api_key
+VITE_OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
+
+# Google AI Studios (Gemini)
+VITE_GOOGLE_AI_STUDIOS_API_KEY=your_google_ai_studios_api_key
+VITE_GOOGLE_AI_STUDIOS_API_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent
+
+# OpenAI API
+VITE_OPENAI_API_KEY=your_openai_api_key
+VITE_OPENAI_API_URL=https://api.openai.com/v1/chat/completions
+
+# Groq API
+VITE_GROQ_API_KEY=your_groq_api_key
+VITE_GROQ_API_URL=https://api.groq.com/openai/v1/chat/completions
+
+# DeepSeek API
+VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
+VITE_DEEPSEEK_API_URL=https://api.deepseek.ai/v1/chat/completions
+```
+
+#### **3.3 Start Frontend Development Server**
+
+```bash
+# Start only frontend
+npm run dev
+
+# Or start both frontend and backend together
+npm run dev:all
+```
+
+The frontend will start on `http://localhost:5173`
+
+**✅ Verify Frontend:** Open `http://localhost:5173` in your browser
+
+---
+
+### **Step 4: Access the Application**
+
+1. **Open your browser** and navigate to: `http://localhost:5173`
+2. **Login** with the admin credentials:
+   - Email: `admin_erp-crm@gmail.com`
+   - Password: `ABCdef@1234`
+3. **Start exploring** the ERP-CRM system!
+
+---
+
+## 🔧 **Additional Configuration**
+
+### **Google OAuth Setup (Optional)**
+
+To enable Google Sign-In functionality:
+
+1. **Create Google OAuth Credentials:**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+   - Enable Google+ API
+   - Create OAuth 2.0 Client ID
+   - Add authorized redirect URI: `http://localhost:5000/api/auth/google/callback`
+
+2. **Update Environment Variables:**
+   - Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `server/.env`
+   - See `GOOGLE_OAUTH_SETUP.md` for detailed instructions
+
+### **Email Configuration (Optional)**
+
+To enable email functionality (password reset, notifications):
+
+1. **Choose Email Provider:**
+   - **Gmail:** Requires App Password (see `server/EMAIL_CONFIG.md`)
+   - **SendGrid:** Free tier available (100 emails/day)
+   - **Generic SMTP:** Works with any email provider
+
+2. **Update Environment Variables:**
+   - Configure email settings in `server/.env`
+   - See `server/EMAIL_CONFIG.md` for detailed instructions
+
+---
+
+## 🚀 **Available Scripts**
+
+### **Frontend Scripts** (from project root)
+
+```bash
+npm run dev              # Start frontend dev server
+npm run dev:client       # Start frontend only
+npm run dev:server       # Start backend only
+npm run dev:all          # Start both frontend and backend concurrently
+npm run build            # Build for production
+npm run preview          # Preview production build
+npm run typecheck        # TypeScript type checking
+npm run lint             # ESLint code linting
+```
+
+### **Backend Scripts** (from server directory)
+
+```bash
+npm run dev              # Start backend with auto-reload
+npm start                # Start backend in production mode
+npm run seed:admin       # Seed default admin user
+npm run seed:dummy       # Seed dummy data for testing
+```
+
+---
+
+## 🐛 **Troubleshooting**
+
+### **Common Issues**
+
+#### **1. MongoDB Connection Error**
+```
+Error: MongoServerSelectionError
+```
+**Solution:**
+- Ensure MongoDB is running: `mongod` or check MongoDB service
+- Verify `MONGODB_URI` in `server/.env` is correct
+- For Atlas: Check network access and connection string
+
+#### **2. Port Already in Use**
+```
+Error: Port 5000 (or 5173) is already in use
+```
+**Solution:**
+- Change port in `.env` files
+- Or kill the process using the port:
+  ```bash
+  # Windows
+  netstat -ano | findstr :5000
+  taskkill /PID <PID> /F
+  
+  # Linux/Mac
+  lsof -ti:5000 | xargs kill -9
+  ```
+
+#### **3. Module Not Found Errors**
+```
+Error: Cannot find module 'xxx'
+```
+**Solution:**
+- Delete `node_modules` and reinstall:
+  ```bash
+  rm -rf node_modules package-lock.json
+  npm install
+  ```
+- Do this for both root and `server/` directories
+
+#### **4. CORS Errors**
+```
+Error: Access to fetch blocked by CORS policy
+```
+**Solution:**
+- Ensure `CORS_ORIGIN` in `server/.env` matches frontend URL
+- Check that backend is running on correct port
+- Verify frontend `VITE_API_URL` matches backend URL
+
+#### **5. JWT Authentication Errors**
+```
+Error: Invalid token or Unauthorized
+```
+**Solution:**
+- Verify `JWT_SECRET` and `JWT_REFRESH_SECRET` are set in `server/.env`
+- Clear browser cookies/localStorage and login again
+- Check token expiration settings
+
+#### **6. Environment Variables Not Loading**
+**Solution:**
+- Ensure `.env` files are in correct locations:
+  - Frontend: Root directory `.env`
+  - Backend: `server/.env`
+- Restart development servers after changing `.env`
+- Check for typos in variable names (case-sensitive)
+
+---
+
+## 📚 **Additional Documentation**
+
+- **Google OAuth Setup:** See `GOOGLE_OAUTH_SETUP.md`
+- **Email Configuration:** See `server/EMAIL_CONFIG.md`
+- **Google Cloud Console Setup:** See `GOOGLE_CLOUD_CONSOLE_SETUP.md`
+
+---
+
+## 🎯 **Quick Start Summary**
+
+For experienced developers, here's the TL;DR:
+
+```bash
+# 1. Clone and install
+git clone https://github.com/CHIRAG-singh123/ERP-CRM-Zentro.git
+cd ERP-CRM-Zentro
+npm install
+cd server && npm install && cd ..
+
+# 2. Setup environment
+cp env.example .env
+cp server/env.example server/.env
+# Edit both .env files with your configuration
+
+# 3. Start MongoDB (local or use Atlas)
+
+# 4. Seed admin user
+cd server && npm run seed:admin && cd ..
+
+# 5. Start servers
+npm run dev:all
+# Or separately:
+# Terminal 1: cd server && npm run dev
+# Terminal 2: npm run dev
+
+# 6. Access: http://localhost:5173
+# Login: admin_erp-crm@gmail.com / ABCdef@1234
 ```
 **🗺 Roadmap**
 [x] Phase 1: Core Foundation (Auth, Companies, Contacts CRUD & **many more.**)
@@ -163,8 +535,4 @@ Commit your Changes (git commit -m 'Add some AmazingFeature')
 
 Push to the Branch (git push origin feature/AmazingFeature)
 
-<<<<<<< HEAD
 Open a Pull Request
-=======
-Open a Pull Request
->>>>>>> 0a7788610c1bce4025266b7aea913dc1f2110daa
