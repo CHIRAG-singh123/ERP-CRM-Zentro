@@ -3,7 +3,7 @@ Zentro Next-Gen Unified Professional Business Management : A comprehensive, modu
 <div align="center">
   <br />
      <a href="https://github.com/CHIRAG-singh123/ERP-CRM-Zentro">
-      <img width="1919" height="870" alt="Screenshot 2025-12-19 183138" src="https://github.com/user-attachments/assets/7e63127b-85dc-48b4-a29b-6789cbc623a8" />
+      <img width="1919" height="867" alt="image" src="https://github.com/user-attachments/assets/c6354bc3-c72b-44cd-93b2-c23d747c9a01" />
     </a>
   <br />
 
