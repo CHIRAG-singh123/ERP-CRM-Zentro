@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Download, Loader2, TrendingUp, Users, Target, Clock, Briefcase, Building2, UserCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useKPIs, useLeadConversionAnalytics, useCrossEntityAnalytics } from '../../hooks/queries/useReports';
 import { PageHeader } from '../../components/common/PageHeader';
 import { ConversionFunnelChart } from '../../components/reports/ConversionFunnelChart';
@@ -32,22 +33,40 @@ export function ReportsPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <PageHeader
-        title="Reports & Dashboards"
-        description="Composable analytics powered by Mongo aggregations. Track lead conversion rates and sales performance."
-        actions={
-          <>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-200 hover:bg-[#C3ADD9] hover:scale-105 active:scale-95"
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-          </>
-        }
-      />
+    <motion.div
+      className="space-y-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <PageHeader
+          title="Reports & Dashboards"
+          description="Composable analytics powered by Mongo aggregations. Track lead conversion rates and sales performance."
+          actions={
+            <>
+              <motion.button
+                onClick={handleExport}
+                className="button-enhanced flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] glow-purple"
+                whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(179, 156, 208, 0.3)' }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 3 }}
+                >
+                  <Download className="h-4 w-4" />
+                </motion.div>
+                Export
+              </motion.button>
+            </>
+          }
+        />
+      </motion.div>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
@@ -59,8 +78,27 @@ export function ReportsPage() {
       ) : (
         <>
           {/* KPI Cards */}
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 animate-fade-in">
-            <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-200 hover:border-[#A8DADC]/50 hover:shadow-lg hover:scale-105">
+          <motion.section
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: {
+                transition: {
+                  staggerChildren: 0.1,
+                },
+              },
+            }}
+          >
+            <motion.div
+              className="card-gradient-hover rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-200 hover:border-[#A8DADC]/50 hover:shadow-lg glow-accent"
+              variants={{
+                hidden: { opacity: 0, y: 20, scale: 0.95 },
+                visible: { opacity: 1, y: 0, scale: 1 },
+              }}
+              whileHover={{ scale: 1.05, y: -4 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.32em] text-white/50 mb-1">Total Leads</p>
@@ -72,13 +110,24 @@ export function ReportsPage() {
                     />
                   </p>
                 </div>
-                <div className="rounded-full bg-[#A8DADC]/20 p-3">
+                <motion.div
+                  className="rounded-full bg-[#A8DADC]/20 p-3 icon-pulse-hover"
+                  whileHover={{ scale: 1.15, rotate: 12 }}
+                >
                   <Users className="h-6 w-6 text-[#A8DADC]" />
-                </div>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-200 hover:border-[#A8DADC]/50 hover:shadow-lg hover:scale-105">
+            <motion.div
+              className="card-gradient-hover rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-200 hover:border-[#A8DADC]/50 hover:shadow-lg glow-purple"
+              variants={{
+                hidden: { opacity: 0, y: 20, scale: 0.95 },
+                visible: { opacity: 1, y: 0, scale: 1 },
+              }}
+              whileHover={{ scale: 1.05, y: -4 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.32em] text-white/50 mb-1">Conversion Rate</p>
@@ -91,13 +140,24 @@ export function ReportsPage() {
                     />
                   </p>
                 </div>
-                <div className="rounded-full bg-[#B39CD0]/20 p-3">
+                <motion.div
+                  className="rounded-full bg-[#B39CD0]/20 p-3 icon-pulse-hover"
+                  whileHover={{ scale: 1.15, rotate: 12 }}
+                >
                   <Target className="h-6 w-6 text-[#B39CD0]" />
-                </div>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-200 hover:border-[#A8DADC]/50 hover:shadow-lg hover:scale-105">
+            <motion.div
+              className="card-gradient-hover rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-200 hover:border-[#A8DADC]/50 hover:shadow-lg glow-accent"
+              variants={{
+                hidden: { opacity: 0, y: 20, scale: 0.95 },
+                visible: { opacity: 1, y: 0, scale: 1 },
+              }}
+              whileHover={{ scale: 1.05, y: -4 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.32em] text-white/50 mb-1">Total Deals</p>
@@ -109,13 +169,24 @@ export function ReportsPage() {
                     />
                   </p>
                 </div>
-                <div className="rounded-full bg-[#A8DADC]/20 p-3">
+                <motion.div
+                  className="rounded-full bg-[#A8DADC]/20 p-3 icon-pulse-hover"
+                  whileHover={{ scale: 1.15, rotate: 12 }}
+                >
                   <Briefcase className="h-6 w-6 text-[#A8DADC]" />
-                </div>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-200 hover:border-[#A8DADC]/50 hover:shadow-lg hover:scale-105">
+            <motion.div
+              className="card-gradient-hover rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6 transition-all duration-200 hover:border-[#A8DADC]/50 hover:shadow-lg glow-purple"
+              variants={{
+                hidden: { opacity: 0, y: 20, scale: 0.95 },
+                visible: { opacity: 1, y: 0, scale: 1 },
+              }}
+              whileHover={{ scale: 1.05, y: -4 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.32em] text-white/50 mb-1">Avg. Time to Convert</p>
@@ -128,19 +199,33 @@ export function ReportsPage() {
                     <span className="text-sm text-white/60"> days</span>
                   </p>
                 </div>
-                <div className="rounded-full bg-[#B39CD0]/20 p-3">
+                <motion.div
+                  className="rounded-full bg-[#B39CD0]/20 p-3 icon-pulse-hover"
+                  whileHover={{ scale: 1.15, rotate: 12 }}
+                >
                   <Clock className="h-6 w-6 text-[#B39CD0]" />
-                </div>
+                </motion.div>
               </div>
-            </div>
-          </section>
+            </motion.div>
+          </motion.section>
 
           {/* Main Charts Section */}
-          <section className="space-y-6 animate-fade-in animation-delay-100">
+          <motion.section
+            className="space-y-6"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             {/* Top Row: Two Equal Charts */}
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Lead Conversion Funnel */}
-              <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-[#A8DADC]/30 hover:shadow-2xl hover:shadow-[#A8DADC]/10">
+              <motion.div
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(168, 218, 220, 0.2)' }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#A8DADC]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
                 <div className="relative">
                   <div className="mb-6 flex items-start justify-between">
@@ -159,10 +244,16 @@ export function ReportsPage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Deals by Stage Pie Chart */}
-              <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-[#B39CD0]/30 hover:shadow-2xl hover:shadow-[#B39CD0]/10">
+              <motion.div
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(179, 156, 208, 0.2)' }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#B39CD0]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
                 <div className="relative flex flex-col" style={{ minHeight: '600px' }}>
                   <div className="mb-4 flex items-start justify-between">
@@ -200,12 +291,18 @@ export function ReportsPage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             {/* Bottom Row: Full Width Chart */}
             {conversionData && conversionData.conversionBySource.length > 0 && (
-              <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-[#A8DADC]/30 hover:shadow-2xl hover:shadow-[#A8DADC]/10 animate-fade-in animation-delay-200">
+              <motion.div
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(168, 218, 220, 0.2)' }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#A8DADC]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
                 <div className="relative">
                   <div className="mb-6 flex items-start justify-between">
@@ -218,20 +315,41 @@ export function ReportsPage() {
                     <ConversionBySourceChart data={conversionData.conversionBySource} onFilterChange={handleFilterChange} />
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
-          </section>
+          </motion.section>
 
           {/* Deal Analytics Section */}
           {crossEntityData && crossEntityData.dealByStage.length > 0 && (
-            <section className="space-y-6 animate-fade-in animation-delay-200">
-              <div className="flex items-center gap-3">
-                <Briefcase className="h-6 w-6 text-[#A8DADC]" />
+            <motion.section
+              className="space-y-6"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <motion.div
+                className="flex items-center gap-3"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.2, rotate: 12 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Briefcase className="h-6 w-6 text-[#A8DADC]" />
+                </motion.div>
                 <h2 className="text-2xl font-bold text-white">Deal Analytics</h2>
-              </div>
+              </motion.div>
               
               <div className="grid gap-6 lg:grid-cols-2">
-                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-[#A8DADC]/30 hover:shadow-2xl hover:shadow-[#A8DADC]/10">
+                <motion.div
+                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(168, 218, 220, 0.2)' }}
+                >
                   <div className="absolute inset-0 bg-gradient-to-br from-[#A8DADC]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
                   <div className="relative">
                     <div className="mb-6 flex items-start justify-between">
@@ -241,38 +359,65 @@ export function ReportsPage() {
                       </div>
                     </div>
                     <div className="h-[400px] w-full">
-                      <DealPipelineChart data={crossEntityData.dealByStage} />
-                    </div>
+                    <DealPipelineChart data={crossEntityData.dealByStage} />
                   </div>
                 </div>
+              </motion.div>
 
-                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-[#B39CD0]/30 hover:shadow-2xl hover:shadow-[#B39CD0]/10">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#B39CD0]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                  <div className="relative">
-                    <div className="mb-6 flex items-start justify-between">
-                      <div>
-                        <h3 className="text-xl font-bold text-white mb-1">Deal Value Distribution</h3>
-                        <p className="text-sm text-white/50">Company size vs deal value relationship</p>
-                      </div>
-                    </div>
-                    <div className="h-[400px] w-full">
-                      <DealValueDistributionChart data={crossEntityData.dealValueDistribution} />
+              <motion.div
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(179, 156, 208, 0.2)' }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#B39CD0]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+                <div className="relative">
+                  <div className="mb-6 flex items-start justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-1">Deal Value Distribution</h3>
+                      <p className="text-sm text-white/50">Company size vs deal value relationship</p>
                     </div>
                   </div>
+                  <div className="h-[400px] w-full">
+                    <DealValueDistributionChart data={crossEntityData.dealValueDistribution} />
+                  </div>
                 </div>
-              </div>
-            </section>
+              </motion.div>
+            </div>
+          </motion.section>
           )}
 
           {/* Company Analytics Section */}
           {crossEntityData && crossEntityData.companyDealMetrics.length > 0 && (
-            <section className="space-y-6 animate-fade-in animation-delay-300">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-6 w-6 text-[#B39CD0]" />
+            <motion.section
+              className="space-y-6"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <motion.div
+                className="flex items-center gap-3"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.2, rotate: 12 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Building2 className="h-6 w-6 text-[#B39CD0]" />
+                </motion.div>
                 <h2 className="text-2xl font-bold text-white">Company Analytics</h2>
-              </div>
+              </motion.div>
 
-              <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-[#B39CD0]/30 hover:shadow-2xl hover:shadow-[#B39CD0]/10">
+              <motion.div
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(179, 156, 208, 0.2)' }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#B39CD0]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
                 <div className="relative">
                   <div className="mb-6 flex items-start justify-between">
@@ -285,25 +430,46 @@ export function ReportsPage() {
                     <CompanyDealPerformanceChart data={crossEntityData.companyDealMetrics} />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {crossEntityData.companyContactDealFlow.length > 0 && (
                 <div className="mt-6">
                   <CompanyMetricsOverview data={crossEntityData.companyContactDealFlow} />
                 </div>
               )}
-            </section>
+            </motion.section>
           )}
 
           {/* Contact Analytics Section */}
           {crossEntityData && crossEntityData.contactDealMetrics.length > 0 && (
-            <section className="space-y-6 animate-fade-in animation-delay-400">
-              <div className="flex items-center gap-3">
-                <UserCheck className="h-6 w-6 text-[#A8DADC]" />
+            <motion.section
+              className="space-y-6"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <motion.div
+                className="flex items-center gap-3"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.2, rotate: 12 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <UserCheck className="h-6 w-6 text-[#A8DADC]" />
+                </motion.div>
                 <h2 className="text-2xl font-bold text-white">Contact Analytics</h2>
-              </div>
+              </motion.div>
 
-              <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-[#A8DADC]/30 hover:shadow-2xl hover:shadow-[#A8DADC]/10">
+              <motion.div
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(168, 218, 220, 0.2)' }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#A8DADC]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
                 <div className="relative">
                   <div className="mb-6 flex items-start justify-between">
@@ -316,19 +482,40 @@ export function ReportsPage() {
                     <ContactDealPerformanceChart data={crossEntityData.contactDealMetrics} />
                   </div>
                 </div>
-              </div>
-            </section>
+              </motion.div>
+            </motion.section>
           )}
 
           {/* Cross-Entity Analytics Section */}
           {crossEntityData && crossEntityData.leadToDealFlow.length > 0 && (
-            <section className="space-y-6 animate-fade-in animation-delay-500">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-6 w-6 text-[#B39CD0]" />
+            <motion.section
+              className="space-y-6"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+            >
+              <motion.div
+                className="flex items-center gap-3"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.2, rotate: 12 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <TrendingUp className="h-6 w-6 text-[#B39CD0]" />
+                </motion.div>
                 <h2 className="text-2xl font-bold text-white">Cross-Entity Flow Analysis</h2>
-              </div>
+              </motion.div>
 
-              <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 transition-all duration-300 hover:border-[#B39CD0]/30 hover:shadow-2xl hover:shadow-[#B39CD0]/10">
+              <motion.div
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+                whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(179, 156, 208, 0.2)' }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#B39CD0]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
                 <div className="relative">
                   <div className="mb-6 flex items-start justify-between">
@@ -341,13 +528,18 @@ export function ReportsPage() {
                     <LeadToDealFlowChart data={crossEntityData.leadToDealFlow} />
                   </div>
                 </div>
-              </div>
-            </section>
+              </motion.div>
+            </motion.section>
           )}
 
           {/* Additional Stats */}
           {conversionData && (
-            <section className="grid gap-4 sm:grid-cols-3 animate-fade-in animation-delay-600">
+            <motion.section
+              className="grid gap-4 sm:grid-cols-3"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.7 }}
+            >
               <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-4">
                 <p className="text-xs uppercase tracking-[0.32em] text-white/50 mb-2">Converted Leads</p>
                 <p className="text-xl font-bold text-[#A8DADC]">
@@ -406,10 +598,10 @@ export function ReportsPage() {
                   <p className="text-sm text-white/60">No data available</p>
                 )}
               </div>
-            </section>
+            </motion.section>
           )}
         </>
       )}
-    </div>
+    </motion.div>
   );
 }

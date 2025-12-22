@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { motion } from 'framer-motion';
 import { ChartFilterDropdown, type ChartFilterValues } from '../common/ChartFilterDropdown';
 import type { LeadsBySource } from '../../services/api/reports';
 
@@ -30,12 +31,17 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     const data = payload[0].payload;
     const total = payload[0].payload.count;
     return (
-      <div className="rounded-lg border border-border bg-card p-3 shadow-xl">
+      <motion.div
+        className="tooltip-enhanced rounded-lg border border-border bg-card p-3 shadow-xl backdrop-blur-sm"
+        initial={{ opacity: 0, scale: 0.9, y: -10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      >
         <p className="text-sm font-semibold text-foreground mb-1 capitalize">{data.source}</p>
         <p className="text-xs text-muted-foreground">
           Leads: <span className="font-medium text-[#A8DADC]">{total}</span>
         </p>
-      </div>
+      </motion.div>
     );
   }
   return null;
@@ -59,7 +65,12 @@ export function LeadsBySourceBarChart({ data, onFilterChange }: LeadsBySourceBar
   }));
 
   return (
-    <div className="h-full w-full flex flex-col relative">
+    <motion.div
+      className="h-full w-full flex flex-col relative chart-container-enhanced"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+    >
       {/* Integrated Filters */}
       {onFilterChange && (
         <ChartFilterDropdown onFilterChange={onFilterChange} />
@@ -68,6 +79,18 @@ export function LeadsBySourceBarChart({ data, onFilterChange }: LeadsBySourceBar
       <div className={`flex-1 min-h-0 ${onFilterChange ? 'pt-8' : ''}`}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <defs>
+              {chartData.map((entry, index) => {
+                const color = getSourceColor(entry.source);
+                const gradientId = `bar-gradient-${index}`;
+                return (
+                  <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity={1} />
+                    <stop offset="100%" stopColor={color} stopOpacity={0.6} />
+                  </linearGradient>
+                );
+              })}
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
             <XAxis
               dataKey="source"
@@ -93,12 +116,22 @@ export function LeadsBySourceBarChart({ data, onFilterChange }: LeadsBySourceBar
                 paddingTop: '10px',
               }}
             />
-            <Bar dataKey="count" name="Leads" radius={[8, 8, 0, 0]} animationDuration={800}>
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={getSourceColor(entry.source)}
-                  className="hover:opacity-80 transition-opacity cursor-pointer"
+            <Bar
+              dataKey="count"
+              name="Leads"
+              radius={[8, 8, 0, 0]}
+              animationDuration={1200}
+              className="chart-bar-animated"
+            >
+              {chartData.map((_entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={`url(#bar-gradient-${index})`}
+                  className="chart-element-hover"
+                  style={{
+                    filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
                 />
               ))}
             </Bar>
@@ -107,43 +140,71 @@ export function LeadsBySourceBarChart({ data, onFilterChange }: LeadsBySourceBar
       </div>
 
       {/* Summary Stats */}
-      <div className="mt-4 pt-4 border-t border-border">
+      <motion.div
+        className="mt-4 pt-4 border-t border-border"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      >
         <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+          >
             <div className="text-xl font-bold text-foreground">{total}</div>
             <div className="text-xs text-muted-foreground">Total Leads</div>
-          </div>
-          <div>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+          >
             <div className="text-xl font-bold text-[#A8DADC]">{data.length}</div>
             <div className="text-xs text-muted-foreground">Sources</div>
-          </div>
-          <div>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+          >
             <div className="text-xl font-bold text-[#B39CD0] capitalize">
               {data.length > 0 ? data.reduce((max, item) => item.count > max.count ? item : max).source : 'N/A'}
             </div>
             <div className="text-xs text-muted-foreground">Top Source</div>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Source Breakdown */}
-      <div className="mt-4 pt-4 border-t border-border">
+      <motion.div
+        className="mt-4 pt-4 border-t border-border"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
         <div className="grid grid-cols-2 gap-2 text-xs">
-          {chartData.map((item) => (
-            <div key={item.source} className="flex items-center justify-between">
+          {chartData.map((item, index) => (
+            <motion.div
+              key={item.source}
+              className="flex items-center justify-between"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.5 + index * 0.05 }}
+              whileHover={{ scale: 1.02, x: 4 }}
+            >
               <div className="flex items-center gap-2">
-                <div
+                <motion.div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: getSourceColor(item.source) }}
+                  whileHover={{ scale: 1.3 }}
+                  transition={{ duration: 0.2 }}
                 />
                 <span className="text-muted-foreground capitalize">{item.source}</span>
               </div>
               <span className="font-medium text-foreground">{item.count}</span>
-            </div>
+            </motion.div>
           ))}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

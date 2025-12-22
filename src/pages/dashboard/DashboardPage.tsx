@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Handshake, Target, FileText, Calendar } from 'lucide-react';
+import { Handshake, Target, FileText, Calendar, Download } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { DataGrid } from '../../components/common/DataGrid';
@@ -98,26 +99,70 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Revenue Operations Overview"
-        description="Monitor pipeline velocity, conversion health, and high-priority work across teams."
-        actions={
-          <>
-            <button className="button-press rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition-all duration-300 hover:border-white/20 hover:text-white hover:scale-105 hover:shadow-lg">
-              Export Snapshot
-            </button>
-            <button className="button-press rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-300 hover:bg-[#C3ADD9] hover:scale-105 hover:shadow-lg hover:shadow-[#B39CD0]/30">
-              New Insight
-            </button>
-          </>
-        }
-      />
+    <motion.div
+      className="space-y-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <PageHeader
+          title="Revenue Operations Overview"
+          description="Monitor pipeline velocity, conversion health, and high-priority work across teams."
+          actions={
+            <>
+              <motion.button
+                className="button-enhanced flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] glow-purple"
+                whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(179, 156, 208, 0.3)' }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 3 }}
+                >
+                  <Download className="h-4 w-4" />
+                </motion.div>
+                Export Snapshot
+              </motion.button>
+              <motion.button
+                className="button-enhanced rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-300 hover:bg-[#C3ADD9] glow-purple"
+                whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(179, 156, 208, 0.3)' }}
+                whileTap={{ scale: 0.95 }}
+              >
+                New Insight
+              </motion.button>
+            </>
+          }
+        />
+      </motion.div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <motion.div
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          visible: {
+            transition: {
+              staggerChildren: 0.1,
+            },
+          },
+        }}
+      >
         {isLoading
           ? Array.from({ length: 4 }).map((_, index) => (
-              <MetricCard key={index} value="—" label="Loading…" trend=" " />
+              <motion.div
+                key={index}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 },
+                }}
+              >
+                <div className="skeleton-enhanced h-32 rounded-2xl" />
+              </motion.div>
             ))
           : metrics.map((metric, index) => {
               const Icon = metric.icon;
@@ -175,106 +220,193 @@ export function DashboardPage() {
                 />
               );
             })}
-      </div>
+      </motion.div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <motion.div
+        className="grid gap-6 md:grid-cols-2"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          visible: {
+            transition: {
+              staggerChildren: 0.15,
+            },
+          },
+        }}
+      >
         {/* Deals by Stage Pie Chart */}
-        <section className="card-hover animate-slide-fade rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-accent/30 hover:shadow-xl">
-          <h3 className="mb-4 text-lg font-bold text-foreground transition-colors duration-300">Deals by Stage</h3>
-          {isLoading ? (
-            <div className="flex h-64 items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-[#A8DADC]"></div>
-                <div className="text-white/60 animate-pulse">Loading chart...</div>
+        <motion.section
+          className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+          variants={{
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1 },
+          }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(168, 218, 220, 0.2)' }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-[#A8DADC]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+          <div className="relative">
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Deals by Stage</h3>
+                <p className="text-sm text-white/50">Deal distribution across pipeline stages</p>
               </div>
             </div>
-          ) : data?.dealsByStage && data.dealsByStage.length > 0 ? (
-            <div className="animate-fade-in" style={{ height: '500px' }}>
-              <DealsByStagePieChart 
-                data={data.dealsByStage} 
-                onFilterChange={handleFilterChange}
-                isAdmin={isAdmin}
-              />
-            </div>
-          ) : (
-            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">No deals data</div>
-          )}
-        </section>
+            {isLoading ? (
+              <div className="flex h-64 items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <motion.div
+                    className="h-8 w-8 rounded-full border-4 border-white/10 border-t-[#A8DADC]"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  />
+                  <motion.div
+                    className="text-white/60"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    Loading chart...
+                  </motion.div>
+                </div>
+              </div>
+            ) : data?.dealsByStage && data.dealsByStage.length > 0 ? (
+              <motion.div
+                style={{ height: '500px' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <DealsByStagePieChart 
+                  data={data.dealsByStage} 
+                  onFilterChange={handleFilterChange}
+                  isAdmin={isAdmin}
+                />
+              </motion.div>
+            ) : (
+              <div className="flex h-64 items-center justify-center text-sm text-white/50">No deals data</div>
+            )}
+          </div>
+        </motion.section>
 
         {/* Leads by Source Chart */}
-        <section className="card-hover animate-slide-fade rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-accent/30 hover:shadow-xl" style={{ animationDelay: '0.1s' }}>
-          <h3 className="mb-4 text-lg font-bold text-foreground transition-colors duration-300">Leads by Source</h3>
-          {isLoading ? (
-            <div className="flex h-64 items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-[#A8DADC]"></div>
-                <div className="text-white/60 animate-pulse">Loading chart...</div>
+        <motion.section
+          className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+          variants={{
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1 },
+          }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(179, 156, 208, 0.2)' }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-[#B39CD0]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+          <div className="relative">
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Leads by Source</h3>
+                <p className="text-sm text-white/50">Lead distribution across sources</p>
               </div>
             </div>
-          ) : data?.leadsBySource && data.leadsBySource.length > 0 ? (
-            <div className="animate-fade-in" style={{ height: '500px' }}>
-              <LeadsBySourceBarChart 
-                data={data.leadsBySource}
-                onFilterChange={handleFilterChange}
-              />
-            </div>
-          ) : (
-            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">No leads data</div>
-          )}
-        </section>
-      </div>
+            {isLoading ? (
+              <div className="flex h-64 items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <motion.div
+                    className="h-8 w-8 rounded-full border-4 border-white/10 border-t-[#A8DADC]"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  />
+                  <motion.div
+                    className="text-white/60"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    Loading chart...
+                  </motion.div>
+                </div>
+              </div>
+            ) : data?.leadsBySource && data.leadsBySource.length > 0 ? (
+              <motion.div
+                style={{ height: '500px' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <LeadsBySourceBarChart 
+                  data={data.leadsBySource}
+                  onFilterChange={handleFilterChange}
+                />
+              </motion.div>
+            ) : (
+              <div className="flex h-64 items-center justify-center text-sm text-white/50">No leads data</div>
+            )}
+          </div>
+        </motion.section>
+      </motion.div>
 
       {/* Recent Deals */}
-      <section className="card-hover animate-slide-fade rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-accent/30 hover:shadow-xl" style={{ animationDelay: '0.2s' }}>
-        <h3 className="mb-4 text-lg font-bold text-foreground">Recent Deals</h3>
-        {isLoading ? (
-          <DataGridPlaceholder columns={['Deal', 'Contact', 'Company', 'Value', 'Stage']} rows={5} />
-        ) : data?.recentDeals && data.recentDeals.length > 0 ? (
-          <DataGrid
-            columns={[
-              { key: 'title', header: 'Deal' },
-              {
-                key: 'contact',
-                header: 'Contact',
-                render: (row) => {
-                  const deal = row as typeof data.recentDeals[0];
-                  return deal.contactId
-                    ? `${deal.contactId.firstName} ${deal.contactId.lastName}`
-                    : 'N/A';
-                },
-              },
-              {
-                key: 'company',
-                header: 'Company',
-                render: (row) => {
-                  const deal = row as typeof data.recentDeals[0];
-                  return deal.companyId?.name || 'N/A';
-                },
-              },
-              {
-                key: 'value',
-                header: 'Value',
-                render: (row) => {
-                  const deal = row as typeof data.recentDeals[0];
-                  return <AnimatedNumber value={deal.value} format="currency" />;
-                },
-              },
-              { key: 'stage', header: 'Stage' },
-            ]}
-            data={data.recentDeals}
-          />
-        ) : (
-          <div className="rounded-xl border border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
-            No recent deals
+      <motion.section
+        className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/90 to-[#1A1A1C]/70 p-6 chart-container-enhanced"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(168, 218, 220, 0.2)' }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-[#A8DADC]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+        <div className="relative">
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-white mb-1">Recent Deals</h3>
+              <p className="text-sm text-white/50">Latest deals in the pipeline</p>
+            </div>
           </div>
-        )}
-      </section>
+          {isLoading ? (
+            <DataGridPlaceholder columns={['Deal', 'Contact', 'Company', 'Value', 'Stage']} rows={5} />
+          ) : data?.recentDeals && data.recentDeals.length > 0 ? (
+            <DataGrid
+              columns={[
+                { key: 'title', header: 'Deal' },
+                {
+                  key: 'contact',
+                  header: 'Contact',
+                  render: (row) => {
+                    const deal = row as typeof data.recentDeals[0];
+                    return deal.contactId
+                      ? `${deal.contactId.firstName} ${deal.contactId.lastName}`
+                      : 'N/A';
+                  },
+                },
+                {
+                  key: 'company',
+                  header: 'Company',
+                  render: (row) => {
+                    const deal = row as typeof data.recentDeals[0];
+                    return deal.companyId?.name || 'N/A';
+                  },
+                },
+                {
+                  key: 'value',
+                  header: 'Value',
+                  render: (row) => {
+                    const deal = row as typeof data.recentDeals[0];
+                    return <AnimatedNumber value={deal.value} format="currency" />;
+                  },
+                },
+                { key: 'stage', header: 'Stage' },
+              ]}
+              data={data.recentDeals}
+            />
+          ) : (
+            <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 px-6 py-10 text-center text-sm text-white/50">
+              No recent deals
+            </div>
+          )}
+        </div>
+      </motion.section>
 
       {/* Overdue Tasks Modal */}
       {canViewTasks && (
         <OverdueTasksModal isOpen={showOverdueModal} onClose={() => setShowOverdueModal(false)} />
       )}
-    </div>
+    </motion.div>
   );
 }
 

@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { motion } from 'framer-motion';
 
 interface DataGridColumn<T> {
   key: keyof T | string;
@@ -26,61 +27,102 @@ export function DataGrid<T>({ columns, data, emptyMessage, actions, getRowId, on
   const showScroll = data.length > 8;
 
   return (
-    <div 
-      className="flex flex-col overflow-hidden rounded-xl border border-border animate-fade-in shadow-sm transition-all duration-300 hover:shadow-lg hover:border-accent/30"
+    <motion.div
+      className="flex flex-col overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-300 hover:shadow-lg hover:border-accent/30"
       style={{ maxHeight: data.length > 0 ? `calc(${headerHeight} + ${maxBodyHeight})` : 'auto' }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
     >
       {/* Fixed Header - Always visible */}
-      <div className="flex-shrink-0 grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] bg-muted px-6 py-3 text-left text-xs font-bold uppercase tracking-[0.3em] text-foreground/60 backdrop-blur-sm border-b border-border">
+      <motion.div
+        className="flex-shrink-0 grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] bg-muted px-6 py-3 text-left text-xs font-bold uppercase tracking-[0.3em] text-foreground/60 backdrop-blur-sm border-b border-border"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
         {columns.map((column) => (
-          <span key={column.key as string} style={column.width ? { width: column.width } : undefined} className="transition-colors duration-200">
+          <motion.span
+            key={column.key as string}
+            style={column.width ? { width: column.width } : undefined}
+            className="transition-colors duration-200"
+            whileHover={{ color: 'var(--color-accent)' }}
+          >
             {column.header}
-          </span>
+          </motion.span>
         ))}
-        {actions && <span className="text-right">Actions</span>}
-      </div>
+        {actions && <motion.span className="text-right" whileHover={{ color: 'var(--color-accent)' }}>Actions</motion.span>}
+      </motion.div>
       
       {/* Scrollable Body - Max 8 rows visible */}
-      <div 
+      <div
         className={`flex-1 divide-y divide-border bg-card datagrid-scrollable ${showScroll ? 'overflow-y-auto' : 'overflow-y-visible'}`}
         style={{ maxHeight: data.length > 0 ? maxBodyHeight : 'auto' }}
       >
         {data.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-muted-foreground animate-fade-in">
+          <motion.div
+            className="px-6 py-10 text-center text-sm text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
             {emptyMessage ?? 'No records to display yet.'}
-          </div>
+          </motion.div>
         ) : (
           data.map((row, rowIndex) => {
             const rowId = getRowId ? getRowId(row) : rowIndex;
 
             return (
-              <div key={rowId} className="group stagger-item">
-                <div
+              <motion.div
+                key={rowId}
+                className="group table-row-enhanced"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  duration: 0.3,
+                  delay: rowIndex * 0.03,
+                  ease: [0.4, 0, 0.2, 1],
+                }}
+              >
+                <motion.div
                   onClick={() => onRowClick?.(row)}
-                  className={`grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] items-center px-6 py-4 text-sm text-foreground transition-all duration-300 hover:bg-muted hover:shadow-md hover:-translate-y-0.5 hover:border-l-2 hover:border-l-accent ${onRowClick ? 'cursor-pointer' : ''}`}
+                  className={`grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] items-center px-6 py-4 text-sm text-foreground ${onRowClick ? 'cursor-pointer' : ''}`}
+                  whileHover={{
+                    backgroundColor: 'var(--color-muted)',
+                    x: 4,
+                    boxShadow: '-4px 0 12px rgba(168, 218, 220, 0.2)',
+                    transition: { duration: 0.2 },
+                  }}
+                  whileTap={onRowClick ? { scale: 0.98 } : undefined}
                 >
                   {columns.map((column, colIndex) => (
-                    <span
+                    <motion.span
                       key={column.key as string}
-                      className={`truncate text-foreground transition-all duration-200 group-hover:text-accent ${colIndex === 0 ? 'font-semibold' : 'font-medium'}`}
+                      className={`table-cell truncate text-foreground ${colIndex === 0 ? 'font-semibold' : 'font-medium'}`}
+                      whileHover={{ scale: 1.02, color: 'var(--color-accent)' }}
+                      transition={{ duration: 0.2 }}
                     >
                       {column.render ? column.render(row) : (row as Record<string, unknown>)[column.key as string]?.toString()}
-                    </span>
+                    </motion.span>
                   ))}
                   {actions && (
-                    <div className="flex items-center justify-end gap-2 transition-all duration-200 group-hover:opacity-100">
+                    <motion.div
+                      className="flex items-center justify-end gap-2"
+                      initial={{ opacity: 0.7 }}
+                      whileHover={{ opacity: 1 }}
+                    >
                       <div className="[&>button]:icon-visible-hover [&_svg]:icon-visible-muted [&>button:hover_svg]:text-accent">
                         {actions(row)}
                       </div>
-                    </div>
+                    </motion.div>
                   )}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             );
           })
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

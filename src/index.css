@@ -1268,6 +1268,418 @@ button:hover svg {
              waveBorderGlow2Dark 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.15s;
 }
 
+/* ============================================
+   Enhanced Chart Container Animations
+   ============================================ */
+
+.chart-container-enhanced {
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.chart-container-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(168, 218, 220, 0.05) 0%, rgba(179, 156, 208, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.chart-container-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3),
+              0 0 30px rgba(168, 218, 220, 0.2);
+  border-color: rgba(168, 218, 220, 0.4);
+}
+
+.chart-container-enhanced:hover::before {
+  opacity: 1;
+}
+
+.dark .chart-container-enhanced:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5),
+              0 0 30px rgba(168, 218, 220, 0.3);
+}
+
+/* Chart element hover glow */
+.chart-element-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.chart-element-hover:hover {
+  filter: brightness(1.2) drop-shadow(0 0 8px currentColor);
+  transform: scale(1.05);
+}
+
+/* ============================================
+   Enhanced Table Row Animations
+   ============================================ */
+
+.table-row-enhanced {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.table-row-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(168, 218, 220, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+  z-index: 0;
+}
+
+.table-row-enhanced:hover {
+  background: linear-gradient(
+    to right,
+    rgba(168, 218, 220, 0.05),
+    rgba(179, 156, 208, 0.05)
+  );
+  transform: translateX(4px);
+  box-shadow: -4px 0 12px rgba(168, 218, 220, 0.2);
+}
+
+.table-row-enhanced:hover::before {
+  left: 100%;
+}
+
+.table-row-enhanced:hover .table-cell {
+  transform: scale(1.02);
+  color: var(--color-accent);
+}
+
+.table-cell {
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   Enhanced Card Gradients
+   ============================================ */
+
+.card-gradient-hover {
+  position: relative;
+  background: var(--color-card);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.card-gradient-hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(168, 218, 220, 0.1) 0%,
+    rgba(179, 156, 208, 0.1) 50%,
+    rgba(168, 218, 220, 0.1) 100%
+  );
+  background-size: 200% 200%;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: gradientShift 3s ease infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card-gradient-hover:hover::before {
+  opacity: 1;
+}
+
+.card-gradient-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================
+   Icon Pulse Animation
+   ============================================ */
+
+.icon-pulse {
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+.icon-pulse-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-pulse-hover:hover {
+  animation: iconPulse 1s ease-in-out infinite;
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* ============================================
+   Enhanced Button Animations
+   ============================================ */
+
+.button-enhanced {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.button-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.button-enhanced:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.button-enhanced:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   Loading Skeleton Enhanced
+   ============================================ */
+
+.skeleton-enhanced {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ============================================
+   Chart Bar Growth Animation
+   ============================================ */
+
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+.chart-bar-animated {
+  animation: barGrow 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ============================================
+   Pie Chart Slice Hover
+   ============================================ */
+
+.pie-slice-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.pie-slice-hover:hover {
+  filter: brightness(1.2) drop-shadow(0 0 12px currentColor);
+  transform: scale(1.05);
+  transform-origin: center;
+}
+
+/* ============================================
+   Tooltip Enhancements
+   ============================================ */
+
+.tooltip-enhanced {
+  animation: tooltipFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================
+   Stagger Animation Utilities
+   ============================================ */
+
+.stagger-fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: staggerFadeIn 0.5s ease-out forwards;
+}
+
+.stagger-fade-in:nth-child(1) { animation-delay: 0.05s; }
+.stagger-fade-in:nth-child(2) { animation-delay: 0.1s; }
+.stagger-fade-in:nth-child(3) { animation-delay: 0.15s; }
+.stagger-fade-in:nth-child(4) { animation-delay: 0.2s; }
+.stagger-fade-in:nth-child(5) { animation-delay: 0.25s; }
+.stagger-fade-in:nth-child(6) { animation-delay: 0.3s; }
+.stagger-fade-in:nth-child(7) { animation-delay: 0.35s; }
+.stagger-fade-in:nth-child(8) { animation-delay: 0.4s; }
+.stagger-fade-in:nth-child(9) { animation-delay: 0.45s; }
+.stagger-fade-in:nth-child(10) { animation-delay: 0.5s; }
+
+@keyframes staggerFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   Glow Effects
+   ============================================ */
+
+.glow-accent {
+  box-shadow: 0 0 20px rgba(168, 218, 220, 0.3),
+              0 0 40px rgba(168, 218, 220, 0.2),
+              0 0 60px rgba(168, 218, 220, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-accent:hover {
+  box-shadow: 0 0 30px rgba(168, 218, 220, 0.5),
+              0 0 60px rgba(168, 218, 220, 0.3),
+              0 0 90px rgba(168, 218, 220, 0.2);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(179, 156, 208, 0.3),
+              0 0 40px rgba(179, 156, 208, 0.2),
+              0 0 60px rgba(179, 156, 208, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-purple:hover {
+  box-shadow: 0 0 30px rgba(179, 156, 208, 0.5),
+              0 0 60px rgba(179, 156, 208, 0.3),
+              0 0 90px rgba(179, 156, 208, 0.2);
+}
+
+/* ============================================
+   Mobile Optimization
+   ============================================ */
+
+@media (max-width: 768px) {
+  .chart-container-enhanced:hover {
+    transform: none;
+  }
+  
+  .table-row-enhanced:hover {
+    transform: none;
+  }
+  
+  .card-gradient-hover::before {
+    animation: none;
+  }
+  
+  .icon-pulse,
+  .icon-pulse-hover:hover {
+    animation: none;
+  }
+}
+
+/* ============================================
+   Smooth Scroll Enhancements
+   ============================================ */
+
+.smooth-scroll-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================
+   Focus Visible Enhancements
+   ============================================ */
+
+.focus-glow:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(168, 218, 220, 0.4),
+              0 0 0 6px rgba(168, 218, 220, 0.2),
+              0 0 20px rgba(168, 218, 220, 0.3);
+}
+
+/* ============================================
+   Page Transition Animations
+   ============================================ */
+
+.page-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.page-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+}
+
 /* Glow animation for light mode - first wave */
 @keyframes waveBorderGlow1Light {
   0% {
