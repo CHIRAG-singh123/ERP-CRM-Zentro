@@ -12,7 +12,9 @@ dist-ssr
 *.local
 server/node_modules
 server/.env
-server/*
+server/uploads
+server/logs
+server/*.log
 plan_incoice_management.md
 google-login.md
 
