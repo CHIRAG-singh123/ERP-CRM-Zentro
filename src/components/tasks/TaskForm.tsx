@@ -33,7 +33,7 @@ const validationSchema = Yup.object({
   status: Yup.string().oneOf(['Todo', 'In Progress', 'Done', 'Cancelled']).required('Status is required'),
   priority: Yup.string().oneOf(['Low', 'Medium', 'High', 'Urgent']).required('Priority is required'),
   assignedTo: Yup.array().of(Yup.string()),
-  dueDate: Yup.string(),
+  dueDate: Yup.string().required('Due Date is required'),
   tags: Yup.string(),
 });
 
@@ -411,7 +411,9 @@ export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1">Due Date</label>
+                  <label className="block text-sm font-medium text-white/70 mb-1">
+                    Due Date <span className="text-red-400">*</span>
+                  </label>
                   <Field
                     type="date"
                     name="dueDate"
