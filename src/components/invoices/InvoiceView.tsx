@@ -1,3 +1,4 @@
+import { AnimatedNumber } from '../common/AnimatedNumber';
 import type { Invoice } from '../../services/api/invoices';
 
 interface InvoiceViewProps {
@@ -88,7 +89,9 @@ export function InvoiceView({ invoice }: InvoiceViewProps) {
             <div className="border-t border-white/10 pt-2">
               <div className="flex justify-between text-lg font-semibold text-white">
                 <span>Total:</span>
-                <span>{formatCurrency(invoice.total)}</span>
+                <span>
+                  $<AnimatedNumber value={invoice.total} format="number" decimals={2} />
+                </span>
               </div>
             </div>
           </div>

@@ -446,7 +446,7 @@ export const appRouter = createBrowserRouter([
           {
             path: ':id',
             element: <LazyWrapper><InvoiceDetailPage /></LazyWrapper>,
-            handle: { breadcrumb: (match: { params: { id?: string } }) => `Invoice ${match.params.id}` },
+            handle: { breadcrumb: 'Invoice Details' },
           },
         ],
       },

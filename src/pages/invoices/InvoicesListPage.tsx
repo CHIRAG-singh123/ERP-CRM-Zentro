@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '../../components/common/DataGrid';
 import { DataGridPlaceholder } from '../../components/common/DataGridPlaceholder';
 import { PageHeader } from '../../components/common/PageHeader';
+import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import { useInvoices, useDeleteInvoice } from '../../hooks/queries/useInvoices';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { DownloadPDFButton } from '../../components/invoices/DownloadPDFButton';
@@ -33,13 +34,6 @@ export function InvoicesListPage() {
     } catch (err) {
       // Error handled by mutation
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
   };
 
   const getStatusColor = (status: Invoice['status']) => {
@@ -118,7 +112,7 @@ export function InvoicesListPage() {
               header: 'Total',
               render: (row) => {
                 const invoice = row as Invoice;
-                return formatCurrency(invoice.total);
+                return <AnimatedNumber value={invoice.total} format="currency" />;
               },
             },
             {
