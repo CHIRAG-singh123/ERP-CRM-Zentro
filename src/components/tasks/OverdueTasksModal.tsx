@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Eye, Edit, Trash2, Filter } from 'lucide-react';
+import { X, Plus, Eye, Edit, Trash2, Filter, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOverdueTasks, useTasks, useDeleteTask, useTaskSocketUpdates } from '../../hooks/queries/useTasks';
 import { DataGrid } from '../common/DataGrid';
@@ -50,6 +50,7 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
   }
 
   const [filterType, setFilterType] = useState<FilterType>('week');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
@@ -68,6 +69,13 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  // Reset search query when filter changes away from 'all'
+  useEffect(() => {
+    if (filterType !== 'all') {
+      setSearchQuery('');
+    }
+  }, [filterType]);
 
   // Calculate date range based on filter
   const getDateRange = () => {
@@ -155,6 +163,27 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
     });
   }
 
+  // Apply search filtering when filterType is 'all'
+  const filteredTasks = filterType === 'all' && searchQuery.trim()
+    ? tasks.filter(task => {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = task.title?.toLowerCase().includes(query);
+        const descMatch = task.description?.toLowerCase().includes(query);
+        let assigneeMatch = false;
+        if (task.assignedTo) {
+          if (Array.isArray(task.assignedTo)) {
+            assigneeMatch = task.assignedTo.some((user: { name?: string }) => 
+              user.name?.toLowerCase().includes(query)
+            );
+          } else {
+            const assignedUser = task.assignedTo as { name?: string };
+            assigneeMatch = assignedUser.name?.toLowerCase().includes(query) || false;
+          }
+        }
+        return titleMatch || descMatch || assigneeMatch;
+      })
+    : tasks;
+
   const deleteMutation = useDeleteTask();
 
   const handleView = (task: Task) => {
@@ -218,7 +247,8 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
   };
 
   const getTaskCountLabel = (): string => {
-    const count = tasks.length;
+    const count = filteredTasks.length;
+    const totalCount = tasks.length;
     if (filterType === 'overdue') {
       return `${count} ${count === 1 ? 'task' : 'tasks'} requiring attention`;
     } else if (filterType === 'week') {
@@ -226,6 +256,9 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
     } else if (filterType === 'month') {
       return `${count} ${count === 1 ? 'task' : 'tasks'} this month`;
     } else {
+      if (searchQuery.trim() && count !== totalCount) {
+        return `${count} of ${totalCount} ${totalCount === 1 ? 'task' : 'tasks'}`;
+      }
       return `${count} ${count === 1 ? 'task' : 'tasks'} total`;
     }
   };
@@ -246,11 +279,23 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
           onClick={(e) => e.stopPropagation()}
         >
           {/* Sticky Header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#1A1A1C] p-6 rounded-t-xl">
+          <div className="sticky top-0 z-10 flex items-center gap-4 border-b border-white/10 bg-[#1A1A1C] p-6 rounded-t-xl">
             <div className="flex-1">
               <h2 className="text-2xl font-semibold text-white">Tasks</h2>
               <p className="mt-1 text-sm text-white/60">{getTaskCountLabel()}</p>
             </div>
+            {filterType === 'all' && (
+              <div className="flex flex-1 max-w-md items-center gap-2 rounded-full border border-white/10 bg-[#1A1A1C] px-4 py-2 text-sm text-white/60 transition-all duration-200 focus-within:border-[#A8DADC] focus-within:ring-2 focus-within:ring-[#A8DADC]/20">
+                <Search className="h-4 w-4 text-white/40" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+                  placeholder="Search tasks by title, description, or assignee..."
+                />
+              </div>
+            )}
             <div className="flex items-center gap-3">
               {/* Filter Dropdown */}
               <div className="relative">
@@ -297,11 +342,17 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
                   <div className="text-white/60 animate-pulse">Loading {getFilterLabel(filterType).toLowerCase()} tasks...</div>
                 </div>
               </div>
-            ) : tasks.length === 0 ? (
+            ) : filteredTasks.length === 0 ? (
               <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 px-6 py-10 text-center text-sm text-white/50">
-                <p className="text-lg font-medium text-white/70 mb-2">No {getFilterLabel(filterType).toLowerCase()} tasks</p>
+                <p className="text-lg font-medium text-white/70 mb-2">
+                  {searchQuery.trim() && filterType === 'all'
+                    ? 'No tasks match your search'
+                    : `No ${getFilterLabel(filterType).toLowerCase()} tasks`}
+                </p>
                 <p className="text-white/50">
-                  {filterType === 'overdue' 
+                  {searchQuery.trim() && filterType === 'all'
+                    ? 'Try adjusting your search terms.'
+                    : filterType === 'overdue' 
                     ? 'All tasks are up to date!' 
                     : `No tasks found for ${getFilterLabel(filterType).toLowerCase()}.`}
                 </p>
@@ -385,7 +436,7 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
                   },
                 },
               ]}
-              data={tasks}
+              data={filteredTasks}
               actions={(row) => {
                 const task = row as Task;
                 return (

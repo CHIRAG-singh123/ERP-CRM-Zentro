@@ -360,7 +360,7 @@ export const appRouter = createBrowserRouter([
           {
             path: ':id',
             element: <LazyWrapper><ContactDetailPage /></LazyWrapper>,
-            handle: { breadcrumb: (match: { params: { id?: string } }) => `Contact ${match.params.id}` },
+            handle: { breadcrumb: 'Contact Profile' },
           },
         ],
       },

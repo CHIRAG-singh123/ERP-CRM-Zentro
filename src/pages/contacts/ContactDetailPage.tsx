@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone, Share2, Edit, Trash2, ArrowLeft, Loader2 } from 'lucide-react';
+import { Mail, MapPin, Phone, Share2, Edit, Trash2, ArrowLeft, Loader2, User } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -120,8 +120,13 @@ export function ContactDetailPage() {
         <article className="space-y-4 rounded-2xl border border-white/10 bg-[#1A1A1C]/70 p-6 animate-slide-in-up">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-white">{fullName}</h2>
-              {jobTitleCompany && <p className="text-sm text-white/50">{jobTitleCompany}</p>}
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <User className="h-5 w-5 text-[#A8DADC]" />
+                {fullName}
+              </h2>
+              {jobTitleCompany && (
+                <p className="text-sm text-white/50 mt-1">{jobTitleCompany}</p>
+              )}
             </div>
             <div className="flex items-center gap-2 text-xs text-white/50">
               <span className="rounded-full border border-white/10 px-3 py-1 uppercase tracking-[0.3em]">
@@ -137,18 +142,18 @@ export function ContactDetailPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {primaryEmail && (
-              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition-all duration-200 hover:border-[#A8DADC]/50 hover:bg-white/10">
+              <button
+                onClick={() => setShowEmailModal(true)}
+                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition-all duration-200 hover:border-[#A8DADC]/50 hover:bg-white/10 cursor-pointer w-full text-left"
+              >
                 <Mail className="h-4 w-4 text-[#A8DADC]" />
                 <div>
                   <p className="text-xs uppercase tracking-[0.32em] text-white/50">Email</p>
-                  <a
-                    href={`mailto:${primaryEmail}`}
-                    className="text-sm text-white/80 hover:text-[#A8DADC] transition-colors duration-200"
-                  >
+                  <p className="text-sm text-white/80 hover:text-[#A8DADC] transition-colors duration-200">
                     {primaryEmail}
-                  </a>
+                  </p>
                 </div>
-              </div>
+              </button>
             )}
             {primaryPhone && (
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition-all duration-200 hover:border-[#A8DADC]/50 hover:bg-white/10">

@@ -137,18 +137,18 @@ export function AccountDetailPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {company.email && (
-              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition-all duration-200 hover:border-[#A8DADC]/50 hover:bg-white/10">
+              <button
+                onClick={() => setShowEmailModal(true)}
+                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition-all duration-200 hover:border-[#A8DADC]/50 hover:bg-white/10 cursor-pointer w-full text-left"
+              >
                 <Mail className="h-4 w-4 text-[#A8DADC]" />
                 <div>
                   <p className="text-xs uppercase tracking-[0.32em] text-white/50">Email</p>
-                  <a
-                    href={`mailto:${company.email}`}
-                    className="text-sm text-white/80 hover:text-[#A8DADC] transition-colors duration-200"
-                  >
+                  <p className="text-sm text-white/80 hover:text-[#A8DADC] transition-colors duration-200">
                     {company.email}
-                  </a>
+                  </p>
                 </div>
-              </div>
+              </button>
             )}
             {company.phone && (
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition-all duration-200 hover:border-[#A8DADC]/50 hover:bg-white/10">

@@ -372,3 +372,8 @@ Deployment: Docker Compose file (frontend/backend/DB); Links to live demo (Verce
 Advice on Scope & Grading
 For university projects, emphasize completeness and depth over breadth. Ensure all 20 Basic features are fully operational (full CRUD, UI polish, error handling). For the 10 Advanced features, implement 3-4 deeply (e.g., Chat, Workflows, Payments) with demos; design the rest (wireframes, partial code) to show planning.
 Keep Git commits clean (e.g., "feat: add leads CRUD"), branch per feature (feat/leads-management). Document challenges/solutions in README. This approach highlights MERN expertise, scalability, and real-world readiness—inspired by IDURAR's modular design. If using Cursor AI, leverage it for boilerplate (e.g., generate Mongoose schemas) to accelerate. Good luck!
+
+
+
+https://github.com/public-apis/public-apis?tab=readme-ov-file
+
