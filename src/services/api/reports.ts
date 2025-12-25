@@ -46,6 +46,10 @@ export interface KPIsResponse {
     count: number;
     totalAmount: number;
   };
+  totalInvoices: {
+    count: number;
+    totalAmount: number;
+  };
   overdueTasks: number;
   weeklyTasks: number;
 }

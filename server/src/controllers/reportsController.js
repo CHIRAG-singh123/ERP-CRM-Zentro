@@ -171,6 +171,20 @@ export const getKPIs = asyncHandler(async (req, res) => {
     },
   ]);
 
+  // Total invoices (all invoices)
+  const totalInvoices = await Invoice.aggregate([
+    {
+      $match: tenantFilter,
+    },
+    {
+      $group: {
+        _id: null,
+        count: { $sum: 1 },
+        totalAmount: { $sum: '$total' },
+      },
+    },
+  ]);
+
   // Task filter: Employees can only see tasks assigned to them
   const taskFilter = { ...tenantFilter };
   if (req.user.role !== 'admin') {
@@ -246,6 +260,10 @@ export const getKPIs = asyncHandler(async (req, res) => {
     pendingInvoices: {
       count: pendingInvoices[0]?.count || 0,
       totalAmount: pendingInvoices[0]?.totalAmount || 0,
+    },
+    totalInvoices: {
+      count: totalInvoices[0]?.count || 0,
+      totalAmount: totalInvoices[0]?.totalAmount || 0,
     },
     overdueTasks,
     weeklyTasks,
