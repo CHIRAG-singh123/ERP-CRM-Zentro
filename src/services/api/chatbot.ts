@@ -30,26 +30,57 @@ type QueryContext = {
 
 
 
-// Free models to rotate between for reliability
+// Free models to try sequentially for reliability
 const FREE_MODELS = [
-  'google/gemini-flash-1.5',
-  'meta-llama/llama-3.2-3b-instruct:free',
-  'qwen/qwen-2.5-7b-instruct:free',
-  'mistralai/mistral-7b-instruct:free',
+  'deepseek/deepseek-r1:free',
+  'tng/deepseek-r1t2-chimera:free',
+  'xiaomi/mimo-v2-flash:free',
+  'mistralai/mistral-small-3.2-24b-instruct:free',
+  'nvidia/nemotron-3-nano-30b-a3b:free',
+  'z-ai/glm-4.5-air:free',
+  'allenai/olmo-3.1-32b-think:free',
+  'google/gemini-2.0-flash-exp:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'qwen/qwen-2.5-72b-instruct:free',
 ];
 
-let currentModelIndex = 0;
+// Google AI Studios free models (sequential fallback)
+const GOOGLE_AI_MODELS = [
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite-preview-02-05',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-pro',
+];
 
-function getNextFreeModel(): string {
-  const model = FREE_MODELS[currentModelIndex];
-  currentModelIndex = (currentModelIndex + 1) % FREE_MODELS.length;
-  return model;
-}
+// OpenAI models (cost-effective, may require credits)
+const OPENAI_MODELS = [
+  'gpt-4o-mini',  // Most cost-effective
+  'gpt-4o',
+  'o1-mini',
+];
+
+// Groq free models (sequential fallback)
+const GROQ_MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it',
+  'deepseek-r1-distill-llama-70b',
+  'deepseek-r1-distill-qwen-32b',
+];
+
+// DeepSeek models (may require credits)
+const DEEPSEEK_MODELS = [
+  'deepseek-chat',  // V3
+  'deepseek-reasoner',  // R1
+];
 
 /**
- * Call Google AI Studios API directly
+ * Call Google AI Studios API (internal function - tries models sequentially)
  */
-async function callGoogleAIStudiosAPI(
+async function callGoogleAIStudiosAPIInternal(
+  modelIndex: number = 0,
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
   userRole?: string,
   context?: QueryContext
@@ -60,9 +91,17 @@ async function callGoogleAIStudiosAPI(
     throw new Error('Google AI Studios API key is missing. Please configure the API key.');
   }
 
+  // Check if we've exhausted all models
+  if (modelIndex >= GOOGLE_AI_MODELS.length) {
+    throw new Error('All Google AI Studios models have been exhausted');
+  }
+
+  const model = GOOGLE_AI_MODELS[modelIndex];
+  const modelNumber = modelIndex + 1;
+  const totalModels = GOOGLE_AI_MODELS.length;
+
   try {
-    logger.debug('[Chatbot] Calling Google AI Studios API');
-    logger.debug(`[Chatbot] API URL: ${GOOGLE_AI_STUDIOS_API_URL}`);
+    logger.debug(`[Chatbot] [Google AI Model ${modelNumber}/${totalModels}] Attempting model: ${model}`);
 
     // Convert messages to Google AI format
     const contents: any[] = [];
@@ -95,7 +134,11 @@ async function callGoogleAIStudiosAPI(
       },
     };
 
-    const url = `${GOOGLE_AI_STUDIOS_API_URL}?key=${GOOGLE_AI_STUDIOS_API_KEY}`;
+    // Construct URL with model name in path
+    // Extract base URL (remove any existing model path)
+    const baseUrl = GOOGLE_AI_STUDIOS_API_URL.replace(/\/models\/[^\/]+:generateContent$/, '') || 
+                    'https://generativelanguage.googleapis.com/v1beta';
+    const url = `${baseUrl}/models/${model}:generateContent?key=${GOOGLE_AI_STUDIOS_API_KEY}`;
 
     // Add timeout to fetch request
     const controller = new AbortController();
@@ -115,38 +158,92 @@ async function callGoogleAIStudiosAPI(
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        logger.error('[Chatbot] Google AI Studios API request timed out');
+        logger.warn(`[Chatbot] [Google AI Model ${modelNumber}/${totalModels}] Request timed out: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < GOOGLE_AI_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next Google AI model (${modelIndex + 2}/${totalModels})`);
+          return callGoogleAIStudiosAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw new Error('Request timeout - Google AI Studios took too long to respond');
       } else if (fetchError instanceof TypeError && fetchError.message.includes('fetch')) {
-        logger.error('[Chatbot] Network error calling Google AI Studios API:', fetchError);
+        logger.warn(`[Chatbot] [Google AI Model ${modelNumber}/${totalModels}] Network error: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < GOOGLE_AI_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next Google AI model (${modelIndex + 2}/${totalModels})`);
+          return callGoogleAIStudiosAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw new Error('Network error - please check your internet connection');
       } else {
-        logger.error('[Chatbot] Fetch error calling Google AI Studios API:', fetchError);
+        logger.warn(`[Chatbot] [Google AI Model ${modelNumber}/${totalModels}] Fetch error: ${model}`, fetchError);
+        // Try next model if available
+        if (modelIndex + 1 < GOOGLE_AI_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next Google AI model (${modelIndex + 2}/${totalModels})`);
+          return callGoogleAIStudiosAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw fetchError;
       }
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error(`[Chatbot] Google AI Studios API error: ${response.status} - ${errorText}`);
+      logger.warn(`[Chatbot] [Google AI Model ${modelNumber}/${totalModels}] API error (${response.status}): ${model} - ${errorText.substring(0, 100)}`);
+      // Try next model if available
+      if (modelIndex + 1 < GOOGLE_AI_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next Google AI model (${modelIndex + 2}/${totalModels})`);
+        return callGoogleAIStudiosAPIInternal(modelIndex + 1, messages, userRole, context);
+      }
       throw new Error(`Google AI Studios API request failed: ${response.status} - ${errorText.substring(0, 100)}`);
     }
 
     const data = await response.json();
 
     if (!data.candidates || data.candidates.length === 0) {
-      logger.error('[Chatbot] Google AI Studios returned empty response');
+      logger.warn(`[Chatbot] [Google AI Model ${modelNumber}/${totalModels}] Empty response from: ${model}`);
+      // Try next model if available
+      if (modelIndex + 1 < GOOGLE_AI_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next Google AI model (${modelIndex + 2}/${totalModels})`);
+        return callGoogleAIStudiosAPIInternal(modelIndex + 1, messages, userRole, context);
+      }
       throw new Error('No response from Google AI Studios API');
     }
 
     const content = data.candidates[0].content.parts[0].text;
-    logger.debug('[Chatbot] Successfully received response from Google AI Studios');
+    logger.debug(`[Chatbot] [Google AI Model ${modelNumber}/${totalModels}] Successfully received response from: ${model}`);
     
     return content.trim();
   } catch (error: any) {
-    logger.error('[Chatbot] Google AI Studios API error:', error);
+    // If this is our custom "exhausted" error, re-throw it
+    if (error?.message?.includes('All Google AI Studios models have been exhausted')) {
+      throw error;
+    }
+    
+    logger.warn(`[Chatbot] [Google AI Model ${modelNumber}/${totalModels}] Error with model ${model}:`, error?.message || 'Unknown error');
+    
+    // Try next model if available
+    if (modelIndex + 1 < GOOGLE_AI_MODELS.length) {
+      logger.debug(`[Chatbot] Trying next Google AI model (${modelIndex + 2}/${totalModels})`);
+      try {
+        return await callGoogleAIStudiosAPIInternal(modelIndex + 1, messages, userRole, context);
+      } catch (retryError) {
+        // If retry also fails, throw original error
+        throw error;
+      }
+    }
+    
+    // If all models failed, throw error
     throw error;
   }
+}
+
+/**
+ * Call Google AI Studios API (wrapper for backward compatibility)
+ */
+async function callGoogleAIStudiosAPI(
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+  userRole?: string,
+  context?: QueryContext
+): Promise<string> {
+  return callGoogleAIStudiosAPIInternal(0, messages, userRole, context);
 }
 
 function buildSystemPrompt(userRole?: string, context?: QueryContext) {
@@ -202,9 +299,10 @@ function buildSystemPrompt(userRole?: string, context?: QueryContext) {
 }
 
 /**
- * Call OpenAI API directly
+ * Call OpenAI API (internal function - tries models sequentially)
  */
-async function callOpenAIAPI(
+async function callOpenAIAPIInternal(
+  modelIndex: number = 0,
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
   userRole?: string,
   context?: QueryContext
@@ -215,12 +313,21 @@ async function callOpenAIAPI(
     throw new Error('OpenAI API key is missing. Please configure the API key.');
   }
 
+  // Check if we've exhausted all models
+  if (modelIndex >= OPENAI_MODELS.length) {
+    throw new Error('All OpenAI models have been exhausted');
+  }
+
+  const model = OPENAI_MODELS[modelIndex];
+  const modelNumber = modelIndex + 1;
+  const totalModels = OPENAI_MODELS.length;
+
   try {
-    logger.debug('[Chatbot] Calling OpenAI API');
+    logger.debug(`[Chatbot] [OpenAI Model ${modelNumber}/${totalModels}] Attempting model: ${model}`);
     logger.debug(`[Chatbot] API URL: ${OPENAI_API_URL}`);
 
     const requestBody = {
-      model: 'gpt-4o-mini', // Cost-efficient model
+      model,
       messages: [
         {
           role: 'system',
@@ -251,44 +358,99 @@ async function callOpenAIAPI(
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        logger.error('[Chatbot] OpenAI API request timed out');
+        logger.warn(`[Chatbot] [OpenAI Model ${modelNumber}/${totalModels}] Request timed out: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < OPENAI_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next OpenAI model (${modelIndex + 2}/${totalModels})`);
+          return callOpenAIAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw new Error('Request timeout - OpenAI took too long to respond');
       } else if (fetchError instanceof TypeError && fetchError.message.includes('fetch')) {
-        logger.error('[Chatbot] Network error calling OpenAI API:', fetchError);
+        logger.warn(`[Chatbot] [OpenAI Model ${modelNumber}/${totalModels}] Network error: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < OPENAI_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next OpenAI model (${modelIndex + 2}/${totalModels})`);
+          return callOpenAIAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw new Error('Network error - please check your internet connection');
       } else {
-        logger.error('[Chatbot] Fetch error calling OpenAI API:', fetchError);
+        logger.warn(`[Chatbot] [OpenAI Model ${modelNumber}/${totalModels}] Fetch error: ${model}`, fetchError);
+        // Try next model if available
+        if (modelIndex + 1 < OPENAI_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next OpenAI model (${modelIndex + 2}/${totalModels})`);
+          return callOpenAIAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw fetchError;
       }
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error(`[Chatbot] OpenAI API error: ${response.status} - ${errorText}`);
+      logger.warn(`[Chatbot] [OpenAI Model ${modelNumber}/${totalModels}] API error (${response.status}): ${model} - ${errorText.substring(0, 100)}`);
+      // Try next model if available
+      if (modelIndex + 1 < OPENAI_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next OpenAI model (${modelIndex + 2}/${totalModels})`);
+        return callOpenAIAPIInternal(modelIndex + 1, messages, userRole, context);
+      }
       throw new Error(`OpenAI API request failed: ${response.status} - ${errorText.substring(0, 100)}`);
     }
 
     const data: OpenRouterResponse = await response.json();
 
     if (!data.choices || data.choices.length === 0) {
-      logger.error('[Chatbot] OpenAI returned empty response');
+      logger.warn(`[Chatbot] [OpenAI Model ${modelNumber}/${totalModels}] Empty response from: ${model}`);
+      // Try next model if available
+      if (modelIndex + 1 < OPENAI_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next OpenAI model (${modelIndex + 2}/${totalModels})`);
+        return callOpenAIAPIInternal(modelIndex + 1, messages, userRole, context);
+      }
       throw new Error('No response from OpenAI API');
     }
 
     const content = data.choices[0].message.content;
-    logger.debug('[Chatbot] Successfully received response from OpenAI');
+    logger.debug(`[Chatbot] [OpenAI Model ${modelNumber}/${totalModels}] Successfully received response from: ${model}`);
     
     return content.trim();
   } catch (error: any) {
-    logger.error('[Chatbot] OpenAI API error:', error);
+    // If this is our custom "exhausted" error, re-throw it
+    if (error?.message?.includes('All OpenAI models have been exhausted')) {
+      throw error;
+    }
+    
+    logger.warn(`[Chatbot] [OpenAI Model ${modelNumber}/${totalModels}] Error with model ${model}:`, error?.message || 'Unknown error');
+    
+    // Try next model if available
+    if (modelIndex + 1 < OPENAI_MODELS.length) {
+      logger.debug(`[Chatbot] Trying next OpenAI model (${modelIndex + 2}/${totalModels})`);
+      try {
+        return await callOpenAIAPIInternal(modelIndex + 1, messages, userRole, context);
+      } catch (retryError) {
+        // If retry also fails, throw original error
+        throw error;
+      }
+    }
+    
+    // If all models failed, throw error
     throw error;
   }
 }
 
 /**
- * Call Groq API directly
+ * Call OpenAI API (wrapper for backward compatibility)
  */
-async function callGroqAPI(
+async function callOpenAIAPI(
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+  userRole?: string,
+  context?: QueryContext
+): Promise<string> {
+  return callOpenAIAPIInternal(0, messages, userRole, context);
+}
+
+/**
+ * Call Groq API (internal function - tries models sequentially)
+ */
+async function callGroqAPIInternal(
+  modelIndex: number = 0,
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
   userRole?: string,
   context?: QueryContext
@@ -299,12 +461,21 @@ async function callGroqAPI(
     throw new Error('Groq API key is missing. Please configure the API key.');
   }
 
+  // Check if we've exhausted all models
+  if (modelIndex >= GROQ_MODELS.length) {
+    throw new Error('All Groq models have been exhausted');
+  }
+
+  const model = GROQ_MODELS[modelIndex];
+  const modelNumber = modelIndex + 1;
+  const totalModels = GROQ_MODELS.length;
+
   try {
-    logger.debug('[Chatbot] Calling Groq API');
+    logger.debug(`[Chatbot] [Groq Model ${modelNumber}/${totalModels}] Attempting model: ${model}`);
     logger.debug(`[Chatbot] API URL: ${GROQ_API_URL}`);
 
     const requestBody = {
-      model: 'llama-3.1-70b-versatile', // Fast and capable model
+      model,
       messages: [
         {
           role: 'system',
@@ -335,45 +506,100 @@ async function callGroqAPI(
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        logger.error('[Chatbot] Groq API request timed out');
+        logger.warn(`[Chatbot] [Groq Model ${modelNumber}/${totalModels}] Request timed out: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < GROQ_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next Groq model (${modelIndex + 2}/${totalModels})`);
+          return callGroqAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw new Error('Request timeout - Groq took too long to respond');
       } else if (fetchError instanceof TypeError && fetchError.message.includes('fetch')) {
-        logger.error('[Chatbot] Network error calling Groq API:', fetchError);
+        logger.warn(`[Chatbot] [Groq Model ${modelNumber}/${totalModels}] Network error: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < GROQ_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next Groq model (${modelIndex + 2}/${totalModels})`);
+          return callGroqAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw new Error('Network error - please check your internet connection');
       } else {
-        logger.error('[Chatbot] Fetch error calling Groq API:', fetchError);
+        logger.warn(`[Chatbot] [Groq Model ${modelNumber}/${totalModels}] Fetch error: ${model}`, fetchError);
+        // Try next model if available
+        if (modelIndex + 1 < GROQ_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next Groq model (${modelIndex + 2}/${totalModels})`);
+          return callGroqAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw fetchError;
       }
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error(`[Chatbot] Groq API error: ${response.status} - ${errorText}`);
+      logger.warn(`[Chatbot] [Groq Model ${modelNumber}/${totalModels}] API error (${response.status}): ${model} - ${errorText.substring(0, 100)}`);
+      // Try next model if available
+      if (modelIndex + 1 < GROQ_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next Groq model (${modelIndex + 2}/${totalModels})`);
+        return callGroqAPIInternal(modelIndex + 1, messages, userRole, context);
+      }
       throw new Error(`Groq API request failed: ${response.status} - ${errorText.substring(0, 100)}`);
     }
 
     const data: OpenRouterResponse = await response.json();
 
     if (!data.choices || data.choices.length === 0) {
-      logger.error('[Chatbot] Groq returned empty response');
+      logger.warn(`[Chatbot] [Groq Model ${modelNumber}/${totalModels}] Empty response from: ${model}`);
+      // Try next model if available
+      if (modelIndex + 1 < GROQ_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next Groq model (${modelIndex + 2}/${totalModels})`);
+        return callGroqAPIInternal(modelIndex + 1, messages, userRole, context);
+      }
       throw new Error('No response from Groq API');
     }
 
     const content = data.choices[0].message.content;
-    logger.debug('[Chatbot] Successfully received response from Groq');
+    logger.debug(`[Chatbot] [Groq Model ${modelNumber}/${totalModels}] Successfully received response from: ${model}`);
     
     return content.trim();
   } catch (error: any) {
-    logger.error('[Chatbot] Groq API error:', error);
+    // If this is our custom "exhausted" error, re-throw it
+    if (error?.message?.includes('All Groq models have been exhausted')) {
+      throw error;
+    }
+    
+    logger.warn(`[Chatbot] [Groq Model ${modelNumber}/${totalModels}] Error with model ${model}:`, error?.message || 'Unknown error');
+    
+    // Try next model if available
+    if (modelIndex + 1 < GROQ_MODELS.length) {
+      logger.debug(`[Chatbot] Trying next Groq model (${modelIndex + 2}/${totalModels})`);
+      try {
+        return await callGroqAPIInternal(modelIndex + 1, messages, userRole, context);
+      } catch (retryError) {
+        // If retry also fails, throw original error
+        throw error;
+      }
+    }
+    
+    // If all models failed, throw error
     throw error;
   }
 }
 
 /**
- * Call Deepseek API directly (5th fallback)
+ * Call Groq API (wrapper for backward compatibility)
  */
-async function callDeepseekAPI(
-  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> ,
+async function callGroqAPI(
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+  userRole?: string,
+  context?: QueryContext
+): Promise<string> {
+  return callGroqAPIInternal(0, messages, userRole, context);
+}
+
+/**
+ * Call DeepSeek API (internal function - tries models sequentially)
+ */
+async function callDeepseekAPIInternal(
+  modelIndex: number = 0,
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
   userRole?: string,
   context?: QueryContext
 ): Promise<string> {
@@ -383,12 +609,21 @@ async function callDeepseekAPI(
     throw new Error('Deepseek API key is missing. Please configure the API key.');
   }
 
+  // Check if we've exhausted all models
+  if (modelIndex >= DEEPSEEK_MODELS.length) {
+    throw new Error('All DeepSeek models have been exhausted');
+  }
+
+  const model = DEEPSEEK_MODELS[modelIndex];
+  const modelNumber = modelIndex + 1;
+  const totalModels = DEEPSEEK_MODELS.length;
+
   try {
-    logger.debug('[Chatbot] Calling Deepseek API');
+    logger.debug(`[Chatbot] [DeepSeek Model ${modelNumber}/${totalModels}] Attempting model: ${model}`);
     logger.debug(`[Chatbot] API URL: ${DEEPSEEK_API_URL}`);
 
     const requestBody = {
-      model: 'deepseek-chat-1',
+      model,
       messages: [
         {
           role: 'system',
@@ -419,46 +654,101 @@ async function callDeepseekAPI(
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        logger.error('[Chatbot] Deepseek API request timed out');
+        logger.warn(`[Chatbot] [DeepSeek Model ${modelNumber}/${totalModels}] Request timed out: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < DEEPSEEK_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next DeepSeek model (${modelIndex + 2}/${totalModels})`);
+          return callDeepseekAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw new Error('Request timeout - Deepseek took too long to respond');
       } else if (fetchError instanceof TypeError && fetchError.message.includes('fetch')) {
-        logger.error('[Chatbot] Network error calling Deepseek API:', fetchError);
+        logger.warn(`[Chatbot] [DeepSeek Model ${modelNumber}/${totalModels}] Network error: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < DEEPSEEK_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next DeepSeek model (${modelIndex + 2}/${totalModels})`);
+          return callDeepseekAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw new Error('Network error - please check your internet connection');
       } else {
-        logger.error('[Chatbot] Fetch error calling Deepseek API:', fetchError);
+        logger.warn(`[Chatbot] [DeepSeek Model ${modelNumber}/${totalModels}] Fetch error: ${model}`, fetchError);
+        // Try next model if available
+        if (modelIndex + 1 < DEEPSEEK_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next DeepSeek model (${modelIndex + 2}/${totalModels})`);
+          return callDeepseekAPIInternal(modelIndex + 1, messages, userRole, context);
+        }
         throw fetchError;
       }
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error(`[Chatbot] Deepseek API error: ${response.status} - ${errorText}`);
+      logger.warn(`[Chatbot] [DeepSeek Model ${modelNumber}/${totalModels}] API error (${response.status}): ${model} - ${errorText.substring(0, 100)}`);
+      // Try next model if available
+      if (modelIndex + 1 < DEEPSEEK_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next DeepSeek model (${modelIndex + 2}/${totalModels})`);
+        return callDeepseekAPIInternal(modelIndex + 1, messages, userRole, context);
+      }
       throw new Error(`Deepseek API request failed: ${response.status} - ${errorText.substring(0, 100)}`);
     }
 
     const data: OpenRouterResponse = await response.json();
 
     if (!data.choices || data.choices.length === 0) {
-      logger.error('[Chatbot] Deepseek returned empty response');
+      logger.warn(`[Chatbot] [DeepSeek Model ${modelNumber}/${totalModels}] Empty response from: ${model}`);
+      // Try next model if available
+      if (modelIndex + 1 < DEEPSEEK_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next DeepSeek model (${modelIndex + 2}/${totalModels})`);
+        return callDeepseekAPIInternal(modelIndex + 1, messages, userRole, context);
+      }
       throw new Error('No response from Deepseek API');
     }
 
     const content = data.choices[0].message.content;
-    logger.debug('[Chatbot] Successfully received response from Deepseek');
+    logger.debug(`[Chatbot] [DeepSeek Model ${modelNumber}/${totalModels}] Successfully received response from: ${model}`);
     
     return content.trim();
   } catch (error: any) {
-    logger.error('[Chatbot] Deepseek API error:', error);
+    // If this is our custom "exhausted" error, re-throw it
+    if (error?.message?.includes('All DeepSeek models have been exhausted')) {
+      throw error;
+    }
+    
+    logger.warn(`[Chatbot] [DeepSeek Model ${modelNumber}/${totalModels}] Error with model ${model}:`, error?.message || 'Unknown error');
+    
+    // Try next model if available
+    if (modelIndex + 1 < DEEPSEEK_MODELS.length) {
+      logger.debug(`[Chatbot] Trying next DeepSeek model (${modelIndex + 2}/${totalModels})`);
+      try {
+        return await callDeepseekAPIInternal(modelIndex + 1, messages, userRole, context);
+      } catch (retryError) {
+        // If retry also fails, throw original error
+        throw error;
+      }
+    }
+    
+    // If all models failed, throw error
     throw error;
   }
 }
 
 /**
+ * Call DeepSeek API (wrapper for backward compatibility)
+ */
+async function callDeepseekAPI(
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
+  userRole?: string,
+  context?: QueryContext
+): Promise<string> {
+  return callDeepseekAPIInternal(0, messages, userRole, context);
+}
+
+/**
  * Call OpenRouter API (internal function - used by orchestrator)
+ * Tries models sequentially from FREE_MODELS array
  */
 async function callOpenRouterAPIInternal(
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
-  retries = 2,
+  modelIndex: number = 0,
   userRole?: string,
   context?: QueryContext
 ): Promise<string> {
@@ -468,7 +758,14 @@ async function callOpenRouterAPIInternal(
     throw new Error('OpenRouter API key is missing. Please configure the API key.');
   }
 
-  const model = getNextFreeModel();
+  // Check if we've exhausted all models
+  if (modelIndex >= FREE_MODELS.length) {
+    throw new Error('All OpenRouter free models have been exhausted');
+  }
+
+  const model = FREE_MODELS[modelIndex];
+  const modelNumber = modelIndex + 1;
+  const totalModels = FREE_MODELS.length;
   
   const requestBody: OpenRouterRequest = {
     model,
@@ -484,7 +781,7 @@ async function callOpenRouterAPIInternal(
   };
 
   try {
-    logger.debug(`[Chatbot] Calling OpenRouter API with model: ${model}`);
+    logger.debug(`[Chatbot] [OpenRouter Model ${modelNumber}/${totalModels}] Attempting model: ${model}`);
     logger.debug(`[Chatbot] API URL: ${OPENROUTER_API_URL}`);
     logger.debug(`[Chatbot] Request body preview: ${JSON.stringify(requestBody).substring(0, 200)}...`);
 
@@ -509,25 +806,40 @@ async function callOpenRouterAPIInternal(
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        logger.error('[Chatbot] OpenRouter API request timed out');
+        logger.warn(`[Chatbot] [OpenRouter Model ${modelNumber}/${totalModels}] Request timed out: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < FREE_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next OpenRouter model (${modelIndex + 2}/${totalModels})`);
+          return callOpenRouterAPIInternal(messages, modelIndex + 1, userRole, context);
+        }
         throw new Error('Request timeout - API took too long to respond');
       } else if (fetchError instanceof TypeError && fetchError.message.includes('fetch')) {
-        logger.error('[Chatbot] Network error calling OpenRouter API:', fetchError);
+        logger.warn(`[Chatbot] [OpenRouter Model ${modelNumber}/${totalModels}] Network error: ${model}`);
+        // Try next model if available
+        if (modelIndex + 1 < FREE_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next OpenRouter model (${modelIndex + 2}/${totalModels})`);
+          return callOpenRouterAPIInternal(messages, modelIndex + 1, userRole, context);
+        }
         throw new Error('Network error - please check your internet connection');
       } else {
-        logger.error('[Chatbot] Fetch error calling OpenRouter API:', fetchError);
+        logger.warn(`[Chatbot] [OpenRouter Model ${modelNumber}/${totalModels}] Fetch error: ${model}`, fetchError);
+        // Try next model if available
+        if (modelIndex + 1 < FREE_MODELS.length) {
+          logger.debug(`[Chatbot] Trying next OpenRouter model (${modelIndex + 2}/${totalModels})`);
+          return callOpenRouterAPIInternal(messages, modelIndex + 1, userRole, context);
+        }
         throw fetchError;
       }
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error(`[Chatbot] OpenRouter API error: ${response.status} - ${errorText}`);
+      logger.warn(`[Chatbot] [OpenRouter Model ${modelNumber}/${totalModels}] API error (${response.status}): ${model} - ${errorText.substring(0, 100)}`);
       
       // Try next model if available
-      if (retries > 0) {
-        logger.debug(`[Chatbot] Retrying OpenRouter with different model (${retries} retries left)`);
-        return callOpenRouterAPIInternal(messages, retries - 1, userRole, context);
+      if (modelIndex + 1 < FREE_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next OpenRouter model (${modelIndex + 2}/${totalModels})`);
+        return callOpenRouterAPIInternal(messages, modelIndex + 1, userRole, context);
       }
       
       // If all OpenRouter models failed, throw error (orchestrator will handle fallback)
@@ -537,94 +849,105 @@ async function callOpenRouterAPIInternal(
     const data: OpenRouterResponse = await response.json();
     
     if (!data.choices || data.choices.length === 0) {
+      logger.warn(`[Chatbot] [OpenRouter Model ${modelNumber}/${totalModels}] Empty response from: ${model}`);
+      // Try next model if available
+      if (modelIndex + 1 < FREE_MODELS.length) {
+        logger.debug(`[Chatbot] Trying next OpenRouter model (${modelIndex + 2}/${totalModels})`);
+        return callOpenRouterAPIInternal(messages, modelIndex + 1, userRole, context);
+      }
       // If OpenRouter returns empty response, throw error (orchestrator will handle fallback)
-      logger.error('[Chatbot] OpenRouter returned empty response');
       throw new Error('No response from OpenRouter API');
     }
 
     const content = data.choices[0].message.content;
-    logger.debug(`[Chatbot] Successfully received response from OpenRouter (${model})`);
+    logger.debug(`[Chatbot] [OpenRouter Model ${modelNumber}/${totalModels}] Successfully received response from: ${model}`);
     
     return content.trim();
   } catch (error: any) {
-    logger.error('[Chatbot] OpenRouter API error:', error);
+    // If this is our custom "exhausted" error, re-throw it
+    if (error?.message?.includes('All OpenRouter free models have been exhausted')) {
+      throw error;
+    }
+    
+    logger.warn(`[Chatbot] [OpenRouter Model ${modelNumber}/${totalModels}] Error with model ${model}:`, error?.message || 'Unknown error');
     
     // Try next model if available
-    if (retries > 0) {
-      logger.debug(`[Chatbot] Retrying OpenRouter with different model (${retries} retries left)`);
+    if (modelIndex + 1 < FREE_MODELS.length) {
+      logger.debug(`[Chatbot] Trying next OpenRouter model (${modelIndex + 2}/${totalModels})`);
       try {
-        return await callOpenRouterAPIInternal(messages, retries - 1, userRole, context);
+        return await callOpenRouterAPIInternal(messages, modelIndex + 1, userRole, context);
       } catch (retryError) {
-        // If retry also fails, throw error (orchestrator will handle fallback)
+        // If retry also fails, throw original error (orchestrator will handle fallback)
         throw error;
       }
     }
     
-    // If all retries failed, throw error (orchestrator will handle fallback)
+    // If all models failed, throw error (orchestrator will handle fallback)
     throw error;
   }
 }
 
 /**
  * Main API orchestrator with 5-tier fallback system
- * Tries: OpenRouter → Google AI Studios → OpenAI → Groq → Deepseek
+ * Tries: OpenRouter (10 free models sequentially) → Google AI Studios (5 models sequentially) → 
+ *        OpenAI (3 models sequentially) → Groq (6 models sequentially) → Deepseek (2 models sequentially)
  */
 export async function callOpenRouterAPI(
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
-  retries = 2,
+  _retries?: number, // Kept for backward compatibility but unused (all 10 models are tried sequentially)
   userRole?: string,
   context?: QueryContext
 ): Promise<string> {
   const errors: Array<{ api: string; error: string }> = [];
 
-  // Tier 1: Try OpenRouter API
+  // Tier 1: Try OpenRouter API (tries all 10 free models sequentially)
   try {
-    logger.debug('[Chatbot] [Tier 1/4] Attempting OpenRouter API');
-    return await callOpenRouterAPIInternal(messages, retries, userRole, context);
+    logger.debug('[Chatbot] [Tier 1/5] Attempting OpenRouter API (will try all 10 free models sequentially)');
+    return await callOpenRouterAPIInternal(messages, 0, userRole, context);
   } catch (error: any) {
     const errorMsg = error?.message || 'Unknown error';
     errors.push({ api: 'OpenRouter', error: errorMsg });
-    logger.warn(`[Chatbot] [Tier 1/4] OpenRouter failed: ${errorMsg}`);
+    logger.warn(`[Chatbot] [Tier 1/5] OpenRouter failed after trying all ${FREE_MODELS.length} free models: ${errorMsg}`);
   }
 
-  // Tier 2: Try Google AI Studios API
+  // Tier 2: Try Google AI Studios API (tries all 5 models sequentially)
   try {
-    logger.debug('[Chatbot] [Tier 2/4] Attempting Google AI Studios API');
-    return await callGoogleAIStudiosAPI(messages, userRole, context);
+    logger.debug('[Chatbot] [Tier 2/5] Attempting Google AI Studios API (will try all 5 models sequentially)');
+    return await callGoogleAIStudiosAPIInternal(0, messages, userRole, context);
   } catch (error: any) {
     const errorMsg = error?.message || 'Unknown error';
     errors.push({ api: 'Google AI Studios', error: errorMsg });
-    logger.warn(`[Chatbot] [Tier 2/4] Google AI Studios failed: ${errorMsg}`);
+    logger.warn(`[Chatbot] [Tier 2/5] Google AI Studios failed after trying all ${GOOGLE_AI_MODELS.length} models: ${errorMsg}`);
   }
 
-  // Tier 3: Try OpenAI API
+  // Tier 3: Try OpenAI API (tries all 3 models sequentially)
   try {
-    logger.debug('[Chatbot] [Tier 3/4] Attempting OpenAI API');
-    return await callOpenAIAPI(messages, userRole, context);
+    logger.debug('[Chatbot] [Tier 3/5] Attempting OpenAI API (will try all 3 models sequentially)');
+    return await callOpenAIAPIInternal(0, messages, userRole, context);
   } catch (error: any) {
     const errorMsg = error?.message || 'Unknown error';
     errors.push({ api: 'OpenAI', error: errorMsg });
-    logger.warn(`[Chatbot] [Tier 3/4] OpenAI failed: ${errorMsg}`);
+    logger.warn(`[Chatbot] [Tier 3/5] OpenAI failed after trying all ${OPENAI_MODELS.length} models: ${errorMsg}`);
   }
 
-  // Tier 4: Try Groq API
+  // Tier 4: Try Groq API (tries all 6 models sequentially)
   try {
-    logger.debug('[Chatbot] [Tier 4/4] Attempting Groq API');
-    return await callGroqAPI(messages, userRole, context);
+    logger.debug('[Chatbot] [Tier 4/5] Attempting Groq API (will try all 6 models sequentially)');
+    return await callGroqAPIInternal(0, messages, userRole, context);
   } catch (error: any) {
     const errorMsg = error?.message || 'Unknown error';
     errors.push({ api: 'Groq', error: errorMsg });
-    logger.warn(`[Chatbot] [Tier 4/4] Groq failed: ${errorMsg}`);
+    logger.warn(`[Chatbot] [Tier 4/5] Groq failed after trying all ${GROQ_MODELS.length} models: ${errorMsg}`);
   }
 
-  // Tier 5: Try Deepseek API
+  // Tier 5: Try Deepseek API (tries all 2 models sequentially)
   try {
-    logger.debug('[Chatbot] [Tier 5/5] Attempting Deepseek API');
-    return await callDeepseekAPI(messages, userRole, context);
+    logger.debug('[Chatbot] [Tier 5/5] Attempting Deepseek API (will try all 2 models sequentially)');
+    return await callDeepseekAPIInternal(0, messages, userRole, context);
   } catch (error: any) {
     const errorMsg = error?.message || 'Unknown error';
     errors.push({ api: 'Deepseek', error: errorMsg });
-    logger.warn(`[Chatbot] [Tier 5/5] Deepseek failed: ${errorMsg}`);
+    logger.warn(`[Chatbot] [Tier 5/5] Deepseek failed after trying all ${DEEPSEEK_MODELS.length} models: ${errorMsg}`);
   }
   // All APIs failed - log all errors and throw final error
   logger.error('[Chatbot] All 5 API tiers failed. Errors:', errors);
