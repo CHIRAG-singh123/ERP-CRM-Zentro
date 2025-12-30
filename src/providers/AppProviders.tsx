@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactNode, useState, Suspense } from 'react';
+import { ReactNode, useState, Suspense, useEffect } from 'react';
 
 import { createQueryClient } from '../services/queryClient';
 import { ThemeProvider } from '../context/ThemeContext';
@@ -7,6 +7,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
 import { SocketProvider } from '../context/SocketContext';
 import { logger } from '../utils/logger';
+import { preloadKnowledgeBases } from '../services/chatbotService';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -31,6 +32,14 @@ export function AppProviders({ children }: AppProvidersProps) {
     logger.debug('[AppProviders] Creating query client...');
     return createQueryClient();
   });
+
+  // Pre-load knowledge bases on app start (non-blocking)
+  useEffect(() => {
+    // Load in background, don't block app rendering
+    preloadKnowledgeBases().catch((error) => {
+      logger.warn('[AppProviders] Failed to pre-load knowledge bases:', error);
+    });
+  }, []);
 
   logger.debug('[AppProviders] Rendering providers...');
 

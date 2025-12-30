@@ -1,32 +1,104 @@
 Q: How do I view products?
-A: Navigate to Customers > Products to browse all available products. You can see product images, descriptions, prices, categories, and ratings. Click on any product to view detailed information.
+A: Navigate to Customers > Products to browse all available products. You can see product images, descriptions, prices, categories, and ratings. Click on any product to view detailed information including full descriptions, multiple images, specifications, and customer reviews.
 
 Q: How do I see product details?
-A: From the Products page, click on any product card or product name to view its full details including description, price, category, images, and customer reviews with ratings.
+view product
+product information
+product info
+A: From the Products page, click on any product card or product name to view its full details including description, price, category, images, SKU number, customer reviews with ratings, and related products. The detail page provides comprehensive information to help you make informed decisions.
 
 Q: How do I search for products?
-A: Use the search bar at the top of the Products page to search by product name, category, or description. You can also filter products by category using the category tags.
+search products
+find products
+look for products
+product search
+A: Use the search bar at the top of the Products page to search by product name, category, description, or SKU. You can also filter products by category using the category tags or filters. The search shows results instantly as you type and highlights matching terms.
 
 Q: How do I view my dashboard?
-A: Go to Customers > Dashboard to see your personalized dashboard with product recommendations, recent views, and other relevant information tailored to your account.
+customer dashboard
+my dashboard
+dashboard
+overview
+A: Go to Customers > Dashboard to see your personalized dashboard with product recommendations based on your preferences, recently viewed products, featured products, special offers, and other relevant information tailored to your account. The dashboard provides a quick overview of available products and services.
 
 Q: What information can I see about products?
-A: As a customer, you can view product names, descriptions, prices, categories, product images, SKU numbers, customer ratings, and reviews. This helps you make informed purchasing decisions.
+product information
+what can I see
+product details
+A: As a customer, you can view product names, descriptions, prices, categories, product images, SKU numbers, customer ratings, reviews from other customers, product specifications, availability status, and related products. This comprehensive information helps you make informed purchasing decisions.
 
 Q: How do I filter products by category?
-A: On the Products page, you can click on category tags or use the category filter to show only products from specific categories. This makes it easier to find what you're looking for.
+filter products
+category filter
+products by category
+A: On the Products page, you can click on category tags or use the category filter dropdown to show only products from specific categories. You can also combine multiple filters to narrow down your search. This makes it easier to find exactly what you're looking for.
 
 Q: How do I see product ratings?
-A: Product ratings are displayed on product cards and detail pages. You'll see star ratings and the number of reviews, helping you understand product quality from other customers.
+product ratings
+ratings
+reviews
+customer reviews
+A: Product ratings are displayed on product cards and detail pages. You'll see star ratings (out of 5 stars) and the number of reviews from other customers. Click on reviews to read detailed customer feedback, which helps you understand product quality and customer satisfaction.
 
 Q: How do I navigate the customer portal?
-A: Use the sidebar navigation to access different sections: Dashboard for overview, Products for browsing, and Settings for your account preferences. The interface is designed to be intuitive and user-friendly.
+navigate
+customer portal
+how to use
+getting started
+A: Use the sidebar navigation to access different sections: Dashboard for overview, Products for browsing the catalog, and Settings for your account preferences. The interface is designed to be intuitive and user-friendly. You can also use the search bar to quickly find products or information.
 
 Q: What can I do in my customer account?
-A: As a customer, you can browse products, view detailed product information, see ratings and reviews, access your dashboard, and manage your account settings through the customer portal.
+customer account
+my account
+what can I do
+customer features
+A: As a customer, you can browse products, view detailed product information, see ratings and reviews from other customers, access your personalized dashboard, search and filter products, view product categories, and manage your account settings through the customer portal. You have access to all customer-facing features.
 
 Q: How do I find specific products?
-A: Use the search functionality on the Products page. You can search by product name, description, or category. The search will show matching products instantly as you type.
+find products
+search for product
+locate product
+A: Use the search functionality on the Products page. You can search by product name, description, category, or SKU. The search will show matching products instantly as you type, with highlighted matching terms. You can also use category filters to narrow down results.
+
+Q: How do I view product categories?
+categories
+product categories
+browse categories
+A: Product categories are displayed on the Products page as tags or in a category filter. Click on any category to view all products in that category. Categories help organize products and make it easier to find what you're looking for.
+
+Q: How do I see product images?
+product images
+product photos
+images
+A: Product images are displayed on product cards in the product list and in larger view on the product detail page. You can click on images to view them in full size or browse through multiple product images if available. Images help you see the product before making a decision.
+
+Q: How do I read customer reviews?
+reviews
+customer reviews
+read reviews
+A: Customer reviews are available on product detail pages. Click on a product to view its details, then scroll to the reviews section where you can see star ratings and read detailed feedback from other customers. Reviews help you understand product quality and customer experiences.
+
+Q: How do I contact support?
+contact support
+support
+help
+customer support
+A: You can contact support through the Chat feature if available in the sidebar, or use the Help/Support option in the navigation. You can send messages and questions, and a team member will respond to assist you. If chat is not available, look for contact information or a support form.
+
+Q: How do I chat with support?
+chat
+chatting
+customer chat
+message support
+support chat
+A: Open Chat from the sidebar if available, or use the Help/Support option to start a conversation. You can send messages and attachments, ask questions about products, and a team member will respond to help you. If you don't see Chat, reach out via the provided support email or contact form.
+
+Q: How do I update my account settings?
+account settings
+settings
+my settings
+profile
+A: Navigate to Settings in the customer portal to update your account information, preferences, notification settings, and other personal details. You can modify your profile information, change preferences, and manage how you interact with the system.
 
 Q: Ram Ram
 A: Ram Ram! How can I assist you today with browsing products or using the customer portal?
@@ -67,10 +139,17 @@ A: Jai Ganesh! I'm here to help you browse products and answer any questions. Wh
 Q: Namaste
 A: Namaste! Welcome to the customer portal. How can I help you find products or assist with your account today?
 
-Q: How do I chat with support?
-chat
-chatting
-customer chat
-message support
-A: Open Chat from the sidebar if available, or use the Help/Support option to start a conversation. You can send messages and attachments, and a team member will respond. If you don't see Chat, reach out via the provided support email or contact form.
+Q: Hello
+A: Hello! Welcome to the customer portal. How can I help you browse products today?
 
+Q: Hi
+A: Hi! I'm here to help you find products and answer questions. What are you looking for?
+
+Q: Good morning
+A: Good morning! How can I assist you with our products today?
+
+Q: Good afternoon
+A: Good afternoon! I'm ready to help you find what you need. What can I help you with?
+
+Q: Good evening
+A: Good evening! Welcome! How can I assist you with the customer portal?

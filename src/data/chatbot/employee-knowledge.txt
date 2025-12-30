@@ -1,32 +1,125 @@
 Q: How do I view products?
-A: Navigate to Employees > Products to see all available products. You can view product details, images, prices, and categories. Click on any product to see full information including descriptions and tags.
+A: Navigate to Employees > Products to see all available products in the system. You can view product details, images, prices, categories, SKU numbers, inventory status, and other information. Click on any product to see full information including descriptions, tags, creation dates, and modification history.
 
 Q: How do I create a new product?
-A: Go to Employees > Products and click "Add Product". Fill in the product name, description, price, SKU, category, and upload images. Once saved, the product will be available in the catalog.
+add product
+create product
+new product
+A: Go to Employees > Products and click "Add Product" button. Fill in the product name, description, price, SKU (Stock Keeping Unit), category, and upload images. You can also add tags, set inventory levels, and configure other product settings. Once saved, the product will be immediately available in the catalog for customers to view.
 
 Q: How do I edit a product?
-A: From the Products list, click on the product you want to edit, then click the "Edit" button. Make your changes and click "Update" to save. You can modify all product details including name, price, description, and images.
+edit product
+update product
+modify product
+change product
+A: From the Products list, click on the product you want to edit, then click the "Edit" button. Make your changes to any product details including name, price, description, category, images, SKU, tags, or inventory information. Click "Update" or "Save" to save your changes. All edits are tracked in the system.
 
 Q: How do I view my performance?
-A: Go to Employees > My Performance to see your personal performance metrics including sales data, task completion rates, and other key performance indicators relevant to your role.
+my performance
+performance
+employee performance
+my metrics
+A: Go to Employees > My Performance to see your personal performance metrics including sales data, task completion rates, leads assigned to you, deals you're working on, conversion rates, and other key performance indicators relevant to your role. This helps you track your progress and identify areas for improvement.
 
 Q: How do I manage users?
-A: Navigate to Employees > Users to view and manage customer accounts. You can see customer information, their purchase history, and help them with account-related questions.
+manage users
+view users
+customer accounts
+user management
+A: Navigate to Employees > Users to view and manage customer accounts. You can see customer information, their activity history, help them with account-related questions, update their information if needed, and assist with customer support. You have access to customer data to provide better service.
 
 Q: What can I do with products?
-A: As an employee, you can view all products, create new products, edit existing products, upload product images, set prices and categories, and manage product information. You have full product management capabilities.
+product management
+product features
+product capabilities
+A: As an employee, you can view all products, create new products, edit existing products, upload and manage product images, set prices and categories, manage product information, update inventory levels, add product tags, and control product visibility. You have full product management capabilities within the system.
 
 Q: How do I upload product images?
-A: When creating or editing a product, use the image uploader section. You can drag and drop images or click to browse. Supported formats include JPG, PNG, and other common image formats.
+upload images
+product images
+add images
+image upload
+A: When creating or editing a product, use the image uploader section. You can drag and drop images or click to browse and select files. Supported formats include JPG, JPEG, PNG, and other common image formats. You can upload multiple images per product, set a primary image, and reorder images as needed.
 
 Q: How do I set product prices?
-A: In the product form, enter the price in the Price field. You can use decimal values (e.g., 99.99). The price will be displayed to customers in the product catalog.
+set price
+product price
+pricing
+update price
+A: In the product form, enter the price in the Price field. You can use decimal values (e.g., 99.99, 149.50). The price will be displayed to customers in the product catalog. You can also set sale prices, compare-at prices, and manage pricing for different scenarios if supported by your system configuration.
 
 Q: How do I add product categories?
-A: When creating or editing a product, enter the category name in the Category field. Categories help organize products and make them easier to find for customers.
+add category
+product category
+categories
+A: When creating or editing a product, enter the category name in the Category field or select from existing categories. Categories help organize products and make them easier to find for customers. You can create new categories or use existing ones to maintain consistency in product organization.
 
 Q: How do I view product details?
-A: Click on any product from the Products list to view its complete details including name, description, price, SKU, category, images, tags, and creation information.
+product details
+product info
+view product info
+A: Click on any product from the Products list to view its complete details including name, description, price, SKU, category, images, tags, creation date, last modified date, and other relevant information. The detail view provides comprehensive information for product management and customer support.
+
+Q: How do I manage inventory?
+inventory
+stock levels
+inventory management
+stock management
+A: When creating or editing products, you can set and update inventory levels, track stock quantities, and manage product availability. The system tracks inventory changes and you can view current stock levels for each product. This helps ensure products are available when customers need them.
+
+Q: How do I chat with teammates?
+chat
+chatting
+employee chat
+team chat
+messaging
+teammates
+A: Open Chat from the Workspace sidebar to message teammates and colleagues. Select a user or search their name, then send messages or attachments from the conversation panel. Use the thread list to switch between recent chats and continue ongoing conversations. Chat helps you collaborate with your team in real-time.
+
+Q: How do I manage contacts?
+contacts
+view contacts
+edit contacts
+contact management
+manage contacts
+A: Go to Contacts in the Workspace to see customer or account records. Use search and filters to find specific contacts, click a contact to view details, and choose Edit to update information, assign owners, link to companies, or add notes. If you don't see Contacts or certain features, ask an admin to grant access.
+
+Q: How do I manage companies?
+companies
+organizations
+manage companies
+A: Navigate to Companies in the Workspace to view and manage client organizations. You can view company details, link contacts to companies, update company information, assign account managers, and track company-related activities. This helps you manage business relationships effectively.
+
+Q: How do I view leads?
+view leads
+leads
+lead pipeline
+A: Go to Leads in the Workspace to view the lead pipeline. You can see leads in Kanban board format with different stages (New, Contacted, Qualified, Won), view lead details, add notes, update lead status, and track lead progress. Leads help you manage potential customers and sales opportunities.
+
+Q: How do I manage deals?
+deals
+opportunities
+deal management
+A: Navigate to Deals in the Workspace to manage sales opportunities. You can create deals, set deal values, track expected close dates, update deal status, add notes and activities, and view deal progress. Deals help you track sales opportunities and revenue potential.
+
+Q: How do I create and manage tasks?
+tasks
+task management
+create task
+assign task
+A: Go to Tasks in the Workspace to create, assign, and track tasks. You can create tasks for yourself or assign them to team members, set due dates and priorities, add descriptions and attachments, track completion status, and view task analytics. Tasks help you stay organized and track work progress.
+
+Q: How do I use the dashboard?
+dashboard
+employee dashboard
+overview
+A: Access the Dashboard from the main navigation to see your personalized overview including assigned tasks, recent leads and deals, performance metrics, upcoming deadlines, and quick access to frequently used features. The dashboard provides a quick snapshot of your work and priorities.
+
+Q: How do I search for information?
+search
+find
+lookup
+A: Use the global search bar at the top of the interface to search across products, contacts, companies, leads, deals, and other system data. The search uses intelligent matching and shows results as you type. You can filter results by type and access items directly from search results.
 
 Q: Ram Ram
 A: Ram Ram! How can I assist you today with product management or employee tasks?
@@ -67,16 +160,17 @@ A: Jai Ganesh! Welcome! I'm ready to assist you with product management and empl
 Q: Namaste
 A: Namaste! How can I help you manage products or handle employee tasks today? Feel free to ask me anything.
 
-Q: How do I chat with teammates?
-chat
-chatting
-chating
-employee chat
-A: Open Chat from the Workspace sidebar to message teammates. Select a user or search their name, then send messages or attachments from the conversation panel. Use the thread list to switch between recent chats.
+Q: Hello
+A: Hello! Welcome! How can I assist you with product management or employee tasks today?
 
-Q: How do I manage contacts?
-contacts
-view contacts
-edit contacts
-A: Go to Contacts in the Workspace to see customer or account records. Use search and filters, click a contact to view details, and choose Edit to update information or assign owners. If you don't see Contacts, ask an admin to grant access.
+Q: Hi
+A: Hi! I'm here to help you with your work. What do you need assistance with?
 
+Q: Good morning
+A: Good morning! How can I help you manage products or handle tasks today?
+
+Q: Good afternoon
+A: Good afternoon! I'm ready to assist you with product management and employee functions. What can I help with?
+
+Q: Good evening
+A: Good evening! How can I assist you with your work today?

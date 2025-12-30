@@ -8,6 +8,22 @@ import type { ChatMessage } from '../types/chatbot';
 const STORAGE_PREFIX = 'chatbot_history_';
 const SESSION_USER_KEY = 'chatbot_session_user';
 
+// Request deduplication: Track in-flight requests
+const inFlightRequests = new Map<string, Promise<string>>();
+
+// Simple hash function for query deduplication
+function hashQuery(query: string, role: string): string {
+  const normalized = query.trim().toLowerCase();
+  const combined = `${normalized}::${role}`;
+  let hash = 0;
+  for (let i = 0; i < combined.length; i++) {
+    const char = combined.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return `req_${Math.abs(hash).toString(36)}`;
+}
+
 function getStorageKey(role: string): string {
   return `${STORAGE_PREFIX}${role}`;
 }
@@ -118,10 +134,37 @@ export function useChatbot() {
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
 
+    const trimmedContent = content.trim();
+    const requestHash = hashQuery(trimmedContent, validRole);
+
+    // Check if same request is already in-flight (deduplication)
+    const existingRequest = inFlightRequests.get(requestHash);
+    if (existingRequest) {
+      logger.debug('[useChatbot] Duplicate request detected, reusing existing promise');
+      try {
+        const response = await existingRequest;
+        const assistantMessage: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: response,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, {
+          id: `user-${Date.now()}`,
+          role: 'user',
+          content: trimmedContent,
+          timestamp: new Date(),
+        }, assistantMessage]);
+      } catch (error) {
+        logger.warn('[useChatbot] Reused request failed:', error);
+      }
+      return;
+    }
+
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: content.trim(),
+      content: trimmedContent,
       timestamp: new Date(),
     };
 
@@ -130,13 +173,13 @@ export function useChatbot() {
       setIsLoading(true);
       setError(null);
 
-      // Process message asynchronously
-      (async () => {
+      // Create the request promise
+      const requestPromise = (async (): Promise<string> => {
         try {
           // Pre-classify query for routing and API context
-          const classification = classifyQueryWithConfidence(content);
-          const questionType = getQuestionType(content);
-          const wordCount = content.trim().split(/\s+/).length;
+          const classification = classifyQueryWithConfidence(trimmedContent);
+          const questionType = getQuestionType(trimmedContent);
+          const wordCount = trimmedContent.split(/\s+/).length;
 
           // First, try to find answer in role-specific knowledge base
           let response: string | null = null;
@@ -148,7 +191,7 @@ export function useChatbot() {
             // - Employee => employee-knowledge.txt only
             // - Customer => customer-knowledge.txt only
             // - Unauthenticated => customer-knowledge.txt only
-            response = await findKnowledgeBaseAnswer(content, validRole, isUserAuthenticated);
+            response = await findKnowledgeBaseAnswer(trimmedContent, validRole, isUserAuthenticated);
           } catch (kbError) {
             logger.warn('[useChatbot] Knowledge base lookup failed:', kbError);
           }
@@ -208,6 +251,21 @@ export function useChatbot() {
             response = "I apologize, but I'm unable to process your request at the moment. Please try again later.";
           }
 
+          return response;
+        } catch (error) {
+          logger.error('[useChatbot] Error sending message:', error);
+          throw error;
+        }
+      })();
+
+      // Store the promise for deduplication
+      inFlightRequests.set(requestHash, requestPromise);
+
+      // Process message asynchronously
+      (async () => {
+        try {
+          const response = await requestPromise;
+
           const assistantMessage: ChatMessage = {
             id: `assistant-${Date.now()}`,
             role: 'assistant',
@@ -230,6 +288,8 @@ export function useChatbot() {
           setMessages((current) => [...current, errorMessage]);
         } finally {
           setIsLoading(false);
+          // Remove from in-flight requests
+          inFlightRequests.delete(requestHash);
         }
       })();
 

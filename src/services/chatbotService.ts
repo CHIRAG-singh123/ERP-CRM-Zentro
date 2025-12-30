@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger';
+import { getCachedResponse, cacheResponse } from './api/chatbotCache';
 
 interface KnowledgeBase {
   questions: string[];
@@ -173,10 +174,15 @@ const ENTITY_KEYWORDS: Record<string, string[]> = {
 
 
 type QueryType = 'greeting' | 'erp' | 'general' | 'unclear';
+type QueryIntent = 'question' | 'command' | 'information_request' | 'troubleshooting' | 'general';
+type ComplexityLevel = 1 | 2 | 3 | 4 | 5; // 1=Simple, 5=Complex
 
 interface ClassifiedQuery {
   type: QueryType;
   confidence: number; // 0-1
+  intent?: QueryIntent;
+  complexity?: ComplexityLevel;
+  urgency?: 'low' | 'medium' | 'high';
 }
 
 function isERPCRMRelated(query: string): boolean {
@@ -237,41 +243,177 @@ function containsAny(termList: string[], normalized: string): boolean {
   return termList.some((kw) => normalized.includes(kw));
 }
 
-export function classifyQueryWithConfidence(query: string): ClassifiedQuery {
-  const normalized = normalizeText(query);
+/**
+ * Extract query intent
+ */
+function extractIntent(query: string, _normalized: string): QueryIntent {
+  // Command patterns
+  if (/\b(show|display|list|get|fetch|find|search|create|add|edit|delete|update|remove|send|upload|download)\b/i.test(query)) {
+    return 'command';
+  }
 
-  if (isGreetingType(query)) return { type: 'greeting', confidence: 0.9 };
+  // Troubleshooting patterns
+  if (/\b(problem|issue|error|bug|fix|broken|not working|doesn't work|help|stuck|can't|unable)\b/i.test(query)) {
+    return 'troubleshooting';
+  }
+
+  // Information request patterns
+  if (/\b(what|which|who|where|when|how many|how much|tell me|explain|describe|information about)\b/i.test(query)) {
+    return 'information_request';
+  }
+
+  // Question patterns
+  if (/\b(how|why|can|should|would|could|is|are|does|do|will)\b/i.test(query) && query.includes('?')) {
+    return 'question';
+  }
+
+  return 'general';
+}
+
+/**
+ * Calculate complexity score (1-5)
+ */
+function calculateComplexity(query: string, normalized: string, wordCount: number): ComplexityLevel {
+  let score = 1;
+
+  // Length-based complexity
+  if (wordCount > 30) score += 2;
+  else if (wordCount > 15) score += 1;
+
+  // Technical terms increase complexity
+  const technicalTerms = normalized.match(/\b(algorithm|implementation|architecture|optimization|configuration|integration)\b/g);
+  if (technicalTerms && technicalTerms.length > 0) score += 1;
+
+  // Multiple questions or clauses
+  const questionMarks = (query.match(/\?/g) || []).length;
+  if (questionMarks > 1) score += 1;
+
+  // Reasoning indicators
+  if (/\b(why|because|reason|explain|analyze|compare|difference|relationship)\b/i.test(query)) {
+    score += 1;
+  }
+
+  // Multi-step operations
+  if (/\b(and then|after that|next|also|additionally|furthermore)\b/i.test(query)) {
+    score += 1;
+  }
+
+  // Cap at 5
+  return Math.min(5, Math.max(1, score)) as ComplexityLevel;
+}
+
+/**
+ * Determine urgency level
+ */
+function determineUrgency(query: string, _normalized: string): 'low' | 'medium' | 'high' {
+  // High urgency indicators
+  if (/\b(urgent|asap|immediately|right now|critical|important|emergency|broken|down|error)\b/i.test(query)) {
+    return 'high';
+  }
+
+  // Medium urgency indicators
+  if (/\b(soon|quickly|fast|need|required|necessary|important)\b/i.test(query)) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+/**
+ * Simple query rewriting - fix common issues
+ */
+function rewriteQuery(query: string): string {
+  let rewritten = query.trim();
+
+  // Fix common typos (basic)
+  const commonTypos: Record<string, string> = {
+    'teh': 'the',
+    'adn': 'and',
+    'taht': 'that',
+    'recieve': 'receive',
+    'seperate': 'separate',
+  };
+
+  for (const [typo, correct] of Object.entries(commonTypos)) {
+    rewritten = rewritten.replace(new RegExp(`\\b${typo}\\b`, 'gi'), correct);
+  }
+
+  // Add question mark if it's clearly a question but missing punctuation
+  if (!rewritten.endsWith('?') && !rewritten.endsWith('.') && !rewritten.endsWith('!')) {
+    if (/\b(what|how|why|when|where|who|can|could|should|would|is|are|does|do|will)\b/i.test(rewritten)) {
+      rewritten += '?';
+    }
+  }
+
+  return rewritten;
+}
+
+export function classifyQueryWithConfidence(query: string): ClassifiedQuery {
+  // Rewrite query first
+  const rewrittenQuery = rewriteQuery(query);
+  const normalized = normalizeText(rewrittenQuery);
+  const wordCount = normalized.split(' ').filter(Boolean).length;
+
+  // Base classification
+  let type: QueryType = 'general';
+  let confidence = 0.6;
+
+  if (isGreetingType(rewrittenQuery)) {
+    return {
+      type: 'greeting',
+      confidence: 0.9,
+      intent: 'general',
+      complexity: 1,
+      urgency: 'low',
+    };
+  }
 
   // ERP phrase patterns
   if (ERP_PHRASE_PATTERNS.some((p) => normalized.includes(p))) {
-    return { type: 'erp', confidence: 0.9 };
+    type = 'erp';
+    confidence = 0.9;
   }
-
   // Role/action/entity semantic patterns
-  for (const pattern of ERP_ENTITY_ACTION_PATTERNS) {
-    const actionHit = pattern.actions.some((a) => normalized.includes(a));
-    const entityHit = pattern.entities.some((e) => normalized.includes(e));
-    if (actionHit && entityHit) {
-      return { type: 'erp', confidence: 0.85 };
+  else {
+    for (const pattern of ERP_ENTITY_ACTION_PATTERNS) {
+      const actionHit = pattern.actions.some((a) => normalized.includes(a));
+      const entityHit = pattern.entities.some((e) => normalized.includes(e));
+      if (actionHit && entityHit) {
+        type = 'erp';
+        confidence = 0.85;
+        break;
+      }
     }
   }
 
   if (containsAny(NEGATIVE_INDICATORS, normalized)) {
-    return { type: 'general', confidence: 0.9 };
+    type = 'general';
+    confidence = 0.9;
+  } else if (containsAny(PROGRAMMING_KEYWORDS, normalized)) {
+    type = 'general';
+    confidence = 0.85;
+  } else if (isERPCRMRelated(rewrittenQuery)) {
+    type = 'erp';
+    confidence = 0.85;
   }
 
-  if (containsAny(PROGRAMMING_KEYWORDS, normalized)) {
-    return { type: 'general', confidence: 0.85 };
+  if (wordCount <= 3) {
+    type = 'unclear';
+    confidence = 0.4;
   }
 
-  if (isERPCRMRelated(query)) {
-    return { type: 'erp', confidence: 0.85 };
-  }
+  // Extract additional metadata
+  const intent = extractIntent(rewrittenQuery, normalized);
+  const complexity = calculateComplexity(rewrittenQuery, normalized, wordCount);
+  const urgency = determineUrgency(rewrittenQuery, normalized);
 
-  const wordCount = normalized.split(' ').filter(Boolean).length;
-  if (wordCount <= 3) return { type: 'unclear', confidence: 0.4 };
-
-  return { type: 'general', confidence: 0.6 };
+  return {
+    type,
+    confidence,
+    intent,
+    complexity,
+    urgency,
+  };
 }
 
 /**
@@ -319,7 +461,7 @@ async function loadKnowledgeBaseFromFile(role: 'admin' | 'employee' | 'customer'
 }
 
 /**
- * Load all knowledge bases
+ * Load all knowledge bases (with eager loading support)
  */
 async function loadAllKnowledgeBases(): Promise<void> {
   if (allKnowledgeLoaded) return;
@@ -336,16 +478,19 @@ async function loadAllKnowledgeBases(): Promise<void> {
     if (adminContent) {
       adminKnowledge = attachEntities(parseKnowledgeBase(adminContent));
       adminKnowledge.forEach(entry => entry.role = 'admin');
+      logger.debug(`[ChatbotService] Loaded ${adminKnowledge.length} admin knowledge base entries`);
     }
     
     if (employeeContent) {
       employeeKnowledge = attachEntities(parseKnowledgeBase(employeeContent));
       employeeKnowledge.forEach(entry => entry.role = 'employee');
+      logger.debug(`[ChatbotService] Loaded ${employeeKnowledge.length} employee knowledge base entries`);
     }
     
     if (customerContent) {
       customerKnowledge = attachEntities(parseKnowledgeBase(customerContent));
       customerKnowledge.forEach(entry => entry.role = 'customer');
+      logger.debug(`[ChatbotService] Loaded ${customerKnowledge.length} customer knowledge base entries`);
     }
     
     allKnowledgeLoaded = true;
@@ -356,9 +501,29 @@ async function loadAllKnowledgeBases(): Promise<void> {
 }
 
 /**
- * Get all knowledge bases combined
+ * Eagerly pre-load all knowledge bases on app start
+ * Call this early in the app lifecycle for better performance
  */
-async function getAllKnowledgeBases(): Promise<KnowledgeBase[]> {
+export async function preloadKnowledgeBases(): Promise<void> {
+  if (allKnowledgeLoaded) {
+    logger.debug('[ChatbotService] Knowledge bases already loaded');
+    return;
+  }
+
+  logger.debug('[ChatbotService] Pre-loading all knowledge bases...');
+  try {
+    await loadAllKnowledgeBases();
+    logger.debug('[ChatbotService] Knowledge bases pre-loaded successfully');
+  } catch (error) {
+    logger.error('[ChatbotService] Error pre-loading knowledge bases:', error);
+  }
+}
+
+/**
+ * Get all knowledge bases combined
+ * @deprecated Not currently used, kept for potential future use
+ */
+async function _getAllKnowledgeBases(): Promise<KnowledgeBase[]> {
   await loadAllKnowledgeBases();
   
   const allKnowledge: KnowledgeBase[] = [];
@@ -578,10 +743,20 @@ export async function findKnowledgeBaseAnswer(
   isAuthenticated: boolean = true
 ): Promise<string | null> {
   try {
+    // Check cache first
+    const cacheKey = { role, isAuthenticated };
+    const cached = getCachedResponse(query, role, cacheKey);
+    if (cached) {
+      logger.debug('[ChatbotService] Returning cached KB response');
+      return cached;
+    }
+
     // Step 1: For unauthenticated users, check if query is about admin/employee features
     if (!isAuthenticated && isAdminEmployeeQuery(query)) {
       logger.debug('[ChatbotService] Unauthenticated user asking about admin/employee features - refusing');
-      return "I'm sorry, but I can only provide information about customer-facing features. For administrative or employee-related questions, please sign in with the appropriate account. You can use the 'Sign In' button in the top right corner to access those features.";
+      const response = "I'm sorry, but I can only provide information about customer-facing features. For administrative or employee-related questions, please sign in with the appropriate account. You can use the 'Sign In' button in the top right corner to access those features.";
+      cacheResponse(query, response, role, cacheKey, 'erp');
+      return response;
     }
 
     // Step 2: Classify question type with confidence
@@ -664,7 +839,10 @@ export async function findKnowledgeBaseAnswer(
     
     if (bestMatch && bestScore >= threshold) {
       logger.debug(`[ChatbotService] Found match with score: ${bestScore.toFixed(2)} (role: ${targetRole}, isGreeting: ${isGreeting}, type: ${queryType}, classificationConfidence: ${confidence.toFixed(2)})`);
-      return bestMatch.answer;
+      const answer = bestMatch.answer;
+      // Cache the response
+      cacheResponse(query, answer, role, cacheKey, queryType);
+      return answer;
     }
     
     logger.debug(`[ChatbotService] No match found in ${targetRole} knowledge base (best score: ${bestScore.toFixed(2)}, threshold: ${threshold}, isGreeting: ${isGreeting}, type: ${queryType}, classificationConfidence: ${confidence.toFixed(2)})`);
