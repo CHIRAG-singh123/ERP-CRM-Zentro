@@ -6,6 +6,7 @@ import Invoice from '../models/Invoice.js';
 import Quote from '../models/Quote.js';
 import Task from '../models/Task.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { generateDashboardPDF } from '../utils/dashboardPdfGenerator.js';
 
 // @desc    Get dashboard KPIs
 // @route   GET /api/reports/kpis
@@ -268,6 +269,212 @@ export const getKPIs = asyncHandler(async (req, res) => {
     overdueTasks,
     weeklyTasks,
   });
+});
+
+// @desc    Export dashboard as PDF
+// @route   GET /api/reports/dashboard/export
+// @access  Private (Admin and Employee only)
+export const exportDashboardPDF = asyncHandler(async (req, res) => {
+  // Check if user has required role
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') {
+    return res.status(403).json({ error: 'Access denied. Admin or Employee role required.' });
+  }
+
+  // Fetch dashboard data using same logic as getKPIs
+  const tenantFilter = req.user.tenantId ? { tenantId: req.user.tenantId } : {};
+  const ownerFilter = (req.user.role !== 'admin' && req.user.role !== 'employee') ? { ownerId: req.user._id } : {};
+
+  // Extract filter parameters from query
+  const { startDate, endDate, ownerId, stage } = req.query;
+
+  // Build dynamic filter
+  const dynamicFilter = { ...tenantFilter };
+  
+  // Owner filter: if ownerId is provided and user is admin/employee, use it; otherwise use default ownerFilter
+  if (ownerId && (req.user.role === 'admin' || req.user.role === 'employee')) {
+    dynamicFilter.ownerId = ownerId;
+  } else if (req.user.role !== 'admin' && req.user.role !== 'employee') {
+    Object.assign(dynamicFilter, ownerFilter);
+  }
+
+  // Date range filter
+  const dateFilter = {};
+  if (startDate || endDate) {
+    if (startDate) dateFilter.$gte = new Date(startDate);
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      dateFilter.$lte = endDateTime;
+    }
+  }
+
+  // Open deals count and value
+  const openDeals = await Deal.aggregate([
+    {
+      $match: {
+        ...tenantFilter,
+        ...ownerFilter,
+        stage: { $nin: ['Closed Won', 'Closed Lost'] },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        count: { $sum: 1 },
+        totalValue: { $sum: '$value' },
+      },
+    },
+  ]);
+
+  // Deals by stage (with filters applied)
+  const dealsByStageFilter = { ...dynamicFilter };
+  if (Object.keys(dateFilter).length > 0) {
+    dealsByStageFilter.createdAt = dateFilter;
+  }
+  if (stage) {
+    dealsByStageFilter.stage = stage;
+  }
+
+  const allStages = ['Prospecting', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
+  
+  const dealsByStageResult = await Deal.aggregate([
+    {
+      $match: dealsByStageFilter,
+    },
+    {
+      $group: {
+        _id: '$stage',
+        count: { $sum: 1 },
+        totalValue: { $sum: '$value' },
+      },
+    },
+  ]);
+
+  // Ensure all stages are present (even with 0 count)
+  const dealsByStageMap = new Map(dealsByStageResult.map(item => [item._id, item]));
+  const dealsByStage = allStages.map(stageName => ({
+    stage: stageName,
+    count: dealsByStageMap.get(stageName)?.count || 0,
+    totalValue: dealsByStageMap.get(stageName)?.totalValue || 0,
+  }));
+
+  // Leads by source (with filters applied)
+  const leadsBySourceFilter = { ...dynamicFilter };
+  if (Object.keys(dateFilter).length > 0) {
+    leadsBySourceFilter.createdAt = dateFilter;
+  }
+
+  const leadsBySource = await Lead.aggregate([
+    {
+      $match: leadsBySourceFilter,
+    },
+    {
+      $group: {
+        _id: '$source',
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  // Conversion rates
+  const totalLeads = await Lead.countDocuments({ ...tenantFilter, ...ownerFilter });
+  const convertedLeads = await Lead.countDocuments({
+    ...tenantFilter,
+    ...ownerFilter,
+    status: 'Converted',
+  });
+  const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+
+  // Total invoices (all invoices)
+  const totalInvoices = await Invoice.aggregate([
+    {
+      $match: tenantFilter,
+    },
+    {
+      $group: {
+        _id: null,
+        count: { $sum: 1 },
+        totalAmount: { $sum: '$total' },
+      },
+    },
+  ]);
+
+  // Task filter: Employees can only see tasks assigned to them
+  const taskFilter = { ...tenantFilter };
+  if (req.user.role !== 'admin') {
+    taskFilter.assignedTo = { $in: [req.user._id] };
+  }
+
+  // Weekly tasks: tasks due this week + overdue tasks (deduplicated)
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), diff);
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const weekTasks = await Task.countDocuments({
+    ...taskFilter,
+    dueDate: {
+      $gte: weekStart,
+      $lte: weekEnd,
+    },
+  });
+
+  const overdueCount = await Task.countDocuments({
+    ...taskFilter,
+    status: { $ne: 'Done' },
+    dueDate: { $lt: new Date() },
+  });
+
+  const weekAndOverdue = await Task.countDocuments({
+    ...taskFilter,
+    status: { $ne: 'Done' },
+    dueDate: {
+      $gte: weekStart,
+      $lte: weekEnd,
+      $lt: new Date(),
+    },
+  });
+
+  const weeklyTasks = weekTasks + overdueCount - weekAndOverdue;
+
+  // Prepare dashboard data
+  const dashboardData = {
+    openDeals: {
+      count: openDeals[0]?.count || 0,
+      totalValue: openDeals[0]?.totalValue || 0,
+    },
+    dealsByStage,
+    leadsBySource: leadsBySource.map((item) => ({
+      source: item._id,
+      count: item.count,
+    })),
+    conversionRate: Math.round(conversionRate * 10) / 10,
+    totalInvoices: {
+      count: totalInvoices[0]?.count || 0,
+      totalAmount: totalInvoices[0]?.totalAmount || 0,
+    },
+    weeklyTasks,
+  };
+
+  // Generate PDF
+  try {
+    const pdfBuffer = await generateDashboardPDF(dashboardData);
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=dashboard-snapshot.pdf');
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    // Send PDF
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating dashboard PDF:', error);
+    res.status(500).json({ error: 'Failed to generate dashboard PDF', message: error.message });
+  }
 });
 
 // @desc    Get lead conversion analytics

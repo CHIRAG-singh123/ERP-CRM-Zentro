@@ -13,9 +13,11 @@ import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import { OverdueTasksModal } from '../../components/tasks/OverdueTasksModal';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useToast } from '../../context/ToastContext';
 import { formatCurrency } from '../../utils/formatting';
 import { DealsByStagePieChart, type ChartFilterValues } from '../../components/dashboard/DealsByStagePieChart';
 import { LeadsBySourceBarChart } from '../../components/dashboard/LeadsBySourceBarChart';
+import { exportDashboardPDF } from '../../services/api/dashboard';
 
 export function DashboardPage() {
   const [filters, setFilters] = useState<ChartFilterValues>({});
@@ -23,11 +25,36 @@ export function DashboardPage() {
   const { user } = useAuth();
   const { subscribeToTasks, onDashboardMetricsUpdated } = useSocket();
   const queryClient = useQueryClient();
+  const { success, error: showError } = useToast();
   const [showOverdueModal, setShowOverdueModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const isAdmin = user?.role === 'admin';
 
   const handleFilterChange = (newFilters: ChartFilterValues) => {
     setFilters(newFilters);
+  };
+
+  const handleExportSnapshot = async () => {
+    if (isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const blob = await exportDashboardPDF();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dashboard-snapshot-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      success('Dashboard snapshot exported successfully!');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to export dashboard snapshot';
+      showError(errorMessage);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Only admin and employees can access this dashboard
@@ -116,17 +143,19 @@ export function DashboardPage() {
           actions={
             <>
               <motion.button
-                className="button-enhanced flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] glow-purple"
-                whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(179, 156, 208, 0.3)' }}
-                whileTap={{ scale: 0.95 }}
+                className="button-enhanced flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] glow-purple disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: isExporting ? 1 : 1.05, boxShadow: isExporting ? 'none' : '0 10px 30px rgba(179, 156, 208, 0.3)' }}
+                whileTap={{ scale: isExporting ? 1 : 0.95 }}
+                onClick={handleExportSnapshot}
+                disabled={isExporting}
               >
                 <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 3 }}
+                  animate={isExporting ? { rotate: 360 } : { rotate: [0, 360] }}
+                  transition={isExporting ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 3 }}
                 >
                   <Download className="h-4 w-4" />
                 </motion.div>
-                Export Snapshot
+                {isExporting ? 'Exporting...' : 'Export Snapshot'}
               </motion.button>
               <motion.button
                 className="button-enhanced rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-300 hover:bg-[#C3ADD9] glow-purple"

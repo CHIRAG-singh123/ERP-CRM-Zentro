@@ -235,7 +235,7 @@ export const companiesToCSV = (companies) => {
  * @returns {string} CSV string
  */
 export const contactsToCSV = (contacts) => {
-  const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Job Title', 'Department', 'Company', 'Street', 'City', 'State', 'Zip Code', 'Country'];
+  const headers = ['firstName', 'lastName', 'email', 'phone', 'jobTitle', 'department', 'companyName', 'street', 'city', 'state', 'zipCode', 'country'];
   const rows = contacts.map((contact) => {
     const primaryEmail = contact.emails?.find((e) => e.isPrimary)?.email || contact.emails?.[0]?.email || '';
     const primaryPhone = contact.phones?.find((p) => p.isPrimary)?.phone || contact.phones?.[0]?.phone || '';
@@ -257,7 +257,7 @@ export const contactsToCSV = (contacts) => {
     ].map((field) => `"${String(field).replace(/"/g, '""')}"`).join(',');
   });
 
-  return [headers.map((h) => `"${h}"`).join(','), ...rows].join('\n');
+  return [headers.join(','), ...rows].join('\n');
 };
 
 /**

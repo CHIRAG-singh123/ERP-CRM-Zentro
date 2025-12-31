@@ -181,8 +181,13 @@ export const importContacts = asyncHandler(async (req, res) => {
 
 // @desc    Export contacts to CSV
 // @route   GET /api/contacts/export
-// @access  Private
+// @access  Private (Admin and Employee only)
 export const exportContacts = asyncHandler(async (req, res) => {
+  // Check if user has required role
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') {
+    return res.status(403).json({ error: 'Access denied. Admin or Employee role required.' });
+  }
+
   const query = {};
   if (req.user.tenantId) {
     query.tenantId = req.user.tenantId;
