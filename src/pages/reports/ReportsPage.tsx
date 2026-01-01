@@ -14,12 +14,16 @@ import { CompanyMetricsOverview } from '../../components/reports/CompanyMetricsO
 import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import { DealsByStagePieChart } from '../../components/dashboard/DealsByStagePieChart';
 import type { ChartFilterValues } from '../../components/common/ChartFilterDropdown';
+import { exportReportsPDF } from '../../services/api/reports';
+import { useToast } from '../../context/ToastContext';
 
 export function ReportsPage() {
   const [, setFilters] = useState<ChartFilterValues>({});
   const { data: kpisData, isLoading: isLoadingKPIs } = useKPIs();
   const { data: conversionData, isLoading: isLoadingConversion } = useLeadConversionAnalytics();
   const { data: crossEntityData, isLoading: isLoadingCrossEntity } = useCrossEntityAnalytics();
+  const { success, error: showError } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
 
   const isLoading = isLoadingKPIs || isLoadingConversion || isLoadingCrossEntity;
 
@@ -27,9 +31,27 @@ export function ReportsPage() {
     setFilters(newFilters);
   };
 
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Export reports');
+  const handleExport = async () => {
+    if (isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const blob = await exportReportsPDF();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `reports-analytics-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      success('Reports exported successfully!');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to export reports';
+      showError(errorMessage);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -51,17 +73,18 @@ export function ReportsPage() {
             <>
               <motion.button
                 onClick={handleExport}
-                className="button-enhanced flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] glow-purple"
-                whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(179, 156, 208, 0.3)' }}
-                whileTap={{ scale: 0.95 }}
+                disabled={isExporting}
+                className="button-enhanced flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] glow-purple disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: isExporting ? 1 : 1.05, boxShadow: isExporting ? 'none' : '0 10px 30px rgba(179, 156, 208, 0.3)' }}
+                whileTap={{ scale: isExporting ? 1 : 0.95 }}
               >
                 <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 3 }}
+                  animate={isExporting ? { rotate: 360 } : { rotate: [0, 360] }}
+                  transition={isExporting ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 3 }}
                 >
                   <Download className="h-4 w-4" />
                 </motion.div>
-                Export
+                {isExporting ? 'Exporting...' : 'Export'}
               </motion.button>
             </>
           }

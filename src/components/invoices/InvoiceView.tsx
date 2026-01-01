@@ -34,6 +34,14 @@ export function InvoiceView({ invoice }: InvoiceViewProps) {
             </p>
           </div>
           <div>
+            <h3 className="mb-2 text-sm font-semibold text-white/60">Phone Number</h3>
+            <p className="text-white">
+              {invoice.phone && invoice.phone.number
+                ? `${invoice.phone.countryCode || ''} ${invoice.phone.number}`.trim()
+                : 'N/A'}
+            </p>
+          </div>
+          <div>
             <h3 className="mb-2 text-sm font-semibold text-white/60">Amount Paid</h3>
             <p className="text-white">{formatCurrency(invoice.amountPaid)}</p>
           </div>

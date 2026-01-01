@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 
 export const createUser = async (userData) => {
-  const { name, email, password } = userData;
+  const { name, email, password, phone } = userData;
 
   // Check if user already exists
   const existingUser = await User.findOne({ email });
@@ -15,12 +15,22 @@ export const createUser = async (userData) => {
   const passwordHash = await bcrypt.hash(password, saltRounds);
 
   // Create user with customer role (only customers can register)
-  const user = await User.create({
+  const userDataToCreate = {
     name,
     email,
     passwordHash,
     role: 'customer',
-  });
+  };
+
+  // Add phone if provided
+  if (phone && phone.countryCode && phone.number) {
+    userDataToCreate.phone = {
+      countryCode: phone.countryCode,
+      number: phone.number.trim(),
+    };
+  }
+
+  const user = await User.create(userDataToCreate);
 
   return user;
 };

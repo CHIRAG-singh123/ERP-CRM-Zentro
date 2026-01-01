@@ -6,6 +6,7 @@ import { DataGridPlaceholder } from '../../components/common/DataGridPlaceholder
 import { PageHeader } from '../../components/common/PageHeader';
 import { AvatarUploader } from '../../components/settings/AvatarUploader';
 import { UserAvatar } from '../../components/common/UserAvatar';
+import { PhoneInput } from '../../components/common/PhoneInput';
 import { useAuth } from '../../context/AuthContext';
 import { useAllUsers, useUpdateUser, useDeleteUser, useToggleUserStatus, useUploadUserAvatar } from '../../hooks/queries/useUsers';
 import { logger } from '../../utils/logger';
@@ -17,6 +18,10 @@ interface UserFormData {
   role: string;
   isActive: boolean;
   password: string;
+  phone?: {
+    countryCode: string;
+    number: string;
+  };
   profile: {
     timezone: string;
     companyInfo: string;
@@ -82,6 +87,10 @@ export function UsersListPage() {
       role: user.role,
       isActive: user.isActive,
       password: '',
+      phone: {
+        countryCode: user.phone?.countryCode || '+1',
+        number: user.phone?.number || '',
+      },
       profile: {
         timezone: user.profile?.timezone || 'UTC',
         companyInfo: user.profile?.companyInfo || '',
@@ -100,6 +109,7 @@ export function UsersListPage() {
         email: formData.email,
         role: formData.role,
         isActive: formData.isActive,
+        phone: formData.phone,
         profile: {
           timezone: formData.profile.timezone,
           companyInfo: formData.profile.companyInfo,
@@ -459,6 +469,14 @@ export function UsersListPage() {
                   }
                   rows={3}
                   className="w-full rounded-lg border border-white/10 bg-[#1A1A1C]/70 px-3 py-2 text-white focus:border-[#B39CD0] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Phone Number</label>
+                <PhoneInput
+                  value={formData.phone || { countryCode: '+1', number: '' }}
+                  onChange={(phone: { countryCode: string; number: string }) => setFormData({ ...formData, phone })}
                 />
               </div>
 

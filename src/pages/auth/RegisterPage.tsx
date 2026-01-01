@@ -4,12 +4,14 @@ import { useAuth } from '../../context/AuthContext';
 import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
 import { getGoogleProfile, completeGoogleSignup } from '../../services/api/auth';
 import { CheckCircle } from 'lucide-react';
+import { PhoneInput } from '../../components/common/PhoneInput';
 
 export function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState({ countryCode: '+1', number: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleSignup, setIsGoogleSignup] = useState(false);
@@ -77,6 +79,12 @@ export function RegisterPage() {
       return;
     }
 
+    // Validate phone number
+    if (!phone.countryCode || !phone.number || phone.number.trim().length < 7) {
+      setError('Please enter a valid phone number');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -86,6 +94,7 @@ export function RegisterPage() {
           sessionToken,
           password,
           confirmPassword,
+          phone,
         });
 
         if (response.success) {
@@ -97,7 +106,7 @@ export function RegisterPage() {
         }
       } else {
         // Regular email/password registration
-        await register(name, email, password);
+        await register(name, email, password, phone);
         // Navigation will be handled by useEffect when user state updates
       }
     } catch (err: unknown) {
@@ -226,6 +235,22 @@ export function RegisterPage() {
                 />
                 {isGoogleSignup && (
                   <p className="mt-1 text-xs text-white/40">This email is verified by Google</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="mb-2 block text-sm font-medium text-white/80">
+                  Phone Number <span className="text-red-400">*</span>
+                </label>
+                <PhoneInput
+                  value={phone}
+                  onChange={setPhone}
+                  required
+                  disabled={false}
+                  error={error && error.includes('phone') ? error : undefined}
+                />
+                {isGoogleSignup && (
+                  <p className="mt-1 text-xs text-white/40">Please enter your phone number manually</p>
                 )}
               </div>
             </>

@@ -2,7 +2,9 @@ import Order from '../models/Order.js';
 import Invoice from '../models/Invoice.js';
 import { Product } from '../models/Product.js';
 import Contact from '../models/Contact.js';
+import { User } from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { sendOrderConfirmationEmail } from '../utils/emailService.js';
 
 // @desc    Get all orders
 // @route   GET /api/orders
@@ -112,7 +114,7 @@ export const getOrder = asyncHandler(async (req, res) => {
 // @route   POST /api/orders
 // @access  Private
 export const createOrder = asyncHandler(async (req, res) => {
-  const { productId, quantity, shippingAddress, paymentMethod } = req.body;
+  const { productId, quantity, shippingAddress, paymentMethod, phone } = req.body;
 
   if (!productId || !quantity) {
     return res.status(400).json({ error: 'Product ID and quantity are required' });
@@ -120,6 +122,19 @@ export const createOrder = asyncHandler(async (req, res) => {
 
   if (quantity < 1) {
     return res.status(400).json({ error: 'Quantity must be at least 1' });
+  }
+
+  // Phone number is required for order placement
+  if (!phone || !phone.countryCode || !phone.number) {
+    return res.status(400).json({ error: 'Phone number is required to place an order' });
+  }
+
+  // Validate phone format
+  if (!/^\+\d{1,4}$/.test(phone.countryCode)) {
+    return res.status(400).json({ error: 'Invalid country code format' });
+  }
+  if (!/^[\d\s-()]+$/.test(phone.number)) {
+    return res.status(400).json({ error: 'Invalid phone number format' });
   }
 
   // Get product
@@ -151,7 +166,20 @@ export const createOrder = asyncHandler(async (req, res) => {
   // Calculate total amount
   const totalAmount = items.reduce((total, item) => total + item.quantity * item.price, 0);
 
-  // Create order
+  // Update user's phone if they don't have one or if provided phone is different
+  const user = await User.findById(customerId);
+  if (user && phone) {
+    if (!user.phone || !user.phone.number) {
+      // User doesn't have phone, update it
+      user.phone = {
+        countryCode: phone.countryCode,
+        number: phone.number.trim(),
+      };
+      await user.save();
+    }
+  }
+
+  // Create order with phone number (structured format)
   const orderData = {
     customerId,
     items,
@@ -159,7 +187,13 @@ export const createOrder = asyncHandler(async (req, res) => {
     status: 'Pending',
     paymentStatus: paymentMethod ? 'Paid' : 'Pending',
     paymentMethod: paymentMethod || '',
-    shippingAddress: shippingAddress || {},
+    shippingAddress: {
+      ...(shippingAddress || {}),
+      phone: {
+        countryCode: phone.countryCode,
+        number: phone.number.trim(),
+      },
+    },
     createdBy: req.user._id,
     tenantId: req.user.tenantId,
   };
@@ -203,6 +237,10 @@ export const createOrder = asyncHandler(async (req, res) => {
       total: order.totalAmount,
       subtotal: order.totalAmount,
       tax: 0,
+      phone: {
+        countryCode: phone.countryCode,
+        number: phone.number.trim(),
+      },
       createdBy: req.user._id,
       tenantId: req.user.tenantId,
     });
@@ -221,6 +259,33 @@ export const createOrder = asyncHandler(async (req, res) => {
     .populate('items.productId', 'name price sku')
     .populate('invoiceId', 'invoiceNumber total status')
     .populate('createdBy', 'name email');
+
+  // Send order confirmation email if invoice was created
+  if (invoice && populatedOrder.customerId) {
+    try {
+      // Populate invoice with phone before sending email
+      const populatedInvoice = await Invoice.findById(invoice._id)
+        .populate('contactId', 'firstName lastName')
+        .populate('companyId', 'name')
+        .populate('lineItems.productId', 'name price sku');
+      
+      // Send email with populated invoice
+      const emailResult = await sendOrderConfirmationEmail(
+        populatedOrder.customerId,
+        populatedOrder,
+        populatedInvoice
+      );
+      
+      if (emailResult.success) {
+        console.log(`✅ Order confirmation email sent to ${populatedOrder.customerId.email}`);
+      } else {
+        console.error(`❌ Failed to send order confirmation email: ${emailResult.error}`);
+      }
+    } catch (emailError) {
+      // Don't fail order creation if email fails
+      console.error('Error sending order confirmation email:', emailError);
+    }
+  }
 
   res.status(201).json({
     order: populatedOrder,

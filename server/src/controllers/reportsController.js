@@ -7,6 +7,7 @@ import Quote from '../models/Quote.js';
 import Task from '../models/Task.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { generateDashboardPDF } from '../utils/dashboardPdfGenerator.js';
+import { generateReportsPDF } from '../utils/reportsPdfGenerator.js';
 
 // @desc    Get dashboard KPIs
 // @route   GET /api/reports/kpis
@@ -474,6 +475,140 @@ export const exportDashboardPDF = asyncHandler(async (req, res) => {
   } catch (error) {
     console.error('Error generating dashboard PDF:', error);
     res.status(500).json({ error: 'Failed to generate dashboard PDF', message: error.message });
+  }
+});
+
+// @desc    Export reports as PDF
+// @route   GET /api/reports/export
+// @access  Private (Admin and Employee only)
+export const exportReportsPDF = asyncHandler(async (req, res) => {
+  // Check if user has required role
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') {
+    return res.status(403).json({ error: 'Access denied. Admin or Employee role required.' });
+  }
+
+  const tenantFilter = req.user.tenantId ? { tenantId: req.user.tenantId } : {};
+  const ownerFilter = (req.user.role !== 'admin' && req.user.role !== 'employee') ? { ownerId: req.user._id } : {};
+  const filter = { ...tenantFilter, ...ownerFilter };
+
+  // Fetch lead conversion analytics data
+  // Conversion Funnel: Count leads at each stage
+  const funnelData = await Lead.aggregate([
+    { $match: filter },
+    {
+      $group: {
+        _id: '$status',
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const funnel = {
+    new: funnelData.find((item) => item._id === 'New')?.count || 0,
+    contacted: funnelData.find((item) => item._id === 'Contacted')?.count || 0,
+    qualified: funnelData.find((item) => item._id === 'Qualified')?.count || 0,
+    converted: funnelData.find((item) => item._id === 'Converted')?.count || 0,
+    lost: funnelData.find((item) => item._id === 'Lost')?.count || 0,
+  };
+
+  // Conversion Rate by Source
+  const sourceData = await Lead.aggregate([
+    { $match: filter },
+    {
+      $group: {
+        _id: '$source',
+        total: { $sum: 1 },
+        converted: {
+          $sum: {
+            $cond: [{ $eq: ['$status', 'Converted'] }, 1, 0],
+          },
+        },
+      },
+    },
+  ]);
+
+  const conversionBySource = sourceData.map((item) => ({
+    source: item._id || 'other',
+    total: item.total,
+    converted: item.converted,
+    rate: item.total > 0 ? (item.converted / item.total) * 100 : 0,
+  }));
+
+  // Overall conversion rate
+  const totalLeads = await Lead.countDocuments(filter);
+  const convertedLeads = await Lead.countDocuments({
+    ...filter,
+    status: 'Converted',
+  });
+  const overallConversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+
+  // Average time to conversion (in days)
+  const convertedLeadsWithDates = await Lead.find({
+    ...filter,
+    status: 'Converted',
+    createdAt: { $exists: true },
+    updatedAt: { $exists: true },
+  }).select('createdAt updatedAt');
+
+  let avgTimeToConversion = 0;
+  if (convertedLeadsWithDates.length > 0) {
+    const totalDays = convertedLeadsWithDates.reduce((sum, lead) => {
+      const days = Math.floor((new Date(lead.updatedAt) - new Date(lead.createdAt)) / (1000 * 60 * 60 * 24));
+      return sum + days;
+    }, 0);
+    avgTimeToConversion = Math.round(totalDays / convertedLeadsWithDates.length);
+  }
+
+  // Fetch deals by stage from KPIs
+  const dealsByStageFilter = { ...filter };
+  const allStages = ['Prospecting', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
+  
+  const dealsByStageResult = await Deal.aggregate([
+    {
+      $match: dealsByStageFilter,
+    },
+    {
+      $group: {
+        _id: '$stage',
+        count: { $sum: 1 },
+        totalValue: { $sum: '$value' },
+      },
+    },
+  ]);
+
+  // Ensure all stages are present (even with 0 count)
+  const dealsByStageMap = new Map(dealsByStageResult.map(item => [item._id, item]));
+  const dealsByStage = allStages.map(stageName => ({
+    stage: stageName,
+    count: dealsByStageMap.get(stageName)?.count || 0,
+    totalValue: dealsByStageMap.get(stageName)?.totalValue || 0,
+  }));
+
+  // Prepare reports data
+  const reportsData = {
+    funnel,
+    conversionBySource,
+    overallConversionRate: Math.round(overallConversionRate * 10) / 10,
+    avgTimeToConversion,
+    totalLeads,
+    convertedLeads,
+    dealsByStage,
+  };
+
+  // Generate PDF
+  try {
+    const pdfBuffer = await generateReportsPDF(reportsData);
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=reports-analytics.pdf');
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    // Send PDF
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating reports PDF:', error);
+    res.status(500).json({ error: 'Failed to generate reports PDF', message: error.message });
   }
 });
 

@@ -4,6 +4,7 @@ import { X, Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import * as Yup from 'yup';
 import type { User } from '../../services/api/auth';
+import { PhoneInput } from '../common/PhoneInput';
 
 interface UserEditFormProps {
   user: User;
@@ -18,6 +19,10 @@ interface UserFormValues {
   email: string;
   role: string;
   isActive: boolean;
+  phone: {
+    countryCode: string;
+    number: string;
+  };
 }
 
 const validationSchema = Yup.object({
@@ -25,6 +30,10 @@ const validationSchema = Yup.object({
   email: Yup.string().email('Invalid email address').required('Email is required'),
   role: Yup.string().required('Role is required'),
   isActive: Yup.boolean(),
+  phone: Yup.object({
+    countryCode: Yup.string().required('Country code is required'),
+    number: Yup.string().matches(/^[\d\s-()]+$/, 'Invalid phone number format').optional(),
+  }).optional(),
 });
 
 const ROLES = ['admin', 'employee', 'customer', 'user'];
@@ -49,6 +58,10 @@ export function UserEditForm({ user, isOpen, onSave, onCancel, isLoading }: User
     email: user.email || '',
     role: user.role || 'user',
     isActive: user.isActive ?? true,
+    phone: {
+      countryCode: user.phone?.countryCode || '+1',
+      number: user.phone?.number || '',
+    },
   };
 
   const modalContent = (
@@ -91,7 +104,7 @@ export function UserEditForm({ user, isOpen, onSave, onCancel, isLoading }: User
             }
           }}
         >
-          {({ isSubmitting, status, values }) => (
+          {({ isSubmitting, status, values, setFieldValue }) => (
             <Form className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-1">Name</label>
@@ -112,6 +125,16 @@ export function UserEditForm({ user, isOpen, onSave, onCancel, isLoading }: User
                   placeholder="john@example.com"
                 />
                 <ErrorMessage name="email" component="p" className="mt-1 text-xs text-red-400" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Phone Number</label>
+                <PhoneInput
+                  value={values.phone}
+                  onChange={(phone) => setFieldValue('phone', phone)}
+                />
+                <ErrorMessage name="phone.countryCode" component="p" className="mt-1 text-xs text-red-400" />
+                <ErrorMessage name="phone.number" component="p" className="mt-1 text-xs text-red-400" />
               </div>
 
               <div>

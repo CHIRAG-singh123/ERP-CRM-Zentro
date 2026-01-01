@@ -3,8 +3,10 @@ import { createPortal } from 'react-dom';
 import { X, CreditCard, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { useCreateOrder } from '../../hooks/queries/useOrders';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import type { Product } from '../../types/products';
 import { ApiError } from '../../services/api/http';
+import { PhoneInput } from '../common/PhoneInput';
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ export function OrderModal({ isOpen, onClose, product, onSuccess }: OrderModalPr
   const [cvv, setCvv] = useState('');
   const [cardName, setCardName] = useState('');
   const [useDemoPayment, setUseDemoPayment] = useState(false);
+  const [phone, setPhone] = useState({ countryCode: '+1', number: '' });
   const [shippingAddress, setShippingAddress] = useState({
     street: '',
     city: '',
@@ -33,6 +36,22 @@ export function OrderModal({ isOpen, onClose, product, onSuccess }: OrderModalPr
 
   const createOrderMutation = useCreateOrder();
   const { error: showError } = useToast();
+  const { user } = useAuth();
+
+  // Auto-fetch phone number from user profile when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      if (user && user.phone && user.phone.countryCode && user.phone.number) {
+        setPhone({
+          countryCode: user.phone.countryCode,
+          number: user.phone.number,
+        });
+      } else {
+        // Reset to default if user doesn't have phone or user is not loaded
+        setPhone({ countryCode: '+1', number: '' });
+      }
+    }
+  }, [isOpen, user]);
 
   // Body scroll lock
   useEffect(() => {
@@ -46,7 +65,7 @@ export function OrderModal({ isOpen, onClose, product, onSuccess }: OrderModalPr
     };
   }, [isOpen]);
 
-  // Reset form when modal closes
+  // Reset form when modal closes (but don't reset phone - it will be auto-fetched on open)
   useEffect(() => {
     if (!isOpen) {
       setQuantity(1);
@@ -56,6 +75,7 @@ export function OrderModal({ isOpen, onClose, product, onSuccess }: OrderModalPr
       setCvv('');
       setCardName('');
       setUseDemoPayment(false);
+      // Don't reset phone here - it will be auto-fetched when modal opens
       setShippingAddress({
         street: '',
         city: '',
@@ -105,6 +125,12 @@ export function OrderModal({ isOpen, onClose, product, onSuccess }: OrderModalPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate phone number (required)
+    if (!phone.countryCode || !phone.number || phone.number.trim().length < 7) {
+      showError('Please enter a valid phone number');
+      return;
+    }
+
     // Validate payment form (skip if using demo payment)
     if (!useDemoPayment) {
       if (!cardNumber || cardNumber.replace(/\s/g, '').length < 16) {
@@ -136,6 +162,7 @@ export function OrderModal({ isOpen, onClose, product, onSuccess }: OrderModalPr
       const result = await createOrderMutation.mutateAsync({
         productId: product._id,
         quantity,
+        phone,
         shippingAddress: Object.values(shippingAddress).some((v) => v) ? shippingAddress : undefined,
         paymentMethod: useDemoPayment ? 'Demo Card' : 'Card',
       });
@@ -281,6 +308,21 @@ export function OrderModal({ isOpen, onClose, product, onSuccess }: OrderModalPr
                     <span className="text-white">Total:</span>
                     <span className="text-[#B39CD0]">${totalAmount.toFixed(2)}</span>
                   </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white">Contact Information</h3>
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">
+                    Phone Number <span className="text-red-400">*</span>
+                  </label>
+                  <PhoneInput
+                    value={phone}
+                    onChange={setPhone}
+                    required
+                  />
                 </div>
               </div>
 

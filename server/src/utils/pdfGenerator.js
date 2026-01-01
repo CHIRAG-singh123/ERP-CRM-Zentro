@@ -147,7 +147,7 @@ export const generateInvoicePDF = async (invoice) => {
       // CONTACT INFORMATION SECTION - Clean Grid
       // ============================================
       const contactSectionY = currentY;
-      const contactBoxHeight = 110;
+      const contactBoxHeight = 140; // Increased to accommodate phone number
       const contactBoxPadding = 18;
 
       // Contact info background
@@ -190,6 +190,20 @@ export const generateInvoicePDF = async (invoice) => {
         ? `${invoice.contactId.firstName || ''} ${invoice.contactId.lastName || ''}`.trim() || 'N/A'
         : 'N/A';
       doc.text(contactName, leftColumnX, contactRowY + 14, { width: 200 });
+
+      // Phone Number
+      contactRowY += rowSpacing + 8;
+      doc.fontSize(labelFontSize)
+        .font('Helvetica-Bold')
+        .fillColor('#64748B')
+        .text('PHONE', leftColumnX, contactRowY);
+      doc.fontSize(valueFontSize)
+        .font('Helvetica')
+        .fillColor('#1E293B');
+      const phoneNumber = invoice.phone && invoice.phone.number
+        ? `${invoice.phone.countryCode || ''} ${invoice.phone.number}`.trim()
+        : 'N/A';
+      doc.text(phoneNumber, leftColumnX, contactRowY + 14, { width: 200 });
 
       // Due Date
       contactRowY += rowSpacing + 8;

@@ -49,7 +49,7 @@ export const getEmployees = async (req, res) => {
 // Create single employee
 export const createEmployee = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, phone } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -62,8 +62,8 @@ export const createEmployee = async (req, res) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(defaultPassword, saltRounds);
 
-    // Create employee
-    const employee = await User.create({
+    // Prepare employee data
+    const employeeData = {
       name,
       email: email.toLowerCase(),
       passwordHash,
@@ -71,7 +71,18 @@ export const createEmployee = async (req, res) => {
       createdBy: req.user._id,
       mustChangePassword: true,
       isActive: true,
-    });
+    };
+
+    // Add phone if provided
+    if (phone && phone.countryCode && phone.number) {
+      employeeData.phone = {
+        countryCode: phone.countryCode,
+        number: phone.number.trim(),
+      };
+    }
+
+    // Create employee
+    const employee = await User.create(employeeData);
 
     res.status(201).json({
       employee: {
@@ -275,7 +286,7 @@ export const promoteToAdmin = async (req, res) => {
 // Get all users (for admin management)
 export const getAllUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '', role = '', isActive } = req.query;
+    const { page = 1, limit = 10, search = '', role = '', isActive, includePhone } = req.query;
     const skip = (page - 1) * limit;
 
     const query = {};
@@ -301,10 +312,20 @@ export const getAllUsers = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
+    // Exclude phone from default response for privacy
+    // Only include if explicitly requested via includePhone query parameter
+    const usersToReturn = users.map(user => {
+      const userObj = user.toObject();
+      if (includePhone !== 'true') {
+        delete userObj.phone;
+      }
+      return userObj;
+    });
+
     const total = await User.countDocuments(query);
 
     res.json({
-      users,
+      users: usersToReturn,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -321,7 +342,7 @@ export const getAllUsers = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, role, isActive, profile, password } = req.body;
+    const { name, email, role, isActive, profile, password, phone } = req.body;
 
     const user = await User.findById(id);
     if (!user) {
@@ -345,6 +366,28 @@ export const updateUser = async (req, res) => {
     if (role) user.role = role;
     if (isActive !== undefined) user.isActive = isActive;
 
+    // Update phone - ensure both countryCode and number are set together
+    if (phone) {
+      if (phone.countryCode && phone.number !== undefined) {
+        // Validate phone number format if provided
+        if (phone.number.trim() && !/^[\d\s-()]+$/.test(phone.number.trim())) {
+          return res.status(400).json({ error: 'Invalid phone number format' });
+        }
+        // Validate country code format
+        if (!/^\+\d{1,4}$/.test(phone.countryCode)) {
+          return res.status(400).json({ error: 'Invalid country code format' });
+        }
+        
+        // Initialize phone object if it doesn't exist
+        user.phone = user.phone || {};
+        user.phone.countryCode = phone.countryCode;
+        user.phone.number = phone.number.trim() || '';
+      } else if (phone.countryCode || phone.number !== undefined) {
+        // If only one field is provided, we need both
+        return res.status(400).json({ error: 'Both country code and phone number are required' });
+      }
+    }
+
     // Update profile
     if (profile) {
       if (profile.timezone !== undefined) user.profile.timezone = profile.timezone;
@@ -365,8 +408,10 @@ export const updateUser = async (req, res) => {
     await user.save();
 
     const updatedUser = await User.findById(user._id).select('-passwordHash');
+    // Include phone in response for edit forms
+    const userWithPhone = updatedUser.toJSON({ includePhone: true });
 
-    res.json({ user: updatedUser });
+    res.json({ user: userWithPhone });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

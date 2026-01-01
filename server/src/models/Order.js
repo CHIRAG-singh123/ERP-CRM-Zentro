@@ -68,6 +68,16 @@ const orderSchema = new mongoose.Schema(
       state: String,
       zipCode: String,
       country: String,
+      phone: {
+        countryCode: {
+          type: String,
+          default: '+1',
+        },
+        number: {
+          type: String,
+          trim: true,
+        },
+      },
     },
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,

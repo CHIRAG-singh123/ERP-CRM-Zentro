@@ -43,6 +43,10 @@ export interface Invoice {
   tax: number;
   total: number;
   amountPaid: number;
+  phone?: {
+    countryCode: string;
+    number: string;
+  };
   dueDate: string;
   paidDate?: string;
   notes?: string;

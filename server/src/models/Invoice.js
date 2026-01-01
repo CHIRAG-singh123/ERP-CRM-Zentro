@@ -63,6 +63,16 @@ const invoiceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    phone: {
+      countryCode: {
+        type: String,
+        default: '+1',
+      },
+      number: {
+        type: String,
+        trim: true,
+      },
+    },
     dueDate: Date,
     paidDate: Date,
     notes: String,

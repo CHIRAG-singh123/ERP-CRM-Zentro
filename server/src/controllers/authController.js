@@ -7,9 +7,13 @@ import { sendPasswordResetEmail, sendGeneralEmail, sendVerificationEmailWithDash
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
-    const user = await createUser({ name, email, password });
+    if (!phone || !phone.countryCode || !phone.number) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+
+    const user = await createUser({ name, email, password, phone });
 
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
@@ -89,15 +93,25 @@ export const refreshToken = async (req, res, next) => {
 };
 
 export const getMe = async (req, res) => {
+  // Include phone in response for current user (they can see their own phone)
+  const user = await User.findById(req.user._id).select('-passwordHash');
+  const userWithPhone = user ? user.toJSON({ includePhone: true }) : req.user;
+  
   res.json({
-    user: req.user,
+    user: userWithPhone,
   });
 };
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, profile } = req.body || {};
+    const { name, profile, phone } = req.body || {};
     const updates = {};
+
+    // Get user first to check existing data
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     if (name) {
       updates.name = name.trim();
@@ -108,26 +122,60 @@ export const updateProfile = async (req, res, next) => {
     if (profile?.companyInfo !== undefined) {
       updates['profile.companyInfo'] = profile.companyInfo;
     }
+    
+    // Handle phone update - ensure both countryCode and number are set together
+    if (phone) {
+      // Only update phone if at least countryCode is provided or number is explicitly provided
+      if (phone.countryCode || phone.number !== undefined) {
+        // Validate country code format if provided
+        if (phone.countryCode && !/^\+\d{1,4}$/.test(phone.countryCode)) {
+          return res.status(400).json({ error: 'Invalid country code format' });
+        }
+        
+        // Validate phone number format if provided and not empty
+        const phoneNumber = phone.number !== undefined ? String(phone.number).trim() : undefined;
+        if (phoneNumber && phoneNumber !== '' && !/^[\d\s-()]+$/.test(phoneNumber)) {
+          return res.status(400).json({ error: 'Invalid phone number format' });
+        }
+        
+        if (phoneNumber && phoneNumber !== '' && (phoneNumber.length < 7 || phoneNumber.length > 20)) {
+          return res.status(400).json({ error: 'Phone number must be between 7 and 20 characters' });
+        }
+        
+        // Get existing phone or use defaults
+        const existingPhone = user.phone || {};
+        const countryCode = phone.countryCode || existingPhone.countryCode || '+1';
+        const finalPhoneNumber = phoneNumber !== undefined ? phoneNumber : (existingPhone.number || '');
+        
+        // Set both phone fields together
+        updates['phone.countryCode'] = countryCode;
+        updates['phone.number'] = finalPhoneNumber;
+      }
+    }
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ error: 'No updates provided' });
     }
 
-    const user = await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
       { $set: updates },
       { new: true, runValidators: true }
     ).select('-passwordHash');
 
-    if (!user) {
+    if (!updatedUser) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Include phone in response for profile settings
+    const userWithPhone = updatedUser.toJSON({ includePhone: true });
+
     res.json({
       message: 'Profile updated successfully',
-      user,
+      user: userWithPhone,
     });
   } catch (error) {
+    console.error('Error updating profile:', error);
     next(error);
   }
 };
@@ -422,12 +470,14 @@ export const getGoogleProfile = async (req, res, next) => {
         return res.status(400).json({ error: 'Invalid session token - missing profile data' });
       }
 
+      // Explicitly exclude phone from Google profile - user must enter manually
       return res.json({
         success: true,
         profile: {
           name: profile.name,
           email: profile.email,
           profilePicture: profile.profilePicture || null,
+          // Phone is NOT included - user must enter manually
         },
       });
     } catch (error) {
@@ -449,8 +499,9 @@ export const completeGoogleSignup = async (req, res, next) => {
     console.log('   Has sessionToken:', !!req.body?.sessionToken);
     console.log('   Has password:', !!req.body?.password);
     console.log('   Has confirmPassword:', !!req.body?.confirmPassword);
+    console.log('   Has phone:', !!req.body?.phone);
 
-    const { sessionToken, password, confirmPassword } = req.body;
+    const { sessionToken, password, confirmPassword, phone } = req.body;
 
     // Validate inputs
     if (!sessionToken) {
@@ -466,6 +517,14 @@ export const completeGoogleSignup = async (req, res, next) => {
       return res.status(400).json({ 
         error: 'Password and confirm password are required',
         code: 'MISSING_PASSWORD'
+      });
+    }
+
+    if (!phone || !phone.countryCode || !phone.number) {
+      console.error('❌ Missing phone number');
+      return res.status(400).json({ 
+        error: 'Phone number is required. Please enter your phone number manually.',
+        code: 'MISSING_PHONE'
       });
     }
 
@@ -590,6 +649,10 @@ export const completeGoogleSignup = async (req, res, next) => {
       registrationMethod: 'google',
       isVerified: true, // Google email is already verified
       role: 'customer',
+      phone: {
+        countryCode: phone.countryCode,
+        number: phone.number.trim(),
+      },
       profile: {
         avatar: googleProfile.profilePicture || '',
         timezone: 'UTC',

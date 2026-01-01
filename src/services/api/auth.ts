@@ -4,6 +4,10 @@ export interface RegisterData {
   name: string;
   email: string;
   password: string;
+  phone: {
+    countryCode: string;
+    number: string;
+  };
 }
 
 export interface LoginData {
@@ -22,6 +26,10 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  phone?: {
+    countryCode: string;
+    number: string;
+  };
   profile: {
     avatar: string;
     timezone: string;
@@ -39,6 +47,10 @@ export interface RefreshTokenResponse {
 
 export interface UpdateProfileInput {
   name?: string;
+  phone?: {
+    countryCode: string;
+    number: string;
+  };
   profile?: {
     timezone?: string;
     companyInfo?: string;
@@ -180,6 +192,10 @@ export interface CompleteGoogleSignupData {
   sessionToken: string;
   password: string;
   confirmPassword: string;
+  phone: {
+    countryCode: string;
+    number: string;
+  };
 }
 
 export interface CompleteGoogleSignupResponse {

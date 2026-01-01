@@ -61,6 +61,31 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    phone: {
+      countryCode: {
+        type: String,
+        default: '+1',
+      },
+      number: {
+        type: String,
+        required: function() {
+          // Only required for new email registrations
+          return this.isNew && this.registrationMethod === 'email';
+        },
+        trim: true,
+        validate: {
+          validator: function(value) {
+            // Allow empty string for optional phone numbers
+            if (!value || value.trim() === '') {
+              return true;
+            }
+            // Validate format if provided
+            return /^[\d\s-()]+$/.test(value);
+          },
+          message: 'Invalid phone number format',
+        },
+      },
+    },
     profile: {
       avatar: {
         type: String,
@@ -103,10 +128,15 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
-// Method to exclude password from JSON output
-userSchema.methods.toJSON = function () {
+// Method to exclude password and phone from JSON output (for privacy)
+userSchema.methods.toJSON = function (options = {}) {
   const userObject = this.toObject();
   delete userObject.passwordHash;
+  // Exclude phone by default for privacy (only include when explicitly requested)
+  // Check both the instance property and options parameter
+  if (!this._includePhone && !options.includePhone) {
+    delete userObject.phone;
+  }
   return userObject;
 };
 

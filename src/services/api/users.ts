@@ -16,6 +16,10 @@ export interface UpdateUserData {
   email?: string;
   role?: string;
   isActive?: boolean;
+  phone?: {
+    countryCode: string;
+    number: string;
+  };
   profile?: {
     timezone?: string;
     companyInfo?: string;

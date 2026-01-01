@@ -37,6 +37,10 @@ export interface Order {
     state?: string;
     zipCode?: string;
     country?: string;
+    phone?: {
+      countryCode: string;
+      number: string;
+    };
   };
   tenantId?: string;
   createdBy?: {
@@ -51,6 +55,10 @@ export interface Order {
 export interface CreateOrderData {
   productId: string;
   quantity: number;
+  phone: {
+    countryCode: string;
+    number: string;
+  };
   shippingAddress?: {
     street?: string;
     city?: string;

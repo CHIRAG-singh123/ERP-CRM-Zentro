@@ -4,6 +4,7 @@ import { profileUpdateSchema } from '../../utils/validation';
 import { updateProfile, User } from '../../services/api/auth';
 import { useAuth } from '../../context/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { PhoneInput } from '../common/PhoneInput';
 
 interface ProfileFormProps {
   user: User;
@@ -13,6 +14,10 @@ interface ProfileFormValues {
   name: string;
   timezone: string;
   companyInfo: string;
+  phone: {
+    countryCode: string;
+    number: string;
+  };
 }
 
 const TIMEZONES = [
@@ -32,6 +37,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     mutationFn: (values: ProfileFormValues) =>
       updateProfile({
         name: values.name,
+        phone: values.phone,
         profile: {
           timezone: values.timezone,
           companyInfo: values.companyInfo,
@@ -46,6 +52,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
     name: user.name || '',
     timezone: user.profile?.timezone || 'UTC',
     companyInfo: user.profile?.companyInfo || '',
+    phone: {
+      countryCode: user.phone?.countryCode || '+1',
+      number: user.phone?.number || '',
+    },
   };
 
   return (
@@ -63,7 +73,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         }
       }}
     >
-      {({ isSubmitting, status }) => (
+      {({ isSubmitting, status, values, setFieldValue }) => (
         <Form className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2">
@@ -103,6 +113,16 @@ export function ProfileForm({ user }: ProfileFormProps) {
               placeholder="Short description, address, or signature details..."
             />
             <ErrorMessage name="companyInfo" component="p" className="text-xs text-red-400 animate-fade-in" />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm text-white/70 transition-colors duration-200">Phone Number</span>
+            <PhoneInput
+              value={values.phone}
+              onChange={(phone) => setFieldValue('phone', phone)}
+            />
+            <ErrorMessage name="phone.countryCode" component="p" className="text-xs text-red-400 animate-fade-in" />
+            <ErrorMessage name="phone.number" component="p" className="text-xs text-red-400 animate-fade-in" />
           </label>
 
           <div className="flex items-center gap-3">

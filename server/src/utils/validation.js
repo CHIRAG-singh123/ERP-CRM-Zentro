@@ -30,6 +30,18 @@ export const registerValidation = [
     .withMessage('Password is required')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters'),
+  body('phone.countryCode')
+    .notEmpty()
+    .withMessage('Country code is required')
+    .matches(/^\+\d{1,4}$/)
+    .withMessage('Invalid country code format'),
+  body('phone.number')
+    .notEmpty()
+    .withMessage('Phone number is required')
+    .matches(/^[\d\s-()]+$/)
+    .withMessage('Invalid phone number format')
+    .isLength({ min: 7, max: 20 })
+    .withMessage('Phone number must be between 7 and 20 characters'),
   handleValidationErrors,
 ];
 
@@ -59,6 +71,27 @@ export const updateProfileValidation = [
     .optional()
     .isString()
     .withMessage('Company info must be a string'),
+  body('phone.countryCode')
+    .optional({ checkFalsy: true })
+    .matches(/^\+\d{1,4}$/)
+    .withMessage('Invalid country code format'),
+  body('phone.number')
+    .optional({ checkFalsy: true, values: 'falsy' })
+    .custom((value) => {
+      // Allow empty string, null, undefined, or falsy values for optional phone number
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        return true;
+      }
+      const phoneStr = String(value).trim();
+      // Validate format if provided
+      if (!/^[\d\s-()]+$/.test(phoneStr)) {
+        throw new Error('Invalid phone number format');
+      }
+      if (phoneStr.length < 7 || phoneStr.length > 20) {
+        throw new Error('Phone number must be between 7 and 20 characters');
+      }
+      return true;
+    }),
   handleValidationErrors,
 ];
 

@@ -33,7 +33,7 @@ export function SettingsUsersPage() {
     setEditingUser(null);
   };
 
-  const handleSave = async (values: { name: string; email: string; role: string; isActive: boolean }) => {
+  const handleSave = async (values: { name: string; email: string; role: string; isActive: boolean; phone?: { countryCode: string; number: string } }) => {
     if (!editingUser) return;
     try {
       await updateUserMutation.mutateAsync({ id: editingUser._id, data: values });

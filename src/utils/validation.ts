@@ -17,7 +17,10 @@ export const nameSchema = yup
   .required('Name is required');
 
 // Phone validation
-export const phoneSchema = yup.string().matches(/^\+?[\d\s-()]+$/, 'Invalid phone number');
+export const phoneSchema = yup.object({
+  countryCode: yup.string().required('Country code is required').matches(/^\+\d{1,4}$/, 'Invalid country code format'),
+  number: yup.string().required('Phone number is required').matches(/^[\d\s-()]+$/, 'Invalid phone number format').min(7, 'Phone number must be at least 7 characters').max(20, 'Phone number must be less than 20 characters'),
+});
 
 // URL validation
 export const urlSchema = yup.string().url('Invalid URL');
@@ -36,12 +39,14 @@ export const registerSchema = yup.object({
     .string()
     .oneOf([yup.ref('password')], 'Passwords must match')
     .required('Please confirm your password'),
+  phone: phoneSchema.required('Phone number is required'),
 });
 
 export const profileUpdateSchema = yup.object({
   name: nameSchema.optional(),
   timezone: yup.string().optional(),
   companyInfo: yup.string().max(500, 'Company info must be under 500 characters').optional(),
+  phone: phoneSchema.optional(),
 });
 
 export const emailUpdateSchema = yup.object({

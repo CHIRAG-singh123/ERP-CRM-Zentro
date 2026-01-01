@@ -1559,6 +1559,10 @@ const generateOrderConfirmationTemplate = (order, invoice, userName = 'Customer'
           <span class="order-value">${invoiceNumber}</span>
         </div>
         <div class="order-row">
+          <span class="order-label">Phone Number</span>
+          <span class="order-value">${invoice?.phone && invoice.phone.number ? `${invoice.phone.countryCode || ''} ${invoice.phone.number}`.trim() : order.shippingAddress?.phone?.number ? `${order.shippingAddress.phone.countryCode || ''} ${order.shippingAddress.phone.number}`.trim() : 'N/A'}</span>
+        </div>
+        <div class="order-row">
           <span class="order-label">Order Status</span>
           <span class="order-value">Pending Processing</span>
         </div>
@@ -1639,6 +1643,7 @@ Thank you for your order! Your order has been received and is being processed.
 
 Order Number: ${order.orderNumber || 'N/A'}
 Invoice Number: ${invoiceNumber}
+Phone Number: ${invoice?.phone && invoice.phone.number ? `${invoice.phone.countryCode || ''} ${invoice.phone.number}`.trim() : order.shippingAddress?.phone?.number ? `${order.shippingAddress.phone.countryCode || ''} ${order.shippingAddress.phone.number}`.trim() : 'N/A'}
 Total Amount: $${(order.totalAmount || 0).toFixed(2)}
 Payment Status: ${order.paymentStatus || 'Paid'}
 
