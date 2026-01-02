@@ -18,6 +18,7 @@ import { formatCurrency } from '../../utils/formatting';
 import { DealsByStagePieChart, type ChartFilterValues } from '../../components/dashboard/DealsByStagePieChart';
 import { LeadsBySourceBarChart } from '../../components/dashboard/LeadsBySourceBarChart';
 import { exportDashboardPDF } from '../../services/api/dashboard';
+import { exportReportsPDF } from '../../services/api/reports';
 
 export function DashboardPage() {
   const [filters, setFilters] = useState<ChartFilterValues>({});
@@ -28,6 +29,7 @@ export function DashboardPage() {
   const { success, error: showError } = useToast();
   const [showOverdueModal, setShowOverdueModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingReports, setIsExportingReports] = useState(false);
   const isAdmin = user?.role === 'admin';
 
   const handleFilterChange = (newFilters: ChartFilterValues) => {
@@ -54,6 +56,29 @@ export function DashboardPage() {
       showError(errorMessage);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportReports = async () => {
+    if (isExportingReports) return;
+
+    setIsExportingReports(true);
+    try {
+      const blob = await exportReportsPDF();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `reports-analytics-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      success('Reports PDF exported successfully!');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to export reports PDF';
+      showError(errorMessage);
+    } finally {
+      setIsExportingReports(false);
     }
   };
 
@@ -126,12 +151,12 @@ export function DashboardPage() {
   ];
 
   return (
-    <motion.div
-      className="space-y-8"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
+      <motion.div
+        className="space-y-8"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -158,11 +183,19 @@ export function DashboardPage() {
                 {isExporting ? 'Exporting...' : 'Export Snapshot'}
               </motion.button>
               <motion.button
-                className="button-enhanced rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition-all duration-300 hover:bg-[#C3ADD9] glow-purple"
-                whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(179, 156, 208, 0.3)' }}
-                whileTap={{ scale: 0.95 }}
+                className="button-enhanced flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] glow-purple disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: isExportingReports ? 1 : 1.05, boxShadow: isExportingReports ? 'none' : '0 10px 30px rgba(179, 156, 208, 0.3)' }}
+                whileTap={{ scale: isExportingReports ? 1 : 0.95 }}
+                onClick={handleExportReports}
+                disabled={isExportingReports}
               >
-                New Insight
+                <motion.div
+                  animate={isExportingReports ? { rotate: 360 } : { rotate: [0, 360] }}
+                  transition={isExportingReports ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 3 }}
+                >
+                  <Download className="h-4 w-4" />
+                </motion.div>
+                {isExportingReports ? 'Exporting...' : 'New Insight'}
               </motion.button>
             </>
           }

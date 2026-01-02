@@ -293,7 +293,7 @@ export const exportDeals = asyncHandler(async (req, res) => {
   }
 
   const deals = await Deal.find(query)
-    .populate('contactId', 'firstName lastName')
+    .populate('contactId', 'firstName lastName emails')
     .populate('companyId', 'name')
     .populate('ownerId', 'name')
     .sort({ createdAt: -1 });

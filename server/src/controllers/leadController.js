@@ -265,7 +265,7 @@ export const exportLeads = asyncHandler(async (req, res) => {
   }
 
   const leads = await Lead.find(query)
-    .populate('contactId', 'firstName lastName')
+    .populate('contactId', 'firstName lastName emails phones jobTitle department address')
     .populate('companyId', 'name')
     .populate('ownerId', 'name')
     .sort({ createdAt: -1 });

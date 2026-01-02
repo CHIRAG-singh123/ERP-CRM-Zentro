@@ -184,20 +184,20 @@ export function LeadsBySourceBarChart({ data, onFilterChange }: LeadsBySourceBar
           {chartData.map((item, index) => (
             <motion.div
               key={item.source}
-              className="flex items-center justify-between"
+              className="flex items-center gap-1 rounded-lg border border-white/10 bg-[#1A1A1C]/50 px-2 py-1.5"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.5 + index * 0.05 }}
-              whileHover={{ scale: 1.02, x: 4 }}
+              whileHover={{ scale: 1.02, borderColor: 'rgba(179, 156, 208, 0.3)' }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-1">
                 <motion.div
-                  className="w-3 h-3 rounded-full"
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: getSourceColor(item.source) }}
                   whileHover={{ scale: 1.3 }}
                   transition={{ duration: 0.2 }}
                 />
-                <span className="text-muted-foreground capitalize">{item.source}</span>
+                <span className="text-muted-foreground capitalize">{item.source}:</span>
               </div>
               <span className="font-medium text-foreground">{item.count}</span>
             </motion.div>

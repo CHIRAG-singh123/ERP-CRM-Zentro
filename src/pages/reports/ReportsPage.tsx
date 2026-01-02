@@ -277,23 +277,28 @@ export function ReportsPage() {
                 transition={{ duration: 0.5, delay: 0.4 }}
                 whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(179, 156, 208, 0.2)' }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#B39CD0]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-                <div className="relative flex flex-col" style={{ minHeight: '600px' }}>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#B39CD0]/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"></div>
+                <div className="relative">
                   <div className="mb-4 flex items-start justify-between">
                     <div>
                       <h3 className="text-xl font-bold text-white mb-1">Deals by Stage</h3>
                       <p className="text-sm text-white/50">Deal distribution across pipeline stages</p>
                     </div>
                   </div>
-                  <div style={{ height: '420px', width: '100%' }}>
-                    {isLoading ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="flex flex-col items-center gap-3">
-                          <Loader2 className="h-8 w-8 animate-spin text-[#A8DADC]" />
-                          <div className="text-white/60 animate-pulse">Loading chart...</div>
-                        </div>
+                  {isLoading ? (
+                    <div className="flex h-64 items-center justify-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="h-8 w-8 animate-spin text-[#A8DADC]" />
+                        <div className="text-white/60 animate-pulse">Loading chart...</div>
                       </div>
-                    ) : (crossEntityData?.dealByStage && crossEntityData.dealByStage.length > 0) ? (
+                    </div>
+                  ) : (crossEntityData?.dealByStage && crossEntityData.dealByStage.length > 0) ? (
+                    <motion.div
+                      style={{ height: '500px' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                    >
                       <DealsByStagePieChart 
                         data={crossEntityData.dealByStage.map(item => ({
                           stage: item.stage,
@@ -302,17 +307,24 @@ export function ReportsPage() {
                         }))} 
                         onFilterChange={handleFilterChange}
                       />
-                    ) : (kpisData && typeof kpisData === 'object' && kpisData !== null && 'dealsByStage' in kpisData && Array.isArray(kpisData.dealsByStage) && kpisData.dealsByStage.length > 0) ? (
+                    </motion.div>
+                  ) : (kpisData && typeof kpisData === 'object' && kpisData !== null && 'dealsByStage' in kpisData && Array.isArray(kpisData.dealsByStage) && kpisData.dealsByStage.length > 0) ? (
+                    <motion.div
+                      style={{ height: '500px' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                    >
                       <DealsByStagePieChart 
                         data={(kpisData as any).dealsByStage} 
                         onFilterChange={handleFilterChange}
                       />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-white/50">
-                        <p>No deals data available</p>
-                      </div>
-                    )}
-                  </div>
+                    </motion.div>
+                  ) : (
+                    <div className="flex h-64 items-center justify-center text-white/50">
+                      <p>No deals data available</p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </div>

@@ -8,7 +8,13 @@
     "dev": "node --watch src/app.js",
     "start": "node src/app.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
-    "seed:dummy": "node src/scripts/seedDummyData.js"
+    "seed:dummy": "node src/scripts/seedDummyData.js",
+    "seed:users": "node src/scripts/usersSeeder.js",
+    "seed:companies": "node src/scripts/companiesSeeder.js",
+    "seed:contacts": "node src/scripts/contactsSeeder.js",
+    "seed:leads": "node src/scripts/leadsSeeder.js",
+    "seed:deals": "node src/scripts/dealsSeeder.js",
+    "seed:all": "node src/scripts/index.js"
   },
   "keywords": [
     "erp",
@@ -19,6 +25,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@faker-js/faker": "^8.3.1",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

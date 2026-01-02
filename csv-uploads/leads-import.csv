@@ -1,0 +1,101 @@
+firstName,lastName,email,phone,jobTitle,department,companyName,street,city,state,zipCode,country,expectedCloseDate,value,status,source
+Emily,Clarke,eclarke@literaryhaven.com,555-1345,Editor-in-Chief,Editorial,Quantum Legal Partners,88 Bookworm Ln,Nashville,TN,37203,USA,2026-01-14,38868,Contacted,Website
+Emily,Clarke,eclarke@literaryhaven.com,555-1345,Editor-in-Chief,Editorial,Quantum Legal Partners,88 Bookworm Ln,Nashville,TN,37203,USA,2026-02-03,56285,Lost,Website
+Jamal,Washington,jwashington@civicworks.gov,555-0789,Civil Engineer,Planning,Bloom & Petal,890 Infrastructure Rd,Atlanta,GA,30303,USA,2026-03-16,9056,Contacted,Website
+Amira,Khan,akhan@healthfirst.org,555-1123,Pediatrician,Medical,PureFlow Systems,33 Wellness Blvd,Houston,TX,77002,USA,2026-04-04,12735,Qualified,Website
+Eleanora,Brown,eleanora_brown@gmail.com,+1-628-233-8872,Engineer,Engineering,IronWorks Construction,108 Hartmann Ridges,Saginaw,DE,61456-5190,Guatemala,2026-03-03,47389,Qualified,Website
+Jabari,Friesen,jabari_friesen47@yahoo.com,+1-488-362-2467,Designer,Finance,PureFlow Systems,959 N 8th Street,Port Justina,MN,29062-2170,Mauritius,2026-03-25,52480,New,Website
+David,Nkosi,dnkosi@globaltrade.biz,555-0567,Supply Chain Manager,Procurement,Zenith Logistics,56 Harbor View,Seattle,WA,98101,USA,2026-01-07,40610,New,Website
+Isabella,Moretti,imoretti@culinaryarts.com,555-0678,Executive Chef,Culinary,Vitality Fitness,22 Pasta Place,New York,NY,10013,USA,2026-03-16,28272,Lost,Website
+Isabella,Moretti,imoretti@culinaryarts.com,555-0678,Executive Chef,Culinary,Vitality Fitness,22 Pasta Place,New York,NY,10013,USA,2026-04-04,34328,Qualified,Website
+Piyush,Patel,ppatel@greenleaf.net,555-0122,Marketing Director,Marketing,Urban Bites Catering,45 Maple Ave,Portland,OR,97205,USA,2026-04-02,59741,Lost,Website
+Emily,Clarke,eclarke@literaryhaven.com,555-1345,Editor-in-Chief,Editorial,Quantum Legal Partners,88 Bookworm Ln,Nashville,TN,37203,USA,2026-01-12,57337,New,Website
+Sarah,Jennings,sjennings@blueridge.edu,555-0456,Admissions Officer,Administration,SilverLine Financial,34 University Ln,Asheville,NC,28801,USA,2026-02-16,11618,Lost,Website
+Geovanni,Towne,geovanni_towne@hotmail.com,+1-605-828-1853,Analyst,Marketing,Urban Bites Catering,11441 Schuster Course,South Tavaresland,GA,96175-9661,Comoros,2026-03-30,45297,New,Website
+Sarah,Jennings,sjennings@blueridge.edu,555-0456,Admissions Officer,Administration,SilverLine Financial,34 University Ln,Asheville,NC,28801,USA,2026-03-12,24756,Qualified,Website
+David,Nkosi,dnkosi@globaltrade.biz,555-0567,Supply Chain Manager,Procurement,Zenith Logistics,56 Harbor View,Seattle,WA,98101,USA,2026-01-25,55140,Qualified,Website
+Marcus,Thorne,mthorne@apexlogistics.com,555-0199,Logistics Coordinator,Operations,Coastal Health Group,889 Industrial Way,Chicago,IL,60607,USA,2026-04-06,43225,Qualified,Website
+Marcus,Thorne,mthorne@apexlogistics.com,555-0199,Logistics Coordinator,Operations,Coastal Health Group,889 Industrial Way,Chicago,IL,60607,USA,2026-04-15,28222,Lost,Website
+Elda,Kuhn,elda_kuhn30@gmail.com,+1-760-215-1436,CTO,Operations,Echo Media Group,870 Koepp Forks,West Stephonberg,AK,25171-0110,Monaco,2026-03-14,34619,Contacted,Referral
+Shana,Ferry,shana_ferry64@yahoo.com,+1-925-619-1359,CTO,Marketing,Summit Tech Solutions,85834 S Park Street,North Dandreberg,VA,84900,Brunei Darussalam,2026-01-24,57960,Lost,Referral
+Elena,Rodriguez,erodriguez@solarisfinance.org,555-0234,Financial Analyst,Finance,Azure Sky Hospitality,772 Sunnyside Dr,Miami,FL,33101,USA,2026-02-21,9617,New,Referral
+Colleen,Effertz,colleen.effertz16@gmail.com,+1-875-428-0064,Developer,Customer Service,Urban Bites Catering,261 Hawthorn Close,Thousand Oaks,AL,74800-5593,Croatia,2026-01-21,63353,New,Referral
+Isabella,Moretti,imoretti@culinaryarts.com,555-0678,Executive Chef,Culinary,Vitality Fitness,22 Pasta Place,New York,NY,10013,USA,2026-02-07,68039,New,Referral
+Amira,Khan,akhan@healthfirst.org,555-1123,Pediatrician,Medical,PureFlow Systems,33 Wellness Blvd,Houston,TX,77002,USA,2026-01-07,71812,Lost,Referral
+Wei,Chen,w.chen@quantumsoft.co,555-0345,Lead Developer,R&D,BrightPath Learning,901 Silicon Ave,San Jose,CA,95110,USA,2026-01-03,73840,New,Referral
+Hal,Haag,hal_haag83@yahoo.com,+1-776-333-1097,Analyst,Business Development,Urban Bites Catering,75268 Hortense Cape,Yorba Linda,MI,23378,Armenia,2026-03-19,54399,New,Referral
+Sarah,Jennings,sjennings@blueridge.edu,555-0456,Admissions Officer,Administration,SilverLine Financial,34 University Ln,Asheville,NC,28801,USA,2026-04-01,30402,Contacted,Referral
+Elena,Rodriguez,erodriguez@solarisfinance.org,555-0234,Financial Analyst,Finance,Azure Sky Hospitality,772 Sunnyside Dr,Miami,FL,33101,USA,2026-04-10,49610,New,Referral
+Birdie,Blick-Marvin,birdie_blick-marvin16@yahoo.com,+1-985-218-5561,CTO,Operations,Swift Motors,2657 The Maltings,Blockfurt,IN,81557-9442,Rwanda,2026-03-06,49944,Qualified,Referral
+Angus,Wintheiser,angus.wintheiser72@yahoo.com,+1-563-374-7147,CTO,Customer Service,Coastal Health Group,4966 Church View,Bradtkefort,NV,78445-4029,Jordan,2026-01-09,10924,Qualified,Referral
+Jamal,Washington,jwashington@civicworks.gov,555-0789,Civil Engineer,Planning,Bloom & Petal,890 Infrastructure Rd,Atlanta,GA,30303,USA,2026-01-30,25973,Qualified,Referral
+Shana,Ferry,shana_ferry64@yahoo.com,+1-925-619-1359,CTO,Marketing,Summit Tech Solutions,85834 S Park Street,North Dandreberg,VA,84900,Brunei Darussalam,2026-01-31,45265,New,Referral
+Hal,Haag,hal_haag83@yahoo.com,+1-776-333-1097,Analyst,Business Development,Urban Bites Catering,75268 Hortense Cape,Yorba Linda,MI,23378,Armenia,2026-04-06,72587,Lost,Referral
+Queen,Rutherford,queen.rutherford89@hotmail.com,+1-689-917-7375,Designer,Product,RedRock Energy,81424 Cliff Road,Columbia,NM,35274,Nepal,2026-01-03,23988,Qualified,Referral
+Lars,Jensen,ljensen@nordicdesign.com,555-1012,Architect,Design,IronWorks Construction,67 Minimalist Way,Minneapolis,MN,55401,USA,2026-04-26,14235,Qualified,Referral
+Hal,Haag,hal_haag83@yahoo.com,+1-776-333-1097,Analyst,Business Development,Urban Bites Catering,75268 Hortense Cape,Yorba Linda,MI,23378,Armenia,2026-01-08,44734,Contacted,Social Media
+Hal,Haag,hal_haag83@yahoo.com,+1-776-333-1097,Analyst,Business Development,Urban Bites Catering,75268 Hortense Cape,Yorba Linda,MI,23378,Armenia,2026-01-06,11451,New,Social Media
+Jabari,Friesen,jabari_friesen47@yahoo.com,+1-488-362-2467,Designer,Finance,PureFlow Systems,959 N 8th Street,Port Justina,MN,29062-2170,Mauritius,2026-02-13,62019,Lost,Social Media
+David,Nkosi,dnkosi@globaltrade.biz,555-0567,Supply Chain Manager,Procurement,Zenith Logistics,56 Harbor View,Seattle,WA,98101,USA,2026-01-23,61770,Contacted,Social Media
+Wei,Chen,w.chen@quantumsoft.co,555-0345,Lead Developer,R&D,BrightPath Learning,901 Silicon Ave,San Jose,CA,95110,USA,2026-03-15,33509,Qualified,Social Media
+Eunice,Hegmann,eunice.hegmann35@yahoo.com,+1-014-581-6405,CTO,Engineering,IronWorks Construction,119 Colton Lake,Plantation,MT,61111-2097,Paraguay,2026-01-20,61473,New,Social Media
+Lars,Jensen,ljensen@nordicdesign.com,555-1012,Architect,Design,IronWorks Construction,67 Minimalist Way,Minneapolis,MN,55401,USA,2026-02-21,68795,Contacted,Social Media
+Fiona,O'Connor,foconnor@celticgreen.ie,555-0901,HR Specialist,Human Resources,RedRock Energy,45 Clover St,Boston,MA,2108,USA,2026-02-03,65148,Qualified,Social Media
+Diego,Fernandez,dfernandez@autovantage.net,555-1234,Sales Manager,Sales,Echo Media Group,55 Motor Mile,Detroit,MI,48201,USA,2026-02-18,42763,Qualified,Social Media
+Elda,Kuhn,elda_kuhn30@gmail.com,+1-760-215-1436,CTO,Operations,Echo Media Group,870 Koepp Forks,West Stephonberg,AK,25171-0110,Monaco,2026-03-29,73645,New,Social Media
+Fiona,O'Connor,foconnor@celticgreen.ie,555-0901,HR Specialist,Human Resources,RedRock Energy,45 Clover St,Boston,MA,2108,USA,2026-02-18,9768,Lost,Social Media
+Wei,Chen,w.chen@quantumsoft.co,555-0345,Lead Developer,R&D,BrightPath Learning,901 Silicon Ave,San Jose,CA,95110,USA,2026-01-21,40492,Contacted,Social Media
+Wei,Chen,w.chen@quantumsoft.co,555-0345,Lead Developer,R&D,BrightPath Learning,901 Silicon Ave,San Jose,CA,95110,USA,2026-02-15,49421,New,Social Media
+Shana,Ferry,shana_ferry64@yahoo.com,+1-925-619-1359,CTO,Marketing,Summit Tech Solutions,85834 S Park Street,North Dandreberg,VA,84900,Brunei Darussalam,2026-02-21,37221,Qualified,Social Media
+Isabella,Moretti,imoretti@culinaryarts.com,555-0678,Executive Chef,Culinary,Vitality Fitness,22 Pasta Place,New York,NY,10013,USA,2026-01-21,47680,Lost,Social Media
+Piyush,Patel,ppatel@greenleaf.net,555-0122,Marketing Director,Marketing,Urban Bites Catering,45 Maple Ave,Portland,OR,97205,USA,2026-01-21,26720,Lost,Social Media
+Sandra,Roberts,sandra.roberts30@yahoo.com,+1-236-492-2609,Specialist,Operations,BrightPath Learning,67952 Herman Creek,New Brannonland,NM,70702-2311,Taiwan,2026-04-27,10642,New,Email
+Marcus,Thorne,mthorne@apexlogistics.com,555-0199,Logistics Coordinator,Operations,Coastal Health Group,889 Industrial Way,Chicago,IL,60607,USA,2026-04-22,43371,Lost,Email
+Piyush,Patel,ppatel@greenleaf.net,555-0122,Marketing Director,Marketing,Urban Bites Catering,45 Maple Ave,Portland,OR,97205,USA,2026-02-05,56960,New,Email
+Yuki,Sato,techp0033@gmail.com,555-0890,UX Designer,Product,Summit Tech Solutions,101 Pixel Park,San Francisco,CA,94103,USA,2026-02-09,13012,New,Email
+Angus,Wintheiser,angus.wintheiser72@yahoo.com,+1-563-374-7147,CTO,Customer Service,Coastal Health Group,4966 Church View,Bradtkefort,NV,78445-4029,Jordan,2026-03-11,30237,New,Email
+Diego,Fernandez,dfernandez@autovantage.net,555-1234,Sales Manager,Sales,Echo Media Group,55 Motor Mile,Detroit,MI,48201,USA,2026-03-22,38633,Qualified,Email
+Isabella,Moretti,imoretti@culinaryarts.com,555-0678,Executive Chef,Culinary,Vitality Fitness,22 Pasta Place,New York,NY,10013,USA,2026-04-10,15549,New,Email
+Queen,Rutherford,queen.rutherford89@hotmail.com,+1-689-917-7375,Designer,Product,RedRock Energy,81424 Cliff Road,Columbia,NM,35274,Nepal,2026-02-13,20677,Lost,Email
+Sandra,Roberts,sandra.roberts30@yahoo.com,+1-236-492-2609,Specialist,Operations,BrightPath Learning,67952 Herman Creek,New Brannonland,NM,70702-2311,Taiwan,2026-02-03,50983,New,Email
+Angus,Wintheiser,angus.wintheiser72@yahoo.com,+1-563-374-7147,CTO,Customer Service,Coastal Health Group,4966 Church View,Bradtkefort,NV,78445-4029,Jordan,2026-04-25,65516,New,Email
+Jabari,Friesen,jabari_friesen47@yahoo.com,+1-488-362-2467,Designer,Finance,PureFlow Systems,959 N 8th Street,Port Justina,MN,29062-2170,Mauritius,2026-02-25,19742,New,Email
+Carlos,Murray,carlos.murray28@gmail.com,+1-896-759-9038,Engineer,Human Resources,Coastal Health Group,921 Jo Field,Port Thad,AL,19498-8615,Equatorial Guinea,2026-02-28,45959,New,Email
+Piyush,Patel,ppatel@greenleaf.net,555-0122,Marketing Director,Marketing,Urban Bites Catering,45 Maple Ave,Portland,OR,97205,USA,2026-03-14,50566,Lost,Email
+Amira,Khan,akhan@healthfirst.org,555-1123,Pediatrician,Medical,PureFlow Systems,33 Wellness Blvd,Houston,TX,77002,USA,2026-01-24,46469,Contacted,Email
+Eleanora,Brown,eleanora_brown@gmail.com,+1-628-233-8872,Engineer,Engineering,IronWorks Construction,108 Hartmann Ridges,Saginaw,DE,61456-5190,Guatemala,2026-02-09,6168,Qualified,Email
+Jerel,Schoen,jerel_schoen37@yahoo.com,+1-554-223-1512,Accountant,Engineering,Vitality Fitness,2884 S Broad Street,Port Tessie,OH,63285,South Sudan,2026-03-17,6900,Contacted,Email
+Carlos,Murray,carlos.murray28@gmail.com,+1-896-759-9038,Engineer,Human Resources,Coastal Health Group,921 Jo Field,Port Thad,AL,19498-8615,Equatorial Guinea,2026-03-29,69898,Contacted,Phone
+Bennett,Green,bennett_green89@hotmail.com,+1-567-524-6836,Specialist,Human Resources,BrightPath Learning,339 Veda Cape,South Gladysmouth,MD,33155,Cambodia,2026-04-24,17700,Qualified,Phone
+Birdie,Blick-Marvin,birdie_blick-marvin16@yahoo.com,+1-985-218-5561,CTO,Operations,Swift Motors,2657 The Maltings,Blockfurt,IN,81557-9442,Rwanda,2026-01-06,48258,Contacted,Phone
+Jamal,Washington,jwashington@civicworks.gov,555-0789,Civil Engineer,Planning,Bloom & Petal,890 Infrastructure Rd,Atlanta,GA,30303,USA,2026-01-16,28487,Qualified,Phone
+Shana,Ferry,shana_ferry64@yahoo.com,+1-925-619-1359,CTO,Marketing,Summit Tech Solutions,85834 S Park Street,North Dandreberg,VA,84900,Brunei Darussalam,2026-04-01,74829,Contacted,Phone
+Piyush,Patel,ppatel@greenleaf.net,555-0122,Marketing Director,Marketing,Urban Bites Catering,45 Maple Ave,Portland,OR,97205,USA,2026-03-24,29846,New,Phone
+Shana,Ferry,shana_ferry64@yahoo.com,+1-925-619-1359,CTO,Marketing,Summit Tech Solutions,85834 S Park Street,North Dandreberg,VA,84900,Brunei Darussalam,2026-03-14,32441,Contacted,Phone
+Angus,Wintheiser,angus.wintheiser72@yahoo.com,+1-563-374-7147,CTO,Customer Service,Coastal Health Group,4966 Church View,Bradtkefort,NV,78445-4029,Jordan,2026-04-11,58305,New,Phone
+Lars,Jensen,ljensen@nordicdesign.com,555-1012,Architect,Design,IronWorks Construction,67 Minimalist Way,Minneapolis,MN,55401,USA,2026-02-04,20335,Qualified,Phone
+Marcus,Thorne,mthorne@apexlogistics.com,555-0199,Logistics Coordinator,Operations,Coastal Health Group,889 Industrial Way,Chicago,IL,60607,USA,2026-03-31,26369,New,Phone
+Marcus,Thorne,mthorne@apexlogistics.com,555-0199,Logistics Coordinator,Operations,Coastal Health Group,889 Industrial Way,Chicago,IL,60607,USA,2026-01-21,42311,Lost,Phone
+Sandra,Roberts,sandra.roberts30@yahoo.com,+1-236-492-2609,Specialist,Operations,BrightPath Learning,67952 Herman Creek,New Brannonland,NM,70702-2311,Taiwan,2026-02-15,37789,Qualified,Phone
+Angus,Wintheiser,angus.wintheiser72@yahoo.com,+1-563-374-7147,CTO,Customer Service,Coastal Health Group,4966 Church View,Bradtkefort,NV,78445-4029,Jordan,2026-03-16,51854,Contacted,Phone
+Jabari,Friesen,jabari_friesen47@yahoo.com,+1-488-362-2467,Designer,Finance,PureFlow Systems,959 N 8th Street,Port Justina,MN,29062-2170,Mauritius,2026-04-23,18340,New,Phone
+Emily,Clarke,eclarke@literaryhaven.com,555-1345,Editor-in-Chief,Editorial,Quantum Legal Partners,88 Bookworm Ln,Nashville,TN,37203,USA,2026-01-09,18858,Qualified,Phone
+Isabella,Moretti,imoretti@culinaryarts.com,555-0678,Executive Chef,Culinary,Vitality Fitness,22 Pasta Place,New York,NY,10013,USA,2026-04-02,21390,Contacted,Phone
+Sandra,Roberts,sandra.roberts30@yahoo.com,+1-236-492-2609,Specialist,Operations,BrightPath Learning,67952 Herman Creek,New Brannonland,NM,70702-2311,Taiwan,2026-01-03,44180,Qualified,Other
+Sandra,Roberts,sandra.roberts30@yahoo.com,+1-236-492-2609,Specialist,Operations,BrightPath Learning,67952 Herman Creek,New Brannonland,NM,70702-2311,Taiwan,2026-03-20,69118,Qualified,Other
+Amira,Khan,akhan@healthfirst.org,555-1123,Pediatrician,Medical,PureFlow Systems,33 Wellness Blvd,Houston,TX,77002,USA,2026-03-02,39734,New,Other
+Eunice,Hegmann,eunice.hegmann35@yahoo.com,+1-014-581-6405,CTO,Engineering,IronWorks Construction,119 Colton Lake,Plantation,MT,61111-2097,Paraguay,2026-03-08,72913,Contacted,Other
+Jerel,Schoen,jerel_schoen37@yahoo.com,+1-554-223-1512,Accountant,Engineering,Vitality Fitness,2884 S Broad Street,Port Tessie,OH,63285,South Sudan,2026-02-03,66031,Lost,Other
+Emily,Clarke,eclarke@literaryhaven.com,555-1345,Editor-in-Chief,Editorial,Quantum Legal Partners,88 Bookworm Ln,Nashville,TN,37203,USA,2026-03-21,29542,New,Other
+Yuki,Sato,techp0033@gmail.com,555-0890,UX Designer,Product,Summit Tech Solutions,101 Pixel Park,San Francisco,CA,94103,USA,2026-02-12,68522,Lost,Other
+Amira,Khan,akhan@healthfirst.org,555-1123,Pediatrician,Medical,PureFlow Systems,33 Wellness Blvd,Houston,TX,77002,USA,2026-02-16,40541,New,Other
+Carlos,Murray,carlos.murray28@gmail.com,+1-896-759-9038,Engineer,Human Resources,Coastal Health Group,921 Jo Field,Port Thad,AL,19498-8615,Equatorial Guinea,2026-01-11,31902,Lost,Other
+Eunice,Hegmann,eunice.hegmann35@yahoo.com,+1-014-581-6405,CTO,Engineering,IronWorks Construction,119 Colton Lake,Plantation,MT,61111-2097,Paraguay,2026-02-01,71956,Qualified,Other
+Carlos,Murray,carlos.murray28@gmail.com,+1-896-759-9038,Engineer,Human Resources,Coastal Health Group,921 Jo Field,Port Thad,AL,19498-8615,Equatorial Guinea,2026-01-13,16724,Lost,Other
+Emily,Clarke,eclarke@literaryhaven.com,555-1345,Editor-in-Chief,Editorial,Quantum Legal Partners,88 Bookworm Ln,Nashville,TN,37203,USA,2026-02-09,72199,New,Other
+Jabari,Friesen,jabari_friesen47@yahoo.com,+1-488-362-2467,Designer,Finance,PureFlow Systems,959 N 8th Street,Port Justina,MN,29062-2170,Mauritius,2026-03-01,20222,Lost,Other
+Jabari,Friesen,jabari_friesen47@yahoo.com,+1-488-362-2467,Designer,Finance,PureFlow Systems,959 N 8th Street,Port Justina,MN,29062-2170,Mauritius,2026-01-26,33672,Contacted,Other
+Jamal,Washington,jwashington@civicworks.gov,555-0789,Civil Engineer,Planning,Bloom & Petal,890 Infrastructure Rd,Atlanta,GA,30303,USA,2026-04-24,32261,Lost,Other
+Hal,Haag,hal_haag83@yahoo.com,+1-776-333-1097,Analyst,Business Development,Urban Bites Catering,75268 Hortense Cape,Yorba Linda,MI,23378,Armenia,2026-04-11,47619,New,Other
+Fiona,O'Connor,foconnor@celticgreen.ie,555-0901,HR Specialist,Human Resources,RedRock Energy,45 Clover St,Boston,MA,2108,USA,2026-03-13,71030,Qualified,Other
+Jerel,Schoen,jerel_schoen37@yahoo.com,+1-554-223-1512,Accountant,Engineering,Vitality Fitness,2884 S Broad Street,Port Tessie,OH,63285,South Sudan,2026-04-08,55971,Lost,Referral

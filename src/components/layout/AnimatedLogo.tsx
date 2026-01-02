@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTheme } from '../../context/ThemeContext';
 
 type AnimatedLogoProps = {
   name?: string;
@@ -43,11 +44,28 @@ export function AnimatedLogo({
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [colorThemeIndex, setColorThemeIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const { theme } = useTheme();
   const progressBarRef = useRef<SVGRectElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = colorThemes[colorThemeIndex];
+  
+  // Theme-aware colors for optimal display in light and dark modes
+  const themeAwareColors = {
+    innerCutoutFill: theme === 'light' ? '#f0f0f5' : '#0b0f15',
+    ringStroke: theme === 'light' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.06)',
+    edgeStroke: theme === 'light' ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)',
+    outerGlowOpacity: theme === 'light' ? 0.18 : 0.12,
+    orbitingDotsColor: theme === 'light' ? '#6425fe' : '#fff',
+    orbitingDotsBlendMode: theme === 'light' ? 'multiply' : 'screen',
+    haloDotsColors: theme === 'light' 
+      ? ['#6425fe', '#5015e8', '#4c9dff']
+      : ['#8AA1FF', '#7B61FF', '#00D4FF'],
+    haloDotOpacities: theme === 'light' 
+      ? [0.7, 0.6, 0.65]
+      : [0.95, 0.85, 0.9],
+  };
 
   // Handle click outside to close tooltip
   useEffect(() => {
@@ -122,9 +140,12 @@ export function AnimatedLogo({
             <stop offset="100%" stopColor="#00D4FF" />
           </linearGradient>
 
-          {/* Soft glow filter for depth */}
+          {/* Soft glow filter for depth - Enhanced for light mode */}
           <filter id="f-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feGaussianBlur stdDeviation={theme === 'light' ? '7' : '6'} result="blur" />
+            {theme === 'light' && (
+              <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0 1 0 0 0 0.25 0" />
+            )}
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -210,10 +231,23 @@ export function AnimatedLogo({
         {/* background card for preview contexts (transparency optional) */}
         {/* <rect x="0" y="0" width="320" height="120" rx="8" fill="#0f1724" /> */}
 
+        {/* Subtle shadow background for light mode depth */}
+        {theme === 'light' && (
+          <ellipse
+            cx="80"
+            cy="75"
+            rx="65"
+            ry="40"
+            fill="rgba(100, 37, 254, 0.08)"
+            opacity="0.6"
+            style={{ filter: 'blur(8px)' }}
+          />
+        )}
+
         {/* Left logo mark group */}
         <g className="mark-root" transform="translate(80,60)">
           {/* subtle outer glow ring */}
-          <g className="spin-slow" style={{ opacity: 0.12 }}>
+          <g className="spin-slow" style={{ opacity: themeAwareColors.outerGlowOpacity }}>
             <circle cx="0" cy="0" r="58" fill="none" stroke="url(#g-main)" strokeWidth="6" />
           </g>
 
@@ -224,7 +258,7 @@ export function AnimatedLogo({
               cy="0"
               r="46"
               fill="none"
-              stroke="rgba(255,255,255,0.06)"
+              stroke={themeAwareColors.ringStroke}
               strokeWidth="3"
               className="ring"
               strokeLinecap="round"
@@ -245,36 +279,36 @@ export function AnimatedLogo({
             />
 
             {/* inner cutout for depth */}
-            <path d="M -12 -2 L 0 -23 L 12 -2 L 0 18 Z" fill="#0b0f15" opacity="0.98" />
+            <path d="M -12 -2 L 0 -23 L 12 -2 L 0 18 Z" fill={themeAwareColors.innerCutoutFill} opacity="0.98" />
 
             {/* thin stroke to define edges */}
             <path
               d="M -20 -3 L 0 -33 L 20 -3 L 0 28 Z"
               fill="none"
-              stroke="rgba(255,255,255,0.12)"
+              stroke={themeAwareColors.edgeStroke}
               strokeWidth="1"
               strokeLinejoin="round"
             />
           </g>
 
           {/* Orbiting dots suggesting connected modules */}
-          <g style={{ mixBlendMode: 'screen' }}>
+          <g style={{ mixBlendMode: themeAwareColors.orbitingDotsBlendMode as any }}>
             <g className="dotA" style={{ transformOrigin: '80px 60px' }}>
-              <use href="#unitDot" x="0" y="0" fill="#fff" opacity="0.95" />
+              <use href="#unitDot" x="0" y="0" fill={themeAwareColors.orbitingDotsColor} opacity={theme === 'light' ? 0.7 : 0.95} />
             </g>
             <g className="dotB">
-              <use href="#unitDot" x="0" y="0" fill="#fff" opacity="0.85" />
+              <use href="#unitDot" x="0" y="0" fill={themeAwareColors.orbitingDotsColor} opacity={theme === 'light' ? 0.6 : 0.85} />
             </g>
             <g className="dotC">
-              <use href="#unitDot" x="0" y="0" fill="#fff" opacity="0.9" />
+              <use href="#unitDot" x="0" y="0" fill={themeAwareColors.orbitingDotsColor} opacity={theme === 'light' ? 0.65 : 0.9} />
             </g>
           </g>
 
           {/* small accent: three tiny halo dots that pulse */}
           <g transform="translate(-34,-36)">
-            <circle cx="0" cy="0" r="2.6" fill="#8AA1FF" opacity="0.95" />
-            <circle cx="12" cy="6" r="1.8" fill="#7B61FF" opacity="0.85" />
-            <circle cx="-8" cy="14" r="1.6" fill="#00D4FF" opacity="0.9" />
+            <circle cx="0" cy="0" r="2.6" fill={themeAwareColors.haloDotsColors[0]} opacity={themeAwareColors.haloDotOpacities[0]} />
+            <circle cx="12" cy="6" r="1.8" fill={themeAwareColors.haloDotsColors[1]} opacity={themeAwareColors.haloDotOpacities[1]} />
+            <circle cx="-8" cy="14" r="1.6" fill={themeAwareColors.haloDotsColors[2]} opacity={themeAwareColors.haloDotOpacities[2]} />
           </g>
         </g>
 

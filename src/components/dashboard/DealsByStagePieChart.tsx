@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { motion } from 'framer-motion';
 import { formatCurrency, formatAbbreviatedNumber } from '../../utils/formatting';
 import { AnimatedNumber } from '../common/AnimatedNumber';
@@ -157,9 +157,9 @@ export function DealsByStagePieChart({ data, onFilterChange }: DealsByStagePieCh
         <ChartFilterDropdown onFilterChange={onFilterChange} />
       )}
 
-      <div className={`flex-1 min-h-0 ${onFilterChange ? 'pt-8' : ''}`} style={{ minHeight: '300px' }}>
+      <div className={`flex-1 min-h-0 ${onFilterChange ? 'pt-8' : ''}`} style={{ minHeight: '270px' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+          <PieChart margin={{ top: 3, right: 10, bottom: 3, left: 10 }}>
             <defs>
               {chartDataWithPercentage.map((entry, index) => {
                 const color = STAGE_COLORS[entry.stage] || '#A8DADC';
@@ -201,24 +201,13 @@ export function DealsByStagePieChart({ data, onFilterChange }: DealsByStagePieCh
               </text>
             </Pie>
             <Tooltip content={<CustomTooltip />} />
-            <Legend
-              verticalAlign="bottom"
-              height={36}
-              iconType="circle"
-              formatter={(value) => (
-                <span className="text-sm text-foreground">{value}</span>
-              )}
-              wrapperStyle={{
-                paddingTop: '20px',
-              }}
-            />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
       {/* Summary Stats */}
       <motion.div
-        className="mt-4 pt-4 border-t border-border"
+        className="mt-2 pt-2 border-t border-border"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
@@ -250,9 +239,9 @@ export function DealsByStagePieChart({ data, onFilterChange }: DealsByStagePieCh
         </div>
       </motion.div>
 
-      {/* Stage Breakdown */}
+      {/* Stage Breakdown - Show ALL stages from chart data (exact match with bar chart approach) */}
       <motion.div
-        className="mt-4 pt-4 border-t border-border"
+        className="mt-2 pt-2 border-t border-border"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
@@ -260,21 +249,21 @@ export function DealsByStagePieChart({ data, onFilterChange }: DealsByStagePieCh
         <div className="grid grid-cols-2 gap-2 text-xs">
           {chartDataWithPercentage.map((item, index) => (
             <motion.div
-              key={item.stage}
-              className="flex items-center justify-between"
+              key={`${item.stage}-${index}`}
+              className="flex items-center gap-1 rounded-lg border border-white/10 bg-[#1A1A1C]/50 px-2 py-1.5"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.5 + index * 0.05 }}
-              whileHover={{ scale: 1.02, x: 4 }}
+              whileHover={{ scale: 1.02, borderColor: 'rgba(168, 218, 220, 0.3)' }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-1">
                 <motion.div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: STAGE_COLORS[item.stage] }}
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: STAGE_COLORS[item.stage] || '#A8DADC' }}
                   whileHover={{ scale: 1.3 }}
                   transition={{ duration: 0.2 }}
                 />
-                <span className="text-muted-foreground">{item.stage}</span>
+                <span className="text-muted-foreground">{item.stage}:</span>
               </div>
               <span className="font-medium text-foreground">{item.count}</span>
             </motion.div>

@@ -209,7 +209,7 @@ export const parseContactsCSV = async (fileBuffer) => {
  * @returns {string} CSV string
  */
 export const companiesToCSV = (companies) => {
-  const headers = ['Name', 'Email', 'Phone', 'Website', 'Industry', 'Street', 'City', 'State', 'Zip Code', 'Country', 'Tags'];
+  const headers = ['name', 'email', 'phone', 'website', 'industry', 'street', 'city', 'state', 'zipCode', 'country', 'tags'];
   const rows = companies.map((company) => {
     return [
       company.name || '',
@@ -226,7 +226,7 @@ export const companiesToCSV = (companies) => {
     ].map((field) => `"${String(field).replace(/"/g, '""')}"`).join(',');
   });
 
-  return [headers.map((h) => `"${h}"`).join(','), ...rows].join('\n');
+  return [headers.join(','), ...rows].join('\n');
 };
 
 /**
@@ -262,7 +262,10 @@ export const contactsToCSV = (contacts) => {
 
 /**
  * Parse CSV file for leads
- * Expected CSV format: title,description,contactEmail,companyName,source,status,value,notes,expectedCloseDate
+ * Expected CSV format: firstName,lastName,email,phone,jobTitle,department,companyName,street,city,state,zipCode,country,expectedCloseDate,value,status,source
+ * Value can include currency symbols ($) and commas (e.g., "$1,000.00" or "1000")
+ * Status should be one of: New, Contacted, Qualified, Lost, Converted (case-insensitive)
+ * Source should be one of: website, referral, social, email, phone, other (case-insensitive)
  * @param {Buffer} fileBuffer - CSV file buffer
  * @returns {Promise<Array>} Array of parsed lead objects
  */
@@ -274,6 +277,47 @@ export const parseLeadsCSV = async (fileBuffer) => {
     throw new Error('CSV file must contain at least a header and one data row');
   }
 
+  // Helper function to parse CSV line handling quoted fields
+  const parseCSVLine = (line) => {
+    const fields = [];
+    let currentField = '';
+    let inQuotes = false;
+    
+    for (let j = 0; j < line.length; j++) {
+      const char = line[j];
+      if (char === '"') {
+        if (inQuotes && line[j + 1] === '"') {
+          // Escaped quote
+          currentField += '"';
+          j++; // Skip next quote
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // Field separator
+        fields.push(currentField.trim());
+        currentField = '';
+      } else {
+        currentField += char;
+      }
+    }
+    // Add last field
+    fields.push(currentField.trim());
+    return fields;
+  };
+
+  // Parse header row
+  const headerLine = lines[0].trim();
+  const headerFields = parseCSVLine(headerLine);
+  
+  // Create column index map (case-insensitive)
+  const columnMap = {};
+  headerFields.forEach((header, index) => {
+    const headerLower = header.toLowerCase().trim();
+    columnMap[headerLower] = index;
+  });
+
   // Skip header row
   const dataLines = lines.slice(1);
   const leads = [];
@@ -283,28 +327,108 @@ export const parseLeadsCSV = async (fileBuffer) => {
     const line = dataLines[i].trim();
     if (!line) continue;
 
-    const fields = line.split(',').map((field) => field.trim());
-    const [title, description, contactEmail, companyName, source, status, valueStr, notes, expectedCloseDateStr] = fields;
+    const fields = parseCSVLine(line);
 
-    if (!title) {
-      errors.push(`Row ${i + 2}: Missing title`);
+    // Helper to get field value by column name (case-insensitive)
+    const getField = (columnName) => {
+      const index = columnMap[columnName.toLowerCase()];
+      return index !== undefined && fields[index] ? fields[index].trim() : undefined;
+    };
+
+    const firstName = getField('firstName') || getField('firstname') || getField('first_name');
+    const lastName = getField('lastName') || getField('lastname') || getField('last_name');
+    const email = getField('email');
+    const phone = getField('phone');
+    const jobTitle = getField('jobTitle') || getField('jobtitle') || getField('job_title');
+    const department = getField('department');
+    const companyName = getField('companyName') || getField('companyname') || getField('company_name');
+    const street = getField('street');
+    const city = getField('city');
+    const state = getField('state');
+    const zipCode = getField('zipCode') || getField('zipcode') || getField('zip_code');
+    const country = getField('country');
+    const expectedCloseDateStr = getField('expectedCloseDate') || getField('expectedclosedate') || getField('expected_close_date');
+    const valueStr = getField('value');
+    const status = getField('status');
+    const source = getField('source');
+
+    if (!firstName || !lastName) {
+      errors.push(`Row ${i + 2}: Missing first name or last name`);
       continue;
     }
 
+    // Validate and parse date - only set if valid
+    let expectedCloseDate = undefined;
+    if (expectedCloseDateStr && expectedCloseDateStr.trim()) {
+      const dateStr = expectedCloseDateStr.trim();
+      // Try parsing the date
+      const parsedDate = new Date(dateStr);
+      // Check if date is valid
+      if (!isNaN(parsedDate.getTime()) && dateStr.length > 0) {
+        expectedCloseDate = parsedDate;
+      } else {
+        errors.push(`Row ${i + 2}: Invalid date format: ${dateStr}`);
+        // Continue without date rather than failing completely
+      }
+    }
+
+    // Parse and validate value - handle currency symbols and commas
+    let value = 0;
+    if (valueStr && valueStr.trim()) {
+      // Remove currency symbols, commas, and whitespace
+      const cleanedValue = valueStr.trim().replace(/[$,\s]/g, '');
+      const parsedValue = parseFloat(cleanedValue);
+      value = isNaN(parsedValue) ? 0 : parsedValue;
+    }
+
+    // Validate and set status - case-insensitive matching
+    const validStatuses = ['New', 'Contacted', 'Qualified', 'Lost', 'Converted'];
+    let leadStatus = 'New';
+    if (status && status.trim()) {
+      const statusTrimmed = status.trim();
+      // Case-insensitive matching
+      const matchedStatus = validStatuses.find(s => s.toLowerCase() === statusTrimmed.toLowerCase());
+      leadStatus = matchedStatus || 'New';
+    }
+
+    // Validate and set source - case-insensitive matching
+    const validSources = ['website', 'referral', 'social', 'email', 'phone', 'other'];
+    // Map common source names to valid values
+    const sourceMapping = {
+      'linkedin': 'social',
+      'facebook': 'social',
+      'twitter': 'social',
+      'instagram': 'social',
+      'website': 'website',
+      'web': 'website',
+      'event': 'other',
+      'referral': 'referral',
+      'email': 'email',
+      'phone': 'phone',
+      'call': 'phone',
+      'social': 'social',
+      'social media': 'social',
+      'other': 'other',
+    };
+    let leadSource = 'other';
+    if (source && source.trim()) {
+      const sourceLower = source.trim().toLowerCase();
+      leadSource = sourceMapping[sourceLower] || (validSources.includes(sourceLower) ? sourceLower : 'other');
+    }
+
+    // Create lead title from name
+    const title = `${firstName} ${lastName}${email ? `: ${email}` : ''}`;
+
     const lead = {
       title,
-      description: description || undefined,
-      contactEmail: contactEmail || undefined, // Will be resolved to contactId later
-      companyName: companyName || undefined, // Will be resolved to companyId later
-      source: (source && ['website', 'referral', 'social', 'email', 'phone', 'other'].includes(source.toLowerCase())) 
-        ? source.toLowerCase() 
-        : 'other',
-      status: (status && ['New', 'Contacted', 'Qualified', 'Lost', 'Converted'].includes(status)) 
-        ? status 
-        : 'New',
-      value: valueStr ? parseFloat(valueStr) || 0 : 0,
-      notes: notes || undefined,
-      expectedCloseDate: expectedCloseDateStr ? new Date(expectedCloseDateStr) : undefined,
+      description: jobTitle ? `${jobTitle}${department ? ` - ${department}` : ''}` : undefined,
+      contactEmail: email?.trim() || undefined,
+      companyName: companyName?.trim() || undefined,
+      source: leadSource,
+      status: leadStatus,
+      value: value,
+      notes: undefined,
+      expectedCloseDate: expectedCloseDate, // Only set if valid
     };
 
     leads.push(lead);
@@ -323,30 +447,54 @@ export const parseLeadsCSV = async (fileBuffer) => {
  * @returns {string} CSV string
  */
 export const leadsToCSV = (leads) => {
-  const headers = ['Title', 'Description', 'Contact', 'Company', 'Source', 'Status', 'Value', 'Owner', 'Notes', 'Expected Close Date', 'Created At'];
+  const headers = ['firstName', 'lastName', 'email', 'phone', 'jobTitle', 'department', 'companyName', 'street', 'city', 'state', 'zipCode', 'country', 'expectedCloseDate', 'value', 'status', 'source'];
   const rows = leads.map((lead) => {
-    const contactName = lead.contactId 
-      ? `${lead.contactId.firstName || ''} ${lead.contactId.lastName || ''}`.trim()
-      : '';
+    // Extract contact details
+    const contact = lead.contactId;
+    const firstName = contact?.firstName || '';
+    const lastName = contact?.lastName || '';
+    const primaryEmail = contact?.emails?.find((e) => e.isPrimary)?.email || contact?.emails?.[0]?.email || '';
+    const primaryPhone = contact?.phones?.find((p) => p.isPrimary)?.phone || contact?.phones?.[0]?.phone || '';
+    const jobTitle = contact?.jobTitle || '';
+    const department = contact?.department || '';
+    
+    // Extract address from contact
+    const street = contact?.address?.street || '';
+    const city = contact?.address?.city || '';
+    const state = contact?.address?.state || '';
+    const zipCode = contact?.address?.zipCode || '';
+    const country = contact?.address?.country || '';
+    
+    // Extract company name
     const companyName = lead.companyId?.name || '';
-    const ownerName = lead.ownerId?.name || '';
+    
+    // Extract lead-specific fields
+    const expectedCloseDate = lead.expectedCloseDate ? new Date(lead.expectedCloseDate).toISOString().split('T')[0] : '';
+    const value = lead.value || 0;
+    const status = lead.status || 'New';
+    const source = lead.source || 'other';
 
     return [
-      lead.title || '',
-      lead.description || '',
-      contactName,
+      firstName,
+      lastName,
+      primaryEmail,
+      primaryPhone,
+      jobTitle,
+      department,
       companyName,
-      lead.source || 'other',
-      lead.status || 'New',
-      lead.value || 0,
-      ownerName,
-      lead.notes || '',
-      lead.expectedCloseDate ? new Date(lead.expectedCloseDate).toISOString().split('T')[0] : '',
-      lead.createdAt ? new Date(lead.createdAt).toISOString().split('T')[0] : '',
+      street,
+      city,
+      state,
+      zipCode,
+      country,
+      expectedCloseDate,
+      value,
+      status,
+      source,
     ].map((field) => `"${String(field).replace(/"/g, '""')}"`).join(',');
   });
 
-  return [headers.map((h) => `"${h}"`).join(','), ...rows].join('\n');
+  return [headers.join(','), ...rows].join('\n');
 };
 
 /**
@@ -455,31 +603,36 @@ export const parseDealsCSV = async (fileBuffer) => {
  * @returns {string} CSV string
  */
 export const dealsToCSV = (deals) => {
-  const headers = ['Title', 'Lead ID', 'Contact', 'Company', 'Value', 'Currency', 'Stage', 'Probability', 'Close Date', 'Owner', 'Description', 'Notes', 'Created At'];
+  const headers = ['title', 'leadId', 'contactEmail', 'companyName', 'value', 'currency', 'stage', 'probability', 'closeDate', 'description', 'notes'];
   const rows = deals.map((deal) => {
-    const contactName = deal.contactId 
-      ? `${deal.contactId.firstName || ''} ${deal.contactId.lastName || ''}`.trim()
-      : '';
+    // Extract contact email
+    const contact = deal.contactId;
+    const contactEmail = contact?.emails?.find((e) => e.isPrimary)?.email || contact?.emails?.[0]?.email || '';
+    
+    // Extract company name
     const companyName = deal.companyId?.name || '';
-    const ownerName = deal.ownerId?.name || '';
+    
+    // Extract leadId as string
+    const leadId = deal.leadId ? String(deal.leadId) : '';
+    
+    // Format closeDate
+    const closeDate = deal.closeDate ? new Date(deal.closeDate).toISOString().split('T')[0] : '';
 
     return [
       deal.title || '',
-      deal.leadId || '',
-      contactName,
+      leadId,
+      contactEmail,
       companyName,
       deal.value || 0,
       deal.currency || 'USD',
       deal.stage || 'Prospecting',
       deal.probability || 0,
-      deal.closeDate ? new Date(deal.closeDate).toISOString().split('T')[0] : '',
-      ownerName,
+      closeDate,
       deal.description || '',
       deal.notes || '',
-      deal.createdAt ? new Date(deal.createdAt).toISOString().split('T')[0] : '',
     ].map((field) => `"${String(field).replace(/"/g, '""')}"`).join(',');
   });
 
-  return [headers.map((h) => `"${h}"`).join(','), ...rows].join('\n');
+  return [headers.join(','), ...rows].join('\n');
 };
 

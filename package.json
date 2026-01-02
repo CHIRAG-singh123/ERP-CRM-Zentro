@@ -15,7 +15,15 @@
     "preview": "vite preview",
     "preview:prod": "cross-env NODE_ENV=production vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "seed:admin": "cd server && npm run seed:admin",
+    "seed:dummy": "cd server && npm run seed:dummy",
+    "seed:users": "cd server && npm run seed:users",
+    "seed:companies": "cd server && npm run seed:companies",
+    "seed:contacts": "cd server && npm run seed:contacts",
+    "seed:leads": "cd server && npm run seed:leads",
+    "seed:deals": "cd server && npm run seed:deals",
+    "seed:all": "cd server && npm run seed:all"
   },
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.19",

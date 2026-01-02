@@ -62,14 +62,14 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#242426] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="mb-2 text-3xl font-bold text-white">Welcome Back</h1>
-          <p className="text-white/60">Sign in to your Zentro account</p>
+          <h1 className="mb-2 text-3xl font-bold text-foreground">Welcome Back</h1>
+          <p className="text-muted-foreground">Sign in to your Zentro account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 rounded-lg bg-[#1F1F21] p-8">
+        <form onSubmit={handleSubmit} className="space-y-6 rounded-lg bg-card p-8">
           {apiUnavailable && (
             <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200">
               API server unreachable. You can still attempt to sign in. Ensure the backend is running at
@@ -83,7 +83,7 @@ export function LoginPage() {
           )}
 
           <div>
-            <label htmlFor="email" className="mb-2 block text-sm font-medium text-white/80">
+            <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
               Email
             </label>
             <input
@@ -92,13 +92,13 @@ export function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-md border border-white/10 bg-[#242426] px-4 py-2.5 text-white placeholder-white/40 focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              className="w-full rounded-md border border-border bg-card px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-2 block text-sm font-medium text-white/80">
+            <label htmlFor="password" className="mb-2 block text-sm font-medium text-foreground">
               Password
             </label>
             <input
@@ -107,7 +107,7 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-md border border-white/10 bg-[#242426] px-4 py-2.5 text-white placeholder-white/40 focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              className="w-full rounded-md border border-border bg-card px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
               placeholder="••••••••"
             />
           </div>
@@ -131,16 +131,16 @@ export function LoginPage() {
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10"></div>
+              <div className="w-full border-t border-border"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-[#1F1F21] px-4 text-white/60">OR</span>
+              <span className="bg-card px-4 text-muted-foreground">OR</span>
             </div>
           </div>
 
           <GoogleSignInButton text="signin_with" mode="login" />
 
-          <p className="text-center text-sm text-white/60">
+          <p className="text-center text-sm text-muted-foreground">
             Don't have an account?{' '}
             <Link to="/register" className="font-medium text-[#A8DADC] hover:text-[#B39CD0]">
               Sign up

@@ -62,7 +62,7 @@ export function ConversionFunnelChart({ data, onFilterChange }: ConversionFunnel
           <BarChart
             data={chartData}
             layout="vertical"
-            margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
+            margin={{ top: 10, right: 30, left: 20, bottom: 8 }}
           >
             <defs>
               {chartData.map((entry, index) => {
@@ -111,7 +111,7 @@ export function ConversionFunnelChart({ data, onFilterChange }: ConversionFunnel
       
       {/* Enhanced Legend and Summary */}
       <motion.div
-        className="mt-6 pt-6 border-t border-white/10"
+        className="mt-2 pt-2 border-t border-white/10"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
@@ -140,7 +140,7 @@ export function ConversionFunnelChart({ data, onFilterChange }: ConversionFunnel
         </div>
         {total > 0 && (
           <motion.div
-            className="mt-5 text-center"
+            className="mt-2 text-center"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.6 }}

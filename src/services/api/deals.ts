@@ -119,10 +119,12 @@ export const exportDeals = async (): Promise<Blob> => {
   const { API_BASE_URL } = await import('./config');
   const { getAccessToken } = await import('./http');
   
-  const url = new URL('/deals/export', API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL);
+  // Build URL using same method as contacts export
+  const path = '/deals/export';
+  const url = path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
   const token = getAccessToken();
   
-  const response = await fetch(url.toString(), {
+  const response = await fetch(url, {
     credentials: 'include',
     headers: {
       Authorization: token ? `Bearer ${token}` : '',
@@ -133,15 +135,49 @@ export const exportDeals = async (): Promise<Blob> => {
   if (!response.ok) {
     let errorMessage = `Failed to export deals (Status: ${response.status})`;
     try {
-      const errorData = await response.json();
-      errorMessage = errorData.error || errorData.message || errorMessage;
+      const contentType = response.headers.get('Content-Type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } else {
+        const errorText = await response.text();
+        if (errorText) {
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+        }
+      }
     } catch {
+      if (response.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (response.status === 403) {
+        errorMessage = 'You do not have permission to export deals.';
+      } else if (response.status === 404) {
+        errorMessage = 'Route not found. Please check the endpoint.';
+      } else if (response.status === 500) {
+        errorMessage = 'Server error while generating CSV.';
+      }
       errorMessage = response.statusText || errorMessage;
     }
     throw new Error(errorMessage);
   }
   
-  return response.blob();
+  // Check if response is actually a CSV
+  const contentType = response.headers.get('Content-Type');
+  if (contentType && !contentType.includes('text/csv') && !contentType.includes('application/csv')) {
+    console.warn('[Deals Export] Unexpected content type:', contentType);
+  }
+  
+  const blob = await response.blob();
+  
+  if (blob.size === 0) {
+    throw new Error('Received empty CSV file from server');
+  }
+  
+  return blob;
 };
 
 export const importDeals = async (file: File): Promise<{ created: number; errors?: string[] }> => {

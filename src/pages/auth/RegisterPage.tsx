@@ -160,29 +160,29 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#242426] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="mb-2 text-3xl font-bold text-white">
+          <h1 className="mb-2 text-3xl font-bold text-foreground">
             {isGoogleSignup ? 'Complete Your Account Setup' : 'Create Customer Account'}
           </h1>
           {isGoogleSignup ? (
             <div className="space-y-2">
               <div className="flex items-center justify-center gap-2 text-[#A8DADC]">
                 <CheckCircle className="h-5 w-5" />
-                <p className="text-white/80">Google account connected</p>
+                <p className="text-foreground">Google account connected</p>
               </div>
-              <p className="text-white/60">Set a password to secure your account</p>
+              <p className="text-muted-foreground">Set a password to secure your account</p>
             </div>
           ) : (
             <>
-              <p className="text-white/60">Sign up as a customer to browse and review products</p>
-              <p className="mt-2 text-xs text-white/40">Employees must be created by an admin</p>
+              <p className="text-muted-foreground">Sign up as a customer to browse and review products</p>
+              <p className="mt-2 text-xs text-muted-foreground">Employees must be created by an admin</p>
             </>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 rounded-lg bg-[#1F1F21] p-8">
+        <form onSubmit={handleSubmit} className="space-y-6 rounded-lg bg-card p-8">
           {error && (
             <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
               {error}
@@ -191,13 +191,13 @@ export function RegisterPage() {
 
           {isLoadingProfile ? (
             <div className="rounded-md bg-blue-500/10 border border-blue-500/20 p-4 text-center">
-              <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white mb-2"></div>
+              <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-border border-t-foreground mb-2"></div>
               <p className="text-sm text-blue-200">Loading your Google account information...</p>
             </div>
           ) : (
             <>
               <div>
-                <label htmlFor="name" className="mb-2 block text-sm font-medium text-white/80">
+                <label htmlFor="name" className="mb-2 block text-sm font-medium text-foreground">
                   Full Name
                 </label>
                 <input
@@ -207,18 +207,18 @@ export function RegisterPage() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   disabled={isGoogleSignup}
-                  className={`w-full rounded-md border border-white/10 bg-[#242426] px-4 py-2.5 text-white placeholder-white/40 focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC] ${
+                  className={`w-full rounded-md border border-border bg-card px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC] ${
                     isGoogleSignup ? 'opacity-75 cursor-not-allowed' : ''
                   }`}
                   placeholder="John Doe"
                 />
                 {isGoogleSignup && (
-                  <p className="mt-1 text-xs text-white/40">This information was provided by your Google account</p>
+                  <p className="mt-1 text-xs text-muted-foreground">This information was provided by your Google account</p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="email" className="mb-2 block text-sm font-medium text-white/80">
+                <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
                   Email
                 </label>
                 <input
@@ -228,18 +228,18 @@ export function RegisterPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isGoogleSignup}
-                  className={`w-full rounded-md border border-white/10 bg-[#242426] px-4 py-2.5 text-white placeholder-white/40 focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC] ${
+                  className={`w-full rounded-md border border-border bg-card px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC] ${
                     isGoogleSignup ? 'opacity-75 cursor-not-allowed' : ''
                   }`}
                   placeholder="you@example.com"
                 />
                 {isGoogleSignup && (
-                  <p className="mt-1 text-xs text-white/40">This email is verified by Google</p>
+                  <p className="mt-1 text-xs text-muted-foreground">This email is verified by Google</p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="phone" className="mb-2 block text-sm font-medium text-white/80">
+                <label htmlFor="phone" className="mb-2 block text-sm font-medium text-foreground">
                   Phone Number <span className="text-red-400">*</span>
                 </label>
                 <PhoneInput
@@ -250,14 +250,14 @@ export function RegisterPage() {
                   error={error && error.includes('phone') ? error : undefined}
                 />
                 {isGoogleSignup && (
-                  <p className="mt-1 text-xs text-white/40">Please enter your phone number manually</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Please enter your phone number manually</p>
                 )}
               </div>
             </>
           )}
 
           <div>
-            <label htmlFor="password" className="mb-2 block text-sm font-medium text-white/80">
+            <label htmlFor="password" className="mb-2 block text-sm font-medium text-foreground">
               Password
             </label>
             <input
@@ -267,13 +267,13 @@ export function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full rounded-md border border-white/10 bg-[#242426] px-4 py-2.5 text-white placeholder-white/40 focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              className="w-full rounded-md border border-border bg-card px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
               placeholder="••••••••"
             />
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="mb-2 block text-sm font-medium text-white/80">
+            <label htmlFor="confirmPassword" className="mb-2 block text-sm font-medium text-foreground">
               Confirm Password
             </label>
             <input
@@ -283,7 +283,7 @@ export function RegisterPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full rounded-md border border-white/10 bg-[#242426] px-4 py-2.5 text-white placeholder-white/40 focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              className="w-full rounded-md border border-border bg-card px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-[#A8DADC] focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
               placeholder="••••••••"
             />
           </div>
@@ -303,10 +303,10 @@ export function RegisterPage() {
             <>
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/10"></div>
+                  <div className="w-full border-t border-border"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-[#1F1F21] px-4 text-white/60">OR</span>
+                  <span className="bg-card px-4 text-muted-foreground">OR</span>
                 </div>
               </div>
 
@@ -314,7 +314,7 @@ export function RegisterPage() {
             </>
           )}
 
-          <p className="text-center text-sm text-white/60">
+          <p className="text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link to="/login" className="font-medium text-[#A8DADC] hover:text-[#B39CD0]">
               Sign in
