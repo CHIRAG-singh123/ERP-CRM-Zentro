@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, Grid, List } from 'lucide-react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { ProductCard } from '../../components/common/ProductCard';
 import { useProducts } from '../../hooks/queries/useProducts';
+import { useAllProductsUnreadCounts } from '../../hooks/queries/useReviews';
+import { useAuth } from '../../context/AuthContext';
 
 export function ProductsPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const { isAuthenticated } = useAuth();
 
   const { data, isLoading, error } = useProducts({
     page: 1,
@@ -17,7 +20,22 @@ export function ProductsPage() {
     isActive: true,
   });
 
-  const products = data?.products ?? [];
+  // Fetch unread counts only if user is authenticated (customer)
+  const { data: unreadCountsData } = useAllProductsUnreadCounts(isAuthenticated);
+  const unreadCounts = unreadCountsData?.productCounts || {};
+
+  // Merge products with unread counts
+  const products = useMemo(() => {
+    if (!data?.products) return [];
+    return data.products.map((product) => {
+      const unreadCount = isAuthenticated && unreadCounts[product._id] ? unreadCounts[product._id] : undefined;
+      return {
+        ...product,
+        ...(unreadCount !== undefined && unreadCount > 0 ? { unreadReplyCount: unreadCount } : {}),
+      };
+    });
+  }, [data?.products, unreadCounts, isAuthenticated]);
+
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
 
   return (

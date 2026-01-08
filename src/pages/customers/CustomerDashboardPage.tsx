@@ -1,17 +1,35 @@
+import { useMemo } from 'react';
 import { useProducts } from '../../hooks/queries/useProducts';
 import { ProductCard } from '../../components/common/ProductCard';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Star, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAllProductsUnreadCounts } from '../../hooks/queries/useReviews';
+import { useAuth } from '../../context/AuthContext';
 
 export function CustomerDashboardPage() {
+  const { isAuthenticated } = useAuth();
   const { data: allProducts, isLoading, error } = useProducts({
     page: 1,
     limit: 20,
     isActive: true,
   });
 
-  const products = allProducts?.products ?? [];
+  // Fetch unread counts only if user is authenticated (customer)
+  const { data: unreadCountsData } = useAllProductsUnreadCounts(isAuthenticated);
+  const unreadCounts = unreadCountsData?.productCounts || {};
+
+  // Merge products with unread counts
+  const products = useMemo(() => {
+    if (!allProducts?.products) return [];
+    return allProducts.products.map((product) => {
+      const unreadCount = isAuthenticated && unreadCounts[product._id] ? unreadCounts[product._id] : undefined;
+      return {
+        ...product,
+        ...(unreadCount !== undefined && unreadCount > 0 ? { unreadReplyCount: unreadCount } : {}),
+      };
+    });
+  }, [allProducts?.products, unreadCounts, isAuthenticated]);
 
   // Get top-rated products (rating >= 4)
   const topRated = products

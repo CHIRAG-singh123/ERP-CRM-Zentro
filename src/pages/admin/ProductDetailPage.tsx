@@ -1,4 +1,4 @@
-import { Package, DollarSign, Tag, User, Edit, Trash2, ArrowLeft, Loader2, X } from 'lucide-react';
+import { Package, DollarSign, Tag, User, Edit, Trash2, ArrowLeft, Loader2, X, MessageSquare } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -10,14 +10,57 @@ import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { ProductAvatar } from '../../components/common/ProductAvatar';
 import { StarRating } from '../../components/common/StarRating';
+import { ReviewThread } from '../../components/reviews/ReviewThread';
 import { CreatorDetailsModal } from '../../components/products/CreatorDetailsModal';
 import { ProductImageUploader } from '../../components/products/ProductImageUploader';
 import { useAuth } from '../../context/AuthContext';
 import { useAllUsers } from '../../hooks/queries/useUsers';
+import { useEmployeeProductReviews } from '../../hooks/queries/useReviews';
 import { uploadProductImage } from '../../services/api/products';
 import { formatDate } from '../../utils/formatting';
 import type { ProductFormData, Product } from '../../types/products';
 import { useQueryClient } from '@tanstack/react-query';
+
+function ProductReviewsSection({ productId }: { productId: string }) {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useEmployeeProductReviews(productId);
+  const reviews = data?.reviews || [];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="h-32 animate-pulse rounded-xl border border-white/10 bg-[#1A1A1C]/50" />
+        ))}
+      </div>
+    );
+  }
+
+  if (reviews.length === 0) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/50 px-6 py-10 text-center text-sm text-white/50">
+        No reviews yet for this product.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {reviews.map((review) => (
+        <ReviewThread
+          key={review._id}
+          review={review}
+          productId={productId}
+          isProductCreator={true}
+          onReplyAdded={() => {
+            queryClient.invalidateQueries({ queryKey: ['employee-product-reviews', productId] });
+            queryClient.invalidateQueries({ queryKey: ['product-reviews', productId] });
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function ProductDetailPage() {
   const { id } = useParams();
@@ -375,6 +418,21 @@ export function ProductDetailPage() {
           </div>
         </aside>
       </section>
+
+      {/* Reviews Section - Only show for employees who created the product */}
+      {product && product.createdBy && user && (
+        (user.role === 'employee' && product.createdBy._id === user._id) || user.role === 'admin' ? (
+          <section className="space-y-6 rounded-2xl border border-white/10 bg-[#1A1A1C]/70 p-6 animate-slide-in-up">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
+                <MessageSquare className="h-6 w-6 text-[#B39CD0]" />
+                Product Reviews
+              </h2>
+            </div>
+            <ProductReviewsSection productId={product._id} />
+          </section>
+        ) : null
+      )}
 
       {showDeleteConfirm && product && (
         <ConfirmDialog

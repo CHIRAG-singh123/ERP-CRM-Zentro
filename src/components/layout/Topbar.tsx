@@ -1,10 +1,11 @@
-import { Fragment, useState, useMemo } from 'react';
+import { Fragment, useState } from 'react';
 import { useLocation, useMatches, useNavigate } from 'react-router-dom';
 import { Menu, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { GlobalSearchInput } from '../common/GlobalSearchInput';
 import { NotificationBell } from '../common/NotificationBell';
+import { UserAvatar } from '../common/UserAvatar';
 
 type BreadcrumbFactory = (match: ReturnType<typeof useMatches>[number]) => string;
 
@@ -45,7 +46,6 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [avatarError, setAvatarError] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -59,28 +59,6 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       window.location.href = '/customers/dashboard';
     }
   };
-
-  const getUserInitials = () => {
-    if (!user?.name) return 'U';
-    return user.name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  // Helper to construct full avatar URL from relative path
-  const avatarUrl = useMemo(() => {
-    const url = user?.profile?.avatar;
-    if (!url || avatarError) return null;
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-      return url;
-    }
-    // Construct full URL from relative path
-    const serverBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    return `${serverBase}${url.startsWith('/') ? url : `/${url}`}`;
-  }, [user?.profile?.avatar, avatarError]);
 
   return (
     <header className="relative z-[9998] border-b border-border bg-card/90 backdrop-blur shadow-sm animate-slide-in-down transition-colors duration-300">
@@ -141,21 +119,15 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                 <button
                   type="button"
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent/80 to-accent-secondary/70 text-sm font-semibold text-accent-foreground transition-all duration-200 hover:scale-110 hover:opacity-90 active:scale-95 overflow-hidden"
+                  className="flex items-center justify-center rounded-full transition-all duration-200 hover:scale-110 hover:opacity-90 active:scale-95 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
                 >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={user?.name || 'User avatar'}
-                      className="h-full w-full object-cover transition-transform duration-200 hover:scale-110"
-                      onError={() => {
-                        // Fallback to initials if image fails to load
-                        setAvatarError(true);
-                      }}
-                    />
-                  ) : (
-                    getUserInitials()
-                  )}
+                  <UserAvatar
+                    avatarUrl={user.profile?.avatar}
+                    name={user.name}
+                    email={user.email}
+                    size={36}
+                    className="border-2 border-white/20 shadow-md"
+                  />
                 </button>
                 {showUserMenu && (
                   <>

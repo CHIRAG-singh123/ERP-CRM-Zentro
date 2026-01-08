@@ -20,6 +20,7 @@ export interface Product {
   tags: string[];
   averageRating?: number;
   reviewCount?: number;
+  unreadReplyCount?: number;
   createdAt: string;
   updatedAt: string;
 }

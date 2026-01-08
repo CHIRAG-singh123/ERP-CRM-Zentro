@@ -23,14 +23,18 @@ export function UserAvatar({
   // Get user initials
   const initials = useMemo(() => {
     if (name) {
-      const parts = name.trim().split(' ');
+      const parts = name.trim().split(' ').filter(part => part.length > 0);
       if (parts.length >= 2) {
+        // Multiple names: first letter of first name + first letter of last name
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      } else if (parts.length === 1) {
+        // Single name: show only first letter
+        return parts[0][0].toUpperCase();
       }
-      return name.substring(0, 2).toUpperCase();
     }
     if (email) {
-      return email.substring(0, 2).toUpperCase();
+      // Fallback to email: show first letter
+      return email[0].toUpperCase();
     }
     return 'U';
   }, [name, email]);
@@ -43,7 +47,8 @@ export function UserAvatar({
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = hash % 360;
-    return `hsl(${hue}, 60%, 50%)`;
+    // Use a more vibrant and professional color scheme
+    return `hsl(${hue}, 65%, 55%)`;
   }, [name, email]);
 
   return (
@@ -64,8 +69,12 @@ export function UserAvatar({
         />
       ) : (
         <span 
-          className="text-xs font-semibold text-white"
-          style={{ fontSize: size * 0.35 }}
+          className="flex items-center justify-center font-semibold text-white select-none"
+          style={{ 
+            fontSize: `${Math.max(size * 0.4, 10)}px`,
+            lineHeight: '1',
+            fontWeight: '600'
+          }}
         >
           {initials}
         </span>

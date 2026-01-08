@@ -13,6 +13,7 @@ interface ProductCardProps {
     reviewCount?: number;
     images?: string[];
     description?: string;
+    unreadReplyCount?: number;
   };
   viewMode?: 'grid' | 'list';
 }
@@ -54,9 +55,16 @@ export function ProductCard({ product, viewMode = 'grid' }: ProductCardProps) {
             <div className="mb-1">
               <span className="text-xs uppercase tracking-wide text-white/50">{product.category}</span>
             </div>
-            <h3 className="mb-1 text-lg font-semibold text-white group-hover:text-[#B39CD0] transition-colors truncate">
-              {product.name}
-            </h3>
+            <div className="relative mb-1">
+              <h3 className="text-lg font-semibold text-white group-hover:text-[#B39CD0] transition-colors truncate pr-8">
+                {product.name}
+              </h3>
+              {(product.unreadReplyCount ?? 0) > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-md border-2 border-[#1A1A1C]">
+                  {product.unreadReplyCount! > 99 ? '99+' : product.unreadReplyCount}
+                </span>
+              )}
+            </div>
             {product.averageRating !== undefined && (
               <div className="flex items-center gap-2">
                 <StarRating rating={product.averageRating} size="sm" showValue />
@@ -128,9 +136,16 @@ export function ProductCard({ product, viewMode = 'grid' }: ProductCardProps) {
         <div className="mb-2">
           <span className="text-xs uppercase tracking-wide text-white/50">{product.category}</span>
         </div>
-        <h3 className="mb-2 line-clamp-2 text-lg font-semibold text-white group-hover:text-[#B39CD0] transition-colors">
-          {product.name}
-        </h3>
+        <div className="relative mb-2">
+          <h3 className="line-clamp-2 text-lg font-semibold text-white group-hover:text-[#B39CD0] transition-colors pr-8">
+            {product.name}
+          </h3>
+          {(product.unreadReplyCount ?? 0) > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-md border-2 border-[#1A1A1C]">
+              {product.unreadReplyCount! > 99 ? '99+' : product.unreadReplyCount}
+            </span>
+          )}
+        </div>
         {product.description && (
           <p className="mb-3 line-clamp-2 text-sm text-white/60">{product.description}</p>
         )}

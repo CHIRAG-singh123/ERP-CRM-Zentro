@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   Star,
   MessageCircle,
+  MessageSquare,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -76,6 +77,7 @@ const employeeNavigation: AppNavigationSection[] = [
     label: 'Employee',
     items: [
       { label: 'Products', href: '/employees/products', icon: Package },
+      { label: 'Product Reviews', href: '/employees/product-reviews', icon: MessageSquare },
       { label: 'My Performance', href: '/employees/performance', icon: TrendingUp },
       { label: 'Users', href: '/employees/users', icon: Users2 },
     ],

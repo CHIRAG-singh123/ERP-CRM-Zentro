@@ -109,6 +109,7 @@ const EmployeeProductDetailPage = createLazyRoute(() =>
 );
 const MyPerformancePage = createLazyRoute(() => import('../pages/employees/MyPerformancePage').then(m => ({ default: m.MyPerformancePage })));
 const UsersListPage = createLazyRoute(() => import('../pages/employees/UsersListPage').then(m => ({ default: m.UsersListPage })));
+const ProductReviewsPage = createLazyRoute(() => import('../pages/employees/ProductReviewsPage').then(m => ({ default: m.ProductReviewsPage })));
 
 // Customer routes
 const CustomerProductsPage = createLazyRoute(() => import('../pages/customers/ProductsPage').then(m => ({ default: m.ProductsPage })));
@@ -328,6 +329,15 @@ export const appRouter = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { breadcrumb: 'Product Details' },
+      },
+      {
+        path: 'employees/product-reviews',
+        element: (
+          <ProtectedRoute requireRole={['employee', 'admin']}>
+            <LazyWrapper><ProductReviewsPage /></LazyWrapper>
+          </ProtectedRoute>
+        ),
+        handle: { breadcrumb: 'Product Reviews' },
       },
       {
         path: 'employees/performance',

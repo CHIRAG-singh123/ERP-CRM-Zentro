@@ -1,15 +1,15 @@
 import { useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProduct } from '../../hooks/queries/useProducts';
-import { useProductReviews, useCreateReview, useDeleteReview } from '../../hooks/queries/useReviews';
+import { useProductReviews, useCreateReview, useDeleteReview, useMarkReviewRepliesAsRead } from '../../hooks/queries/useReviews';
 import { StarRating } from '../../components/common/StarRating';
+import { ReviewThread } from '../../components/reviews/ReviewThread';
 import { useAuth } from '../../context/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Trash2, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { logger } from '../../utils/logger';
 import { getImageUrl } from '../../utils/imageUtils';
-import type { User } from '../../services/api/auth';
 import { OrderModal } from '../../components/orders/OrderModal';
 
 export function ProductDetailPage() {
@@ -28,10 +28,48 @@ export function ProductDetailPage() {
   });
   const createReviewMutation = useCreateReview();
   const deleteReviewMutation = useDeleteReview();
+  const markRepliesAsReadMutation = useMarkReviewRepliesAsRead();
 
   const product = productData?.product;
   const reviews = reviewsData?.reviews ?? [];
   const averageRating = reviewsData?.averageRating ?? 0;
+
+  // Mark all replies as read when customer views the product
+  useEffect(() => {
+    if (isAuthenticated && user && reviews.length > 0) {
+      // Find reviews owned by the current user and mark their replies as read
+      const userReviews = reviews.filter((review) => {
+        const customerId = typeof review.customerId === 'object' ? review.customerId._id : review.customerId;
+        return customerId === user._id;
+      });
+
+      // Mark replies as read for each user review
+      userReviews.forEach((review) => {
+        // Check if review has unread replies
+        const hasUnreadReplies = review.replies?.some((reply) => {
+          const replyUserId = typeof reply.userId === 'object' ? reply.userId._id : reply.userId;
+          const isFromUser = replyUserId === user._id;
+          const isRead = reply.readBy?.some(
+            (read) => {
+              const readUserId = typeof read.userId === 'object' ? read.userId._id : read.userId;
+              return readUserId === user._id;
+            }
+          );
+          return !isFromUser && !isRead;
+        });
+
+        if (hasUnreadReplies) {
+          markRepliesAsReadMutation.mutate(review._id, {
+            onSuccess: () => {
+              // Invalidate unread counts to update badges
+              queryClient.invalidateQueries({ queryKey: ['all-products-unread-counts'] });
+              queryClient.invalidateQueries({ queryKey: ['product-unread-count', id] });
+            },
+          });
+        }
+      });
+    }
+  }, [isAuthenticated, user, reviews, id, markRepliesAsReadMutation, queryClient]);
 
   const handleSubmitReview = async () => {
     if (!isAuthenticated) {
@@ -83,17 +121,6 @@ export function ProductDetailPage() {
     return customerId === user._id;
   };
 
-  const getCustomerAvatar = (customerId: User | string): string | null => {
-    if (typeof customerId === 'string') return null;
-    const avatarUrl = customerId.profile?.avatar;
-    return avatarUrl ? getImageUrl(avatarUrl) : null;
-  };
-
-  const getCustomerInitials = (customerId: User | string): string => {
-    if (typeof customerId === 'string') return 'U';
-    const name = customerId.name || 'Unknown';
-    return name.charAt(0).toUpperCase();
-  };
 
   if (productLoading) {
     return (
@@ -259,70 +286,29 @@ export function ProductDetailPage() {
           </div>
         ) : reviews.length > 0 ? (
           <div className="space-y-4">
-            {reviews.map((review) => {
-              const isOwner = isReviewOwner(review);
-              const customer = typeof review.customerId === 'object' ? review.customerId : null;
-              const customerName = customer?.name || 'Unknown';
-              const avatarUrl = getCustomerAvatar(review.customerId);
-              const initials = getCustomerInitials(review.customerId);
-              
-              return (
-                <div
-                  key={review._id}
-                  className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6"
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#B39CD0]/20 text-[#B39CD0]">
-                        {avatarUrl ? (
-                          <img
-                            src={avatarUrl}
-                            alt={customerName}
-                            className="h-full w-full object-cover"
-                            onError={(e) => {
-                              // Fallback to initials if image fails to load
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                parent.innerHTML = initials;
-                                parent.className = 'flex h-10 w-10 items-center justify-center rounded-full bg-[#B39CD0]/20 text-[#B39CD0]';
-                              }
-                            }}
-                          />
-                        ) : (
-                          initials
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium text-white">
-                          {customerName}
-                        </div>
-                        <div className="text-xs text-white/50">
-                          {new Date(review.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <StarRating rating={review.rating} size="sm" />
-                      {isOwner && (
-                        <button
-                          onClick={() => handleDeleteReview(review._id)}
-                          disabled={deleteReviewMutation.isPending}
-                          className="rounded-lg p-1.5 text-white/50 transition hover:bg-red-500/20 hover:text-red-400 disabled:opacity-50"
-                          title="Delete review"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {review.comment && (
-                    <p className="mt-2 text-white/70">{review.comment}</p>
-                  )}
-                </div>
-              );
-            })}
+            {reviews.map((review) => (
+              <div key={review._id} className="relative">
+                <ReviewThread
+                  review={review}
+                  productId={id!}
+                  onReplyAdded={() => {
+                    if (id) {
+                      queryClient.invalidateQueries({ queryKey: ['product-reviews', id] });
+                    }
+                  }}
+                />
+                {isReviewOwner(review) && (
+                  <button
+                    onClick={() => handleDeleteReview(review._id)}
+                    disabled={deleteReviewMutation.isPending}
+                    className="absolute top-2 right-2 rounded-lg p-1.5 text-white/50 transition hover:bg-red-500/20 hover:text-red-400 disabled:opacity-50"
+                    title="Delete review"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 px-6 py-10 text-center text-sm text-white/50">

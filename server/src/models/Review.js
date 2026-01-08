@@ -1,5 +1,48 @@
 import mongoose from 'mongoose';
 
+// Reply schema for nested replies (defined as a function to allow recursion)
+const createReplySchema = () => {
+  return new mongoose.Schema(
+    {
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+      comment: {
+        type: String,
+        required: [true, 'Reply comment is required'],
+        trim: true,
+      },
+      readBy: [
+        {
+          userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+          },
+          readAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
+      replies: {
+        type: [],
+        default: [],
+      },
+    },
+    {
+      timestamps: true,
+    }
+  );
+};
+
+const replySchema = createReplySchema();
+// Make replies recursive
+replySchema.add({
+  replies: [replySchema],
+});
+
 const reviewSchema = new mongoose.Schema(
   {
     productId: {
@@ -26,6 +69,10 @@ const reviewSchema = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    replies: {
+      type: [replySchema],
+      default: [],
     },
   },
   {
