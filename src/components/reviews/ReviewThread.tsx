@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MessageSquare, Reply, Send, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { UserAvatar } from '../common/UserAvatar';
 import { StarRating } from '../common/StarRating';
 import { ReviewReply } from './ReviewReply';
@@ -98,7 +99,13 @@ export function ReviewThread({ review, productId, isProductCreator = false, onRe
   const totalReplyCount = totalReplies(review.replies);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6">
+    <motion.div
+      className="card-gradient-hover rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-6"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ scale: 1.01 }}
+    >
       {/* Review Header */}
       <div className="mb-4 flex items-start justify-between">
         <div className="flex items-start gap-3 flex-1">
@@ -131,9 +138,11 @@ export function ReviewThread({ review, productId, isProductCreator = false, onRe
 
       {/* Reply Button */}
       {canReply && !isReplying && (
-        <button
+        <motion.button
           onClick={() => setIsReplying(true)}
           className="flex items-center gap-2 text-sm text-white/60 hover:text-[#B39CD0] transition-colors mb-4"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           <Reply className="h-4 w-4" />
           Reply
@@ -142,12 +151,18 @@ export function ReviewThread({ review, productId, isProductCreator = false, onRe
               {totalReplyCount}
             </span>
           )}
-        </button>
+        </motion.button>
       )}
 
       {/* Reply Form */}
       {isReplying && (
-        <div className="mb-4 p-3 rounded-lg border border-white/10 bg-[#1A1A1C]/50">
+        <motion.div
+          className="mb-4 p-3 rounded-lg border border-white/10 bg-[#1A1A1C]/50"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="flex gap-2">
             <textarea
               value={replyText}
@@ -157,46 +172,61 @@ export function ReviewThread({ review, productId, isProductCreator = false, onRe
               placeholder="Write a reply..."
             />
             <div className="flex flex-col gap-1">
-              <button
+              <motion.button
                 onClick={handleReply}
                 disabled={createReplyMutation.isPending || !replyText.trim()}
                 className="flex items-center gap-1.5 rounded-lg bg-[#B39CD0] px-3 py-1.5 text-xs font-medium text-[#1A1A1C] transition hover:bg-[#C3ADD9] disabled:opacity-50 h-10"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <Send className="h-3.5 w-3.5" />
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={() => {
                   setIsReplying(false);
                   setReplyText('');
                 }}
                 className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/70 transition hover:border-white/20 h-10"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <X className="h-3.5 w-3.5" />
-              </button>
+              </motion.button>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Replies List */}
       {review.replies && review.replies.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+        <motion.div
+          className="mt-4 pt-4 border-t border-white/10 space-y-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare className="h-4 w-4 text-white/50" />
             <span className="text-sm font-medium text-white/70">
               {totalReplyCount} {totalReplyCount === 1 ? 'Reply' : 'Replies'}
             </span>
           </div>
-          {review.replies.map((reply) => (
-            <ReviewReply
+          {review.replies.map((reply, index) => (
+            <motion.div
               key={reply._id}
-              reply={reply}
-              reviewId={review._id}
-              onReplyAdded={onReplyAdded}
-            />
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+            >
+              <ReviewReply
+                reply={reply}
+                reviewId={review._id}
+                onReplyAdded={onReplyAdded}
+              />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }

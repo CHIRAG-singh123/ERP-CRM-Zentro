@@ -28,7 +28,6 @@ export function NotificationsList({ onClose }: NotificationsListProps) {
       else if (type === 'Contact') navigate(`/contacts/${id}`);
       else if (type === 'Company') navigate(`/accounts/${id}`);
       else if (type === 'Invoice') navigate(`/invoices/${id}`);
-      else if (type === 'Quote') navigate(`/quotes/${id}`);
       else if (type === 'Task') navigate(`/tasks/${id}`);
     }
     onClose();

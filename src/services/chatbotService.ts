@@ -40,7 +40,6 @@ const ERP_PHRASE_PATTERNS = [
   'add employee', 'edit employee', 'employee performance', 'manage employees',
   'add lead', 'convert lead', 'lead pipeline', 'lead status',
   'create deal', 'deal stage', 'deal value', 'close deal',
-  'create quote', 'send quote', 'approve quote',
   'create invoice', 'send invoice', 'pay invoice',
   'create task', 'assign task', 'task due date',
   'generate report', 'view report', 'export report',
@@ -57,8 +56,8 @@ const ERP_ENTITY_ACTION_PATTERNS = [
   { actions: ['edit', 'update', 'modify'], entities: ['document', 'documents', 'file', 'files'] },
   { actions: ['upload', 'attach'], entities: ['document', 'file', 'attachment'] },
   { actions: ['download', 'get'], entities: ['document', 'file', 'attachment'] },
-  { actions: ['add', 'create'], entities: ['employee', 'employees', 'user', 'users', 'lead', 'leads', 'deal', 'deals', 'quote', 'invoice', 'task', 'product', 'contact', 'account'] },
-  { actions: ['view', 'see', 'list'], entities: ['report', 'reports', 'dashboard', 'documents', 'leads', 'deals', 'invoices', 'quotes', 'tasks'] },
+  { actions: ['add', 'create'], entities: ['employee', 'employees', 'user', 'users', 'lead', 'leads', 'deal', 'deals', 'invoice', 'task', 'product', 'contact', 'account'] },
+  { actions: ['view', 'see', 'list'], entities: ['report', 'reports', 'dashboard', 'documents', 'leads', 'deals', 'invoices', 'tasks'] },
   { actions: ['assign'], entities: ['task', 'role', 'permission', 'team'] },
 ];
 
@@ -127,7 +126,7 @@ const ERP_CRM_KEYWORDS = [
   'contact', 'contacts', 'account', 'accounts', 'pipeline', 'sales pipeline',
 
   // Sales / finance
-  'invoice', 'invoices', 'quote', 'quotes', 'estimate', 'billing',
+  'invoice', 'invoices', 'estimate', 'billing',
   'payment', 'payments', 'transaction', 'receipt', 'receipts',
   'purchase order', 'po', 'vendor', 'vendors', 'supplier', 'suppliers',
 
@@ -151,7 +150,7 @@ const ERP_CRM_KEYWORDS = [
   // Major ERP modules (aligned to routes/pages)
   'crm', 'erp', 'hrms', 'payroll', 'attendance', 'timesheet',
   'leave management', 'workflow', 'automation',
-  'accounts', 'contacts', 'leads', 'deals', 'opportunities', 'quotes', 'invoices',
+  'accounts', 'contacts', 'leads', 'deals', 'opportunities', 'invoices',
   'documents', 'reports', 'calendar', 'teams', 'roles', 'users', 'settings',
 
   // Manufacturing / finance accounting
@@ -202,12 +201,12 @@ function isERPCRMRelated(query: string): boolean {
     'add customer', 'customer details', 'customer portal',
     'add lead', 'convert lead', 'lead pipeline',
     'create deal', 'deal stage', 'opportunity',
-    'upload document', 'send invoice', 'create quote',
+    'upload document', 'send invoice',
     'view dashboard', 'run report', 'audit log',
     'manage roles', 'user permissions', 'system settings',
     'edit documents', 'upload document', 'download document', 'download file', 'view documents',
     'admin edit documents', 'admin upload document', 'admin download document',
-    'create invoice', 'send invoice', 'create quote', 'send quote',
+    'create invoice', 'send invoice',
     'create task', 'assign task', 'task due date',
     'calendar event', 'schedule meeting',
     'create product', 'edit product', 'product catalog',

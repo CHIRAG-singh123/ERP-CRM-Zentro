@@ -8,7 +8,7 @@ export interface Attachment {
   size: number;
   path: string;
   relatedTo: {
-    type: 'Lead' | 'Deal' | 'Contact' | 'Company' | 'Invoice' | 'Quote' | 'Task';
+    type: 'Lead' | 'Deal' | 'Contact' | 'Company' | 'Invoice' | 'Task';
     id: string;
   };
   uploadedBy: {

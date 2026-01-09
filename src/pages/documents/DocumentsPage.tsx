@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { FilePlus, Search, Filter, X, Shield, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FilePlus, Search, Filter, X, Shield, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useDocuments, useDeleteDocument, useDownloadDocument } from '../../hooks/queries/useDocuments';
 import { DocumentUploader } from '../../components/documents/DocumentUploader';
@@ -7,6 +7,7 @@ import { DocumentGrid } from '../../components/documents/DocumentGrid';
 import { DocumentList } from '../../components/documents/DocumentList';
 import { DocumentViewer } from '../../components/documents/DocumentViewer';
 import { ViewToggle } from '../../components/documents/ViewToggle';
+import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import type { Document, DocumentFileType } from '../../types/documents';
 
 type ViewMode = 'grid' | 'list';
@@ -17,22 +18,31 @@ export function DocumentsPage() {
   const [sortBy, setSortBy] = useState<'originalName' | 'fileType' | 'size' | 'createdAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [page, setPage] = useState(1);
+  const limit = 20;
   const [showUploader, setShowUploader] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [showViewer, setShowViewer] = useState(false);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, fileTypeFilter, sortBy, sortOrder]);
+
   const { data, isLoading, isError, error } = useDocuments({
+    page,
+    limit,
     search: searchQuery || undefined,
     fileType: fileTypeFilter !== 'all' ? fileTypeFilter : undefined,
     sortBy,
     sortOrder,
-    limit: 100,
   });
 
   const deleteMutation = useDeleteDocument();
   const downloadMutation = useDownloadDocument();
 
   const documents = data?.documents || [];
+  const pagination = data?.pagination;
 
   const handleView = (document: Document) => {
     setSelectedDocument(document);
@@ -204,17 +214,59 @@ export function DocumentsPage() {
             />
           )}
 
-          {/* Pagination Info */}
-          {data?.pagination && data.pagination.pages > 1 && (
-            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-gradient-to-br from-[#1A1A1C]/70 to-[#1A1A1C]/50 px-6 py-4 text-sm font-medium text-white/70 shadow-lg">
-              <span>
-                Showing <span className="font-semibold text-white">{documents.length}</span> of{' '}
-                <span className="font-semibold text-white">{data.pagination.total}</span> documents
-              </span>
-              <span>
-                Page <span className="font-semibold text-white">{data.pagination.page}</span> of{' '}
-                <span className="font-semibold text-white">{data.pagination.pages}</span>
-              </span>
+          {/* Pagination */}
+          {pagination && pagination.pages > 1 && (
+            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-[#1A1A1C]/70 px-6 py-4 animate-fade-in">
+              <div className="text-sm text-white/60">
+                Showing <AnimatedNumber value={((pagination.page - 1) * pagination.limit) + 1} format="number" decimals={0} /> to{' '}
+                <AnimatedNumber value={Math.min(pagination.page * pagination.limit, pagination.total)} format="number" decimals={0} /> of <AnimatedNumber value={pagination.total} format="number" decimals={0} /> documents
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={pagination.page === 1}
+                  className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                    let pageNum: number;
+                    if (pagination.pages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.page >= pagination.pages - 2) {
+                      pageNum = pagination.pages - 4 + i;
+                    } else {
+                      pageNum = pagination.page - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`min-w-[2rem] rounded-lg px-3 py-1.5 text-sm transition-all duration-200 hover:scale-110 ${
+                          pagination.page === pageNum
+                            ? 'bg-[#A8DADC] text-[#1A1A1C] font-medium'
+                            : 'border border-white/10 text-white/70 hover:border-white/20 hover:text-white'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                  disabled={pagination.page === pagination.pages}
+                  className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
         </>

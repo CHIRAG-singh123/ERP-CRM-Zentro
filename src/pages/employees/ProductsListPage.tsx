@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Search, Edit, Trash2, X, Filter, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Filter, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '../../components/common/DataGrid';
 import { DataGridPlaceholder } from '../../components/common/DataGridPlaceholder';
@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { uploadProductImage } from '../../services/api/products';
 import { logger } from '../../utils/logger';
+import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import type { ProductFormData } from '../../types/products';
 import type { Product } from '../../types/products';
 
@@ -25,6 +26,8 @@ export function ProductsListPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [productFilter, setProductFilter] = useState<'my' | 'all'>('my');
+  const [page, setPage] = useState(1);
+  const limit = 10;
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [formData, setFormData] = useState<ProductFormData>({
@@ -38,9 +41,14 @@ export function ProductsListPage() {
   });
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, productFilter]);
+
   const { data, isLoading } = useProducts({
-    page: 1,
-    limit: 50,
+    page,
+    limit,
     search,
     createdBy: productFilter === 'my' && user?.role === 'employee' ? user._id : undefined,
   });
@@ -50,6 +58,7 @@ export function ProductsListPage() {
   const deleteMutation = useDeleteProduct();
 
   const products = data?.products ?? [];
+  const pagination = data?.pagination;
 
   const handleCreate = async () => {
     try {
@@ -190,6 +199,7 @@ export function ProductsListPage() {
       {isLoading && products.length === 0 ? (
         <DataGridPlaceholder columns={['Name', 'Price', 'Category', 'Created By', 'Rating', 'Actions']} rows={5} />
       ) : products.length > 0 ? (
+        <>
         <DataGrid
           columns={[
             {
@@ -312,6 +322,63 @@ export function ProductsListPage() {
             handleViewProduct(row as Product);
           }}
         />
+
+        {/* Pagination */}
+        {pagination && pagination.pages > 1 && (
+          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-[#1A1A1C]/70 px-6 py-4 animate-fade-in">
+            <div className="text-sm text-white/60">
+              Showing <AnimatedNumber value={((pagination.page - 1) * pagination.limit) + 1} format="number" decimals={0} /> to{' '}
+              <AnimatedNumber value={Math.min(pagination.page * pagination.limit, pagination.total)} format="number" decimals={0} /> of <AnimatedNumber value={pagination.total} format="number" decimals={0} /> products
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={pagination.page === 1}
+                className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                  let pageNum: number;
+                  if (pagination.pages <= 5) {
+                    pageNum = i + 1;
+                  } else if (pagination.page <= 3) {
+                    pageNum = i + 1;
+                  } else if (pagination.page >= pagination.pages - 2) {
+                    pageNum = pagination.pages - 4 + i;
+                  } else {
+                    pageNum = pagination.page - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`min-w-[2rem] rounded-lg px-3 py-1.5 text-sm transition-all duration-200 hover:scale-110 ${
+                        pagination.page === pageNum
+                          ? 'bg-[#A8DADC] text-[#1A1A1C] font-medium'
+                          : 'border border-white/10 text-white/70 hover:border-white/20 hover:text-white'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                disabled={pagination.page === pagination.pages}
+                className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-white/70 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+        </>
       ) : (
         <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 px-6 py-10 text-center text-sm text-white/50">
           No products found.

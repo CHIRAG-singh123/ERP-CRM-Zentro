@@ -34,7 +34,7 @@ const taskSchema = new mongoose.Schema(
     relatedTo: {
       type: {
         type: String,
-        enum: ['Lead', 'Deal', 'Contact', 'Company', 'Invoice', 'Quote'],
+        enum: ['Lead', 'Deal', 'Contact', 'Company', 'Invoice'],
       },
       id: {
         type: mongoose.Schema.Types.ObjectId,

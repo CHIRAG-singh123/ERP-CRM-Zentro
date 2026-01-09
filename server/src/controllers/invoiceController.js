@@ -1,5 +1,4 @@
 import Invoice from '../models/Invoice.js';
-import Quote from '../models/Quote.js';
 import Deal from '../models/Deal.js';
 import { Product } from '../models/Product.js';
 import Contact from '../models/Contact.js';
@@ -94,7 +93,6 @@ export const getInvoices = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(parseInt(limit))
     .sort({ createdAt: -1 })
-    .populate('quoteId', 'quoteNumber')
     .populate('dealId', 'title value stage')
     .populate('contactId', 'firstName lastName')
     .populate('companyId', 'name')
@@ -124,7 +122,6 @@ export const getInvoice = asyncHandler(async (req, res) => {
   }
 
   const invoice = await Invoice.findOne(query)
-    .populate('quoteId')
     .populate('dealId')
     .populate('contactId')
     .populate('companyId')
@@ -142,7 +139,7 @@ export const getInvoice = asyncHandler(async (req, res) => {
 // @route   POST /api/invoices
 // @access  Private
 export const createInvoice = asyncHandler(async (req, res) => {
-  const { quoteId, dealId, contactId, companyId, lineItems, dueDate, notes } = req.body;
+  const { dealId, contactId, companyId, lineItems, dueDate, notes } = req.body;
 
   if (!contactId) {
     return res.status(400).json({ error: 'Contact ID is required' });
@@ -150,32 +147,7 @@ export const createInvoice = asyncHandler(async (req, res) => {
 
   let invoiceData = {};
 
-  // If quoteId is provided, create invoice from quote
-  if (quoteId) {
-    const quote = await Quote.findById(quoteId);
-    if (!quote) {
-      return res.status(404).json({ error: 'Quote not found' });
-    }
-
-    invoiceData = {
-      quoteId: quote._id,
-      dealId: quote.dealId,
-      contactId: contactId || quote.contactId,
-      companyId: companyId || quote.companyId,
-      lineItems: quote.lineItems.map((item) => ({
-        productId: item.productId,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discount: item.discount || 0,
-        tax: item.tax || 0,
-      })),
-      subtotal: quote.subtotal,
-      tax: quote.tax,
-      total: quote.total,
-      status: 'Draft',
-    };
-  } else if (dealId) {
+  if (dealId) {
     // Create from deal
     const deal = await Deal.findById(dealId);
     if (!deal) {
@@ -221,7 +193,6 @@ export const createInvoice = asyncHandler(async (req, res) => {
 
   const invoice = await Invoice.create(invoiceData);
   const populatedInvoice = await Invoice.findById(invoice._id)
-    .populate('quoteId', 'quoteNumber')
     .populate('dealId', 'title value stage')
     .populate('contactId', 'firstName lastName')
     .populate('companyId', 'name')
@@ -257,7 +228,6 @@ export const updateInvoice = asyncHandler(async (req, res) => {
     new: true,
     runValidators: true,
   })
-    .populate('quoteId', 'quoteNumber')
     .populate('dealId', 'title value stage')
     .populate('contactId', 'firstName lastName')
     .populate('companyId', 'name')
@@ -311,7 +281,6 @@ export const updateInvoiceStatus = asyncHandler(async (req, res) => {
     new: true,
     runValidators: true,
   })
-    .populate('quoteId', 'quoteNumber')
     .populate('dealId', 'title value stage')
     .populate('contactId', 'firstName lastName')
     .populate('companyId', 'name')

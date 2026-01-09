@@ -3,7 +3,6 @@ import Lead from '../models/Lead.js';
 import Contact from '../models/Contact.js';
 import Company from '../models/Company.js';
 import Invoice from '../models/Invoice.js';
-import Quote from '../models/Quote.js';
 import Task from '../models/Task.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { generateDashboardPDF } from '../utils/dashboardPdfGenerator.js';

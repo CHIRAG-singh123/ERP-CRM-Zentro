@@ -7,7 +7,6 @@ import Lead from '../models/Lead.js';
 import Deal from '../models/Deal.js';
 import Task from '../models/Task.js';
 import { Product } from '../models/Product.js';
-import Quote from '../models/Quote.js';
 import Invoice from '../models/Invoice.js';
 import Activity from '../models/Activity.js';
 import { User } from '../models/User.js';
@@ -42,7 +41,6 @@ const generateDummyData = async () => {
     // await Deal.deleteMany({ tenantId });
     // await Task.deleteMany({ tenantId });
     // await Product.deleteMany({});
-    // await Quote.deleteMany({ tenantId });
     // await Invoice.deleteMany({ tenantId });
     // await Activity.deleteMany({ tenantId });
 
@@ -251,32 +249,6 @@ const generateDummyData = async () => {
     }
     console.log(`✅ Created ${tasks.length} tasks`);
 
-    // Seed Quotes
-    const quoteCount = await Quote.countDocuments();
-    for (let i = 0; i < 10; i++) {
-      const deal = deals[Math.floor(Math.random() * deals.length)];
-      await Quote.create({
-        quoteNumber: `QT-${String(quoteCount + i + 1).padStart(6, '0')}`,
-        dealId: deal._id,
-        contactId: deal.contactId,
-        companyId: deal.companyId,
-        status: ['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired'][Math.floor(Math.random() * 5)],
-        lineItems: [
-          {
-            productId: products[Math.floor(Math.random() * products.length)]._id,
-            quantity: Math.floor(Math.random() * 5) + 1,
-            unitPrice: products[Math.floor(Math.random() * products.length)].price,
-            discount: Math.floor(Math.random() * 20),
-            tax: Math.floor(Math.random() * 100),
-          },
-        ],
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        createdBy: userId,
-        tenantId,
-      });
-    }
-    console.log(`✅ Created 10 quotes`);
-
     // Seed Invoices
     const invoiceCount = await Invoice.countDocuments();
     for (let i = 0; i < 10; i++) {
@@ -331,7 +303,6 @@ const generateDummyData = async () => {
     console.log(`- Leads: ${leads.length}`);
     console.log(`- Deals: ${deals.length}`);
     console.log(`- Tasks: ${tasks.length}`);
-    console.log(`- Quotes: 10`);
     console.log(`- Invoices: 10`);
     console.log(`- Activities: 15`);
 

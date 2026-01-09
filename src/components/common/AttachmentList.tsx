@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import type { Attachment } from '../../services/api/attachments';
 
 interface AttachmentListProps {
-  type: 'Lead' | 'Deal' | 'Contact' | 'Company' | 'Invoice' | 'Quote' | 'Task';
+  type: 'Lead' | 'Deal' | 'Contact' | 'Company' | 'Invoice' | 'Task';
   id: string;
 }
 

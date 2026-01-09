@@ -7,7 +7,7 @@ export interface Notification {
   type: 'info' | 'success' | 'warning' | 'error' | 'task' | 'lead' | 'deal' | 'comment';
   userId: string;
   relatedTo?: {
-    type: 'Lead' | 'Deal' | 'Contact' | 'Company' | 'Invoice' | 'Quote' | 'Task';
+    type: 'Lead' | 'Deal' | 'Contact' | 'Company' | 'Invoice' | 'Task';
     id: string;
   };
   isRead: boolean;

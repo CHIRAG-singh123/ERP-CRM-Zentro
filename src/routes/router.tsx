@@ -71,8 +71,6 @@ const LeadDetailPage = createLazyRoute(() => import('../pages/leads/LeadDetailPa
 const DealsListPage = createLazyRoute(() => import('../pages/deals/DealsListPage').then(m => ({ default: m.DealsListPage })));
 const DealDetailPage = createLazyRoute(() => import('../pages/deals/DealDetailPage').then(m => ({ default: m.DealDetailPage })));
 const ReportsPage = createLazyRoute(() => import('../pages/reports/ReportsPage').then(m => ({ default: m.ReportsPage })));
-const QuotesListPage = createLazyRoute(() => import('../pages/quotes/QuotesListPage').then(m => ({ default: m.QuotesListPage })));
-const QuoteDetailPage = createLazyRoute(() => import('../pages/quotes/QuoteDetailPage').then(m => ({ default: m.QuoteDetailPage })));
 const InvoicesListPage = createLazyRoute(() => import('../pages/invoices/InvoicesListPage').then(m => ({ default: m.InvoicesListPage })));
 const InvoiceDetailPage = createLazyRoute(() => import('../pages/invoices/InvoiceDetailPage').then(m => ({ default: m.InvoiceDetailPage })));
 const SettingsOverviewPage = createLazyRoute(() => import('../pages/settings/SettingsOverviewPage').then(m => ({ default: m.SettingsOverviewPage })));
@@ -427,22 +425,6 @@ export const appRouter = createBrowserRouter([
         path: 'reports',
         element: <LazyWrapper><ReportsPage /></LazyWrapper>,
         handle: { breadcrumb: 'Reports' },
-      },
-      {
-        path: 'quotes',
-        handle: { breadcrumb: 'Quotes' },
-        children: [
-          {
-            index: true,
-            element: <LazyWrapper><QuotesListPage /></LazyWrapper>,
-            handle: { breadcrumb: 'Quotes' },
-          },
-          {
-            path: ':id',
-            element: <LazyWrapper><QuoteDetailPage /></LazyWrapper>,
-            handle: { breadcrumb: (match: { params: { id?: string } }) => `Quote ${match.params.id}` },
-          },
-        ],
       },
       {
         path: 'invoices',

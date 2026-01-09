@@ -18,10 +18,6 @@ export interface InvoiceLineItem {
 export interface Invoice {
   _id: string;
   invoiceNumber: string;
-  quoteId?: {
-    _id: string;
-    quoteNumber: string;
-  };
   dealId?: {
     _id: string;
     title: string;
@@ -61,7 +57,6 @@ export interface Invoice {
 }
 
 export interface CreateInvoiceData {
-  quoteId?: string;
   dealId?: string;
   contactId: string;
   companyId?: string;
