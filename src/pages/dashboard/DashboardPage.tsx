@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Handshake, Target, FileText, Calendar, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -32,24 +32,34 @@ export function DashboardPage() {
   const [isExportingReports, setIsExportingReports] = useState(false);
   const isAdmin = user?.role === 'admin';
 
-  const handleFilterChange = (newFilters: ChartFilterValues) => {
+  const handleFilterChange = useCallback((newFilters: ChartFilterValues) => {
     setFilters(newFilters);
-  };
+  }, []);
 
-  const handleExportSnapshot = async () => {
+  // Utility function to download blob as file
+  const downloadBlob = useCallback((blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }, []);
+
+  // Get current date in YYYY-MM-DD format for filenames
+  const getDateString = useCallback(() => {
+    return new Date().toISOString().split('T')[0];
+  }, []);
+
+  const handleExportSnapshot = useCallback(async () => {
     if (isExporting) return;
 
     setIsExporting(true);
     try {
       const blob = await exportDashboardPDF();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `dashboard-snapshot-${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      downloadBlob(blob, `dashboard-snapshot-${getDateString()}.pdf`);
       success('Dashboard snapshot exported successfully!');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to export dashboard snapshot';
@@ -57,22 +67,15 @@ export function DashboardPage() {
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [isExporting, downloadBlob, getDateString, success, showError]);
 
-  const handleExportReports = async () => {
+  const handleExportReports = useCallback(async () => {
     if (isExportingReports) return;
 
     setIsExportingReports(true);
     try {
       const blob = await exportReportsPDF();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `reports-analytics-${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      downloadBlob(blob, `reports-analytics-${getDateString()}.pdf`);
       success('Reports PDF exported successfully!');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to export reports PDF';
@@ -80,7 +83,7 @@ export function DashboardPage() {
     } finally {
       setIsExportingReports(false);
     }
-  };
+  }, [isExportingReports, downloadBlob, getDateString, success, showError]);
 
   // Only admin and employees can access this dashboard
   // Customers should be redirected to /customers/dashboard
@@ -109,7 +112,8 @@ export function DashboardPage() {
     };
   }, [canViewTasks, subscribeToTasks, onDashboardMetricsUpdated, queryClient, refetch]);
 
-  const metrics = [
+  // Memoize metrics to avoid recreating on every render
+  const metrics = useMemo(() => [
     {
       id: 'openDeals',
       value: data?.openDeals?.totalValue || 0,
@@ -148,7 +152,7 @@ export function DashboardPage() {
       trendText: 'Due this week',
       icon: Calendar,
     },
-  ];
+  ], [data]);
 
   return (
       <motion.div

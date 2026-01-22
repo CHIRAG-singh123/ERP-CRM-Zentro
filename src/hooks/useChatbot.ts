@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useTransition, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { findKnowledgeBaseAnswer, classifyQueryWithConfidence } from '../services/chatbotService';
 import { callOpenRouterAPI } from '../services/api/chatbot';
@@ -7,9 +7,13 @@ import type { ChatMessage } from '../types/chatbot';
 
 const STORAGE_PREFIX = 'chatbot_history_';
 const SESSION_USER_KEY = 'chatbot_session_user';
+const STORAGE_DEBOUNCE_MS = 500; // Debounce localStorage saves by 500ms
 
 // Request deduplication: Track in-flight requests
 const inFlightRequests = new Map<string, Promise<string>>();
+
+// Debounce timer for localStorage saves
+const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 // Simple hash function for query deduplication
 function hashQuery(query: string, role: string): string {
@@ -48,9 +52,27 @@ function loadChatHistory(role: string): ChatMessage[] {
 function saveChatHistory(role: string, messages: ChatMessage[]): void {
   try {
     const key = getStorageKey(role);
-    localStorage.setItem(key, JSON.stringify(messages));
+    
+    // Clear existing timer for this role
+    const existingTimer = saveTimers.get(key);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+    
+    // Debounce the save operation
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(key, JSON.stringify(messages));
+        saveTimers.delete(key);
+      } catch (error) {
+        logger.error('[useChatbot] Failed to save chat history:', error);
+        saveTimers.delete(key);
+      }
+    }, STORAGE_DEBOUNCE_MS);
+    
+    saveTimers.set(key, timer);
   } catch (error) {
-    logger.error('[useChatbot] Failed to save chat history:', error);
+    logger.error('[useChatbot] Failed to schedule chat history save:', error);
   }
 }
 
@@ -77,39 +99,48 @@ export function useChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showWelcomeBadge, setShowWelcomeBadge] = useState(false);
-
-  // For unauthenticated users, force role to 'customer' and mark as unauthenticated
-  const role = user?.role || 'customer';
-  const validRole = role === 'admin' || role === 'employee' || role === 'customer' 
-    ? role 
-    : 'customer';
-  const isUserAuthenticated = isAuthenticated && !!user;
+  
+  // Use React transitions for non-urgent updates (like history loading)
+  const [isPending, startTransition] = useTransition();
+  
+  // Memoize role calculations to avoid recalculation
+  const { validRole, isUserAuthenticated } = useMemo(() => {
+    const role = user?.role || 'customer';
+    const validRole = role === 'admin' || role === 'employee' || role === 'customer' 
+      ? role 
+      : 'customer';
+    const isUserAuthenticated = isAuthenticated && !!user;
+    return { validRole, isUserAuthenticated };
+  }, [user?.role, isAuthenticated, user]);
 
   // Load chat history on mount and show welcome badge on every login
+  // Use transition for non-urgent history loading
   useEffect(() => {
-    if (user) {
-      const history = loadChatHistory(validRole);
-      setMessages(history);
-      
-      // Show welcome badge on every login (when user changes)
-      if (shouldShowWelcomeBadge(user._id)) {
-        setShowWelcomeBadge(true);
-        // Auto-hide badge after 5 seconds
-        setTimeout(() => setShowWelcomeBadge(false), 5000);
+    startTransition(() => {
+      if (user) {
+        const history = loadChatHistory(validRole);
+        setMessages(history);
+        
+        // Show welcome badge on every login (when user changes)
+        if (shouldShowWelcomeBadge(user._id)) {
+          setShowWelcomeBadge(true);
+          // Auto-hide badge after 5 seconds
+          setTimeout(() => setShowWelcomeBadge(false), 5000);
+        }
+      } else {
+        // For unauthenticated users, load customer chat history
+        const history = loadChatHistory('customer');
+        setMessages(history);
+        
+        // Clear session when user logs out
+        try {
+          sessionStorage.removeItem(SESSION_USER_KEY);
+        } catch {
+          // Ignore errors
+        }
       }
-    } else {
-      // For unauthenticated users, load customer chat history
-      const history = loadChatHistory('customer');
-      setMessages(history);
-      
-      // Clear session when user logs out
-      try {
-        sessionStorage.removeItem(SESSION_USER_KEY);
-      } catch {
-        // Ignore errors
-      }
-    }
-  }, [user?._id, validRole]);
+    });
+  }, [user?._id, validRole, startTransition]);
 
   // Save chat history whenever messages change
   useEffect(() => {
@@ -120,7 +151,8 @@ export function useChatbot() {
     }
   }, [messages, validRole]);
 
-  const getQuestionType = (text: string): string => {
+  // Memoize question type function to avoid recreation
+  const getQuestionType = useCallback((text: string): string => {
     const normalized = text.trim().toLowerCase();
     if (normalized.startsWith('how')) return 'how';
     if (normalized.startsWith('what')) return 'what';
@@ -129,7 +161,7 @@ export function useChatbot() {
     if (normalized.startsWith('where')) return 'where';
     if (normalized.startsWith('who')) return 'who';
     return 'general';
-  };
+  }, []);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
@@ -273,7 +305,11 @@ export function useChatbot() {
             timestamp: new Date(),
           };
 
-          setMessages((current) => [...current, assistantMessage]);
+          // Batch state update for better performance
+          setMessages((current) => {
+            const updated = [...current, assistantMessage];
+            return updated;
+          });
         } catch (error) {
           logger.error('[useChatbot] Error sending message:', error);
           setError('Failed to send message. Please try again.');
@@ -285,7 +321,11 @@ export function useChatbot() {
             timestamp: new Date(),
           };
           
-          setMessages((current) => [...current, errorMessage]);
+          // Batch state update for better performance
+          setMessages((current) => {
+            const updated = [...current, errorMessage];
+            return updated;
+          });
         } finally {
           setIsLoading(false);
           // Remove from in-flight requests
@@ -295,7 +335,7 @@ export function useChatbot() {
 
       return updated;
     });
-  }, [isLoading, validRole, isUserAuthenticated]);
+  }, [isLoading, validRole, isUserAuthenticated, getQuestionType]);
 
   const clearHistory = useCallback(() => {
     setMessages([]);

@@ -24,9 +24,11 @@ export async function exportDashboardPDF(): Promise<Blob> {
   const { API_BASE_URL } = await import('./config');
   const { getAccessToken } = await import('./http');
   
-  // Build URL using same method as invoice download
+  // Build URL - ensure proper formatting
   const path = '/reports/dashboard/export';
-  const url = path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  const url = path.startsWith('http') 
+    ? path 
+    : `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
   const token = getAccessToken();
   
   const response = await fetch(url, {
@@ -39,41 +41,49 @@ export async function exportDashboardPDF(): Promise<Blob> {
   
   if (!response.ok) {
     let errorMessage = `Failed to export dashboard PDF (Status: ${response.status})`;
-    try {
-      const contentType = response.headers.get('Content-Type');
-      if (contentType && contentType.includes('application/json')) {
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorData.message || errorMessage;
-      } else {
-        const errorText = await response.text();
-        if (errorText) {
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.error || errorData.message || errorMessage;
-          } catch {
-            errorMessage = errorText || errorMessage;
+    
+    // Handle specific HTTP status codes
+    const statusMessages: Record<number, string> = {
+      401: 'Authentication failed. Please log in again.',
+      403: 'You do not have permission to export dashboard.',
+      404: 'Route not found. Please check the endpoint.',
+      500: 'Server error while generating PDF.',
+    };
+    
+    if (statusMessages[response.status]) {
+      errorMessage = statusMessages[response.status];
+    } else {
+      // Try to extract error message from response
+      try {
+        const contentType = response.headers.get('Content-Type');
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } else {
+          const errorText = await response.text();
+          if (errorText) {
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.error || errorData.message || errorText;
+            } catch {
+              errorMessage = errorText || errorMessage;
+            }
+          } else {
+            errorMessage = response.statusText || errorMessage;
           }
         }
+      } catch {
+        errorMessage = response.statusText || errorMessage;
       }
-    } catch {
-      if (response.status === 401) {
-        errorMessage = 'Authentication failed. Please log in again.';
-      } else if (response.status === 403) {
-        errorMessage = 'You do not have permission to export dashboard.';
-      } else if (response.status === 404) {
-        errorMessage = 'Route not found. Please check the endpoint.';
-      } else if (response.status === 500) {
-        errorMessage = 'Server error while generating PDF.';
-      }
-      errorMessage = response.statusText || errorMessage;
     }
+    
     throw new Error(errorMessage);
   }
   
-  // Check if response is actually a PDF
+  // Validate response content type
   const contentType = response.headers.get('Content-Type');
   if (contentType && !contentType.includes('application/pdf')) {
-    console.warn('[Dashboard Export] Unexpected content type:', contentType);
+    logger.warn('[Dashboard Export] Unexpected content type:', contentType);
   }
   
   const blob = await response.blob();
@@ -82,7 +92,7 @@ export async function exportDashboardPDF(): Promise<Blob> {
     throw new Error('Received empty PDF file from server');
   }
   
-  // Verify it's actually a PDF by checking the first bytes
+  // Verify PDF file signature
   const arrayBuffer = await blob.slice(0, 4).arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
   const pdfHeader = String.fromCharCode(...bytes);

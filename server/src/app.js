@@ -25,6 +25,7 @@ import auditRoutes from './routes/audit.js';
 import reportsRoutes from './routes/reports.js';
 import chatRoutes from './routes/chat.js';
 import documentRoutes from './routes/documents.js';
+import settingsRoutes from './routes/settings.js';
 import { authenticate } from './middlewares/auth.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { initializeSocketIO } from './socket/socketServer.js';
@@ -88,6 +89,7 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

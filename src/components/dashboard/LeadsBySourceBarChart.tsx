@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 import { ChartFilterDropdown, type ChartFilterValues } from '../common/ChartFilterDropdown';
 import type { LeadsBySource } from '../../services/api/reports';
@@ -107,18 +107,8 @@ export function LeadsBySourceBarChart({ data, onFilterChange }: LeadsBySourceBar
               tickLine={{ stroke: 'var(--color-border)' }}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(168, 218, 220, 0.1)' }} />
-            <Legend
-              iconType="circle"
-              formatter={(value) => (
-                <span className="text-sm text-foreground capitalize">{value}</span>
-              )}
-              wrapperStyle={{
-                paddingTop: '10px',
-              }}
-            />
             <Bar
               dataKey="count"
-              name="Leads"
               radius={[8, 8, 0, 0]}
               animationDuration={1200}
               className="chart-bar-animated"

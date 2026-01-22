@@ -1,4 +1,5 @@
 import Task from '../models/Task.js';
+import { User } from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getIO } from '../socket/socketServer.js';
 
@@ -125,6 +126,19 @@ export const createTask = asyncHandler(async (req, res) => {
     assignedToArray = Array.isArray(req.body.assignedTo) ? req.body.assignedTo : [req.body.assignedTo];
   }
 
+  // Validate that all assignedTo IDs are valid employees or admins (not customers)
+  if (assignedToArray.length > 0) {
+    const validUsers = await User.find({
+      _id: { $in: assignedToArray },
+      isActive: true,
+      role: { $in: ['employee', 'admin'] }, // Only allow employees and admins
+    });
+
+    if (validUsers.length !== assignedToArray.length) {
+      return res.status(400).json({ error: 'One or more assigned user IDs are invalid, inactive, or not employees/admins' });
+    }
+  }
+
   const taskData = {
     ...req.body,
     assignedTo: assignedToArray.length > 0 ? assignedToArray : [],
@@ -179,13 +193,27 @@ export const updateTask = asyncHandler(async (req, res) => {
 
   // Handle assignedTo as array - convert single value to array if needed
   if (req.body.assignedTo !== undefined) {
+    let assignedToArray = [];
     if (Array.isArray(req.body.assignedTo)) {
-      req.body.assignedTo = req.body.assignedTo;
+      assignedToArray = req.body.assignedTo;
     } else if (req.body.assignedTo) {
-      req.body.assignedTo = [req.body.assignedTo];
-    } else {
-      req.body.assignedTo = [];
+      assignedToArray = [req.body.assignedTo];
     }
+
+    // Validate that all assignedTo IDs are valid employees or admins (not customers)
+    if (assignedToArray.length > 0) {
+      const validUsers = await User.find({
+        _id: { $in: assignedToArray },
+        isActive: true,
+        role: { $in: ['employee', 'admin'] }, // Only allow employees and admins
+      });
+
+      if (validUsers.length !== assignedToArray.length) {
+        return res.status(400).json({ error: 'One or more assigned user IDs are invalid, inactive, or not employees/admins' });
+      }
+    }
+
+    req.body.assignedTo = assignedToArray;
   }
 
   // Get old task to find previous assignees

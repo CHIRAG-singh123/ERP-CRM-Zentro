@@ -1,13 +1,21 @@
+import { useState } from 'react';
 import { Users2 } from 'lucide-react';
 
 import { DataGrid } from '../../components/common/DataGrid';
 import { DataGridPlaceholder } from '../../components/common/DataGridPlaceholder';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useTeams } from '../../hooks/queries/useTeams';
+import { TeamForm } from '../../components/teams/TeamForm';
 
 export function SettingsTeamsPage() {
-  const { data, isLoading, isError, error } = useTeams();
+  const { data, isLoading, isError, error, refetch } = useTeams();
   const teams = data ?? [];
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handleCreateSuccess = () => {
+    setIsCreateModalOpen(false);
+    refetch();
+  };
 
   return (
     <div className="space-y-8">
@@ -15,7 +23,10 @@ export function SettingsTeamsPage() {
         title="Teams"
         description="Organize territories, round-robin queues, and collaboration spaces."
         actions={
-          <button className="flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition hover:bg-[#C3ADD9]">
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 rounded-full bg-[#B39CD0] px-4 py-2 text-sm font-medium text-[#1A1A1C] transition hover:bg-[#C3ADD9]"
+          >
             <Users2 className="h-4 w-4" />
             Create Team
           </button>
@@ -40,6 +51,12 @@ export function SettingsTeamsPage() {
           {isError ? (error as Error).message : 'No teams defined yet.'}
         </div>
       )}
+
+      <TeamForm
+        isOpen={isCreateModalOpen}
+        onSuccess={handleCreateSuccess}
+        onCancel={() => setIsCreateModalOpen(false)}
+      />
     </div>
   );
 }

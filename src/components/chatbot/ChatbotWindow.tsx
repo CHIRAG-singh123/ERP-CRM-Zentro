@@ -1,5 +1,5 @@
 import { Send, Loader2, Trash2 } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { MessageBubble } from './MessageBubble';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import type { ChatMessage } from '../../types/chatbot';
@@ -21,32 +21,71 @@ export function ChatbotWindow({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastMessageCountRef = useRef<number>(0);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Memoized scroll function with debouncing
+  const scrollToBottom = useCallback((immediate = false) => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
 
+    const scroll = () => {
+      messagesEndRef.current?.scrollIntoView({ 
+        behavior: immediate ? 'auto' : 'smooth',
+        block: 'end'
+      });
+    };
+
+    if (immediate) {
+      scroll();
+    } else {
+      scrollTimeoutRef.current = setTimeout(scroll, 100);
+    }
+  }, []);
+
+  // Optimized scroll effect - only scroll when message count changes or new message arrives
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const currentCount = messages.length;
+    const hasNewMessage = currentCount > lastMessageCountRef.current;
+    
+    if (hasNewMessage || isLoading) {
+      // Immediate scroll for new messages, smooth for loading state
+      scrollToBottom(!hasNewMessage);
+      lastMessageCountRef.current = currentCount;
+    }
 
-  const handleClearHistory = () => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [messages.length, isLoading, scrollToBottom]);
+
+  const handleClearHistory = useCallback(() => {
     setShowConfirmDialog(true);
-  };
+  }, []);
 
-  const confirmClear = () => {
+  const confirmClear = useCallback(() => {
     onClearHistory();
     setShowConfirmDialog(false);
-  };
+  }, [onClearHistory]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim() && !isLoading) {
       onSendMessage(input);
       setInput('');
       inputRef.current?.focus();
     }
-  };
+  }, [input, isLoading, onSendMessage]);
+
+  // Memoize message list to prevent unnecessary re-renders
+  const messageList = useMemo(() => {
+    return messages.map((message) => (
+      <MessageBubble key={message.id} message={message} />
+    ));
+  }, [messages]);
 
   return (
     <>
@@ -119,9 +158,7 @@ export function ChatbotWindow({
           </div>
         ) : (
           <>
-            {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))}
+            {messageList}
             {isLoading && (
               <div className="flex gap-3 animate-fade-in">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#A8DADC] to-[#B39CD0] shadow-lg ring-2 ring-[#A8DADC]/30">

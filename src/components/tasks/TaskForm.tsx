@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 import { useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useAllUsers } from '../../hooks/queries/useUsers';
+import { useTeams } from '../../hooks/queries/useTeams';
 import { useCreateTask, useUpdateTask, type CreateTaskData, type UpdateTaskData } from '../../hooks/queries/useTasks';
 import { MultiSelectDropdown } from '../common/MultiSelectDropdown';
 import type { Task } from '../../services/api/tasks';
@@ -57,6 +58,10 @@ export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: 
   const { data: usersData, isLoading: isLoadingUsers } = useAllUsers({ page: 1, limit: 1000, isActive: true });
   const users = usersData?.users || [];
   
+  // Fetch teams for task assignment
+  const { data: teamsData, isLoading: isLoadingTeams } = useTeams();
+  const teams = teamsData || [];
+  
   // Filter to only show employees and admins, and ensure they have required fields
   // Convert all _id to strings for consistent comparison
   const availableUsers = useMemo(() => {
@@ -68,6 +73,28 @@ export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: 
         email: u.email,
       }));
   }, [users]);
+
+  // Create combined options array with users and teams
+  // Teams use a special prefix "team:" to distinguish them from user IDs
+  const combinedOptions = useMemo(() => {
+    const userOptions = availableUsers.map((u) => ({
+      _id: u._id,
+      name: u.name,
+      email: u.email,
+      isTeam: false,
+    }));
+
+    const teamOptions = teams.map((team) => ({
+      _id: `team:${team._id || team.id}`, // Prefix team IDs
+      name: team.team || team.name || 'Unnamed Team',
+      email: `${team.members || 0} members`, // Show member count instead of email
+      isTeam: true,
+      teamId: team._id || team.id,
+      memberIds: team.memberIds || [],
+    }));
+
+    return [...userOptions, ...teamOptions];
+  }, [availableUsers, teams]);
 
   // Normalize assignedTo field to handle different data structures
   const normalizeAssignedTo = (assignedTo: any): string[] => {
@@ -165,16 +192,46 @@ export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: 
 
   const handleSubmit = async (values: TaskFormValues) => {
     try {
-      // Normalize assignedTo to ensure all IDs are strings
-      const normalizedAssignedTo = values.assignedTo && values.assignedTo.length > 0
-        ? values.assignedTo.map(id => String(id)).filter(Boolean)
-        : undefined;
+      // Expand teams to member IDs and combine with direct user assignments
+      let finalAssignedTo: string[] = [];
+      
+      if (values.assignedTo && values.assignedTo.length > 0) {
+        const userIds: string[] = [];
+        const teamIds: string[] = [];
+        
+        // Separate user IDs from team IDs
+        values.assignedTo.forEach((id) => {
+          const idStr = String(id);
+          if (idStr.startsWith('team:')) {
+            teamIds.push(idStr.replace('team:', ''));
+          } else {
+            userIds.push(idStr);
+          }
+        });
+        
+        // Add direct user assignments
+        finalAssignedTo = [...userIds];
+        
+        // Expand teams to their member IDs
+        teamIds.forEach((teamId) => {
+          const team = teams.find((t) => String(t._id || t.id) === teamId);
+          if (team && team.memberIds && team.memberIds.length > 0) {
+            // Add all team member IDs
+            team.memberIds.forEach((memberId) => {
+              const memberIdStr = String(memberId);
+              if (!finalAssignedTo.includes(memberIdStr)) {
+                finalAssignedTo.push(memberIdStr);
+              }
+            });
+          }
+        });
+      }
 
       const baseData = {
         description: values.description || undefined,
         status: values.status,
         priority: values.priority,
-        assignedTo: normalizedAssignedTo,
+        assignedTo: finalAssignedTo.length > 0 ? finalAssignedTo : undefined,
         dueDate: values.dueDate ? new Date(values.dueDate).toISOString() : undefined,
         tags: values.tags ? values.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : undefined,
       };
@@ -382,16 +439,22 @@ export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: 
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-sm font-medium text-white/70 mb-1">
+                    Assign To (Multiple)
+                  </label>
                   <MultiSelectDropdown
-                    label="Assign To (Multiple)"
                     placeholder={
-                      isLoadingUsers
-                        ? 'Loading users...'
-                        : availableUsers.length === 0
-                          ? 'No employees/admins available'
-                          : 'Select employees to assign this task'
+                      isLoadingUsers || isLoadingTeams
+                        ? 'Loading...'
+                        : combinedOptions.length === 0
+                          ? 'No employees/teams available'
+                          : 'Search employees or teams...'
                     }
-                    options={availableUsers}
+                    options={combinedOptions.map((opt) => ({
+                      _id: opt._id,
+                      name: opt.isTeam ? `Team: ${opt.name}` : opt.name,
+                      email: opt.email,
+                    }))}
                     value={(values.assignedTo || []).map(id => String(id))}
                     onChange={(selectedIds) => {
                       // Mark as actively editing when user changes selection
@@ -400,13 +463,16 @@ export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: 
                       setFieldValue('assignedTo', selectedIds);
                     }}
                     error={errors.assignedTo as string | undefined}
-                    disabled={isLoadingUsers || availableUsers.length === 0}
+                    disabled={isLoadingUsers || isLoadingTeams || combinedOptions.length === 0}
                   />
-                  {isLoadingUsers && (
-                    <p className="mt-1 text-xs text-white/50">Loading users...</p>
+                  {(isLoadingUsers || isLoadingTeams) && (
+                    <p className="mt-1 text-xs text-white/50">Loading users and teams...</p>
                   )}
-                  {!isLoadingUsers && availableUsers.length === 0 && (
-                    <p className="mt-1 text-xs text-yellow-400">No employees or admins found. Please ensure users exist with these roles.</p>
+                  {!isLoadingUsers && !isLoadingTeams && combinedOptions.length === 0 && (
+                    <p className="mt-1 text-xs text-yellow-400">No employees, admins, or teams found.</p>
+                  )}
+                  {values.assignedTo && values.assignedTo.some(id => String(id).startsWith('team:')) && (
+                    <p className="mt-1 text-xs text-blue-400">Selected teams will be expanded to all team members when the task is created.</p>
                   )}
                 </div>
 
