@@ -1,6 +1,6 @@
 import { Package, DollarSign, Tag, User, Edit, Trash2, ArrowLeft, Loader2, X, MessageSquare, Eye } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { PageHeader } from '../../components/common/PageHeader';
@@ -21,9 +21,12 @@ import { useEmployeeProductReviews } from '../../hooks/queries/useReviews';
 import { uploadProductImage, uploadProductModel } from '../../services/api/products';
 import { formatDate } from '../../utils/formatting';
 import { getModel3dUrl } from '../../utils/imageUtils';
-import { GlbViewer } from 'model-viewer/GlbViewer';
+import { lazy, Suspense } from 'react';
 import type { ProductFormData, Product } from '../../types/products';
 import { useQueryClient } from '@tanstack/react-query';
+
+// Lazy load GlbViewer to reduce initial bundle size
+const GlbViewer = lazy(() => import('model-viewer/GlbViewer').then(module => ({ default: module.GlbViewer })));
 
 function ProductReviewsSection({ productId }: { productId: string }) {
   const queryClient = useQueryClient();
@@ -88,6 +91,8 @@ export function ProductDetailPage() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploadedModel3dUrl, setUploadedModel3dUrl] = useState<string | null>(null);
   const [show3dModal, setShow3dModal] = useState(false);
+  const [isPreloadingModel, setIsPreloadingModel] = useState(false);
+  const preloadLinkRef = useRef<HTMLLinkElement | null>(null);
 
   const { data, isLoading, isError, error } = useProduct(id || '');
   const product = data?.product;
@@ -197,6 +202,15 @@ export function ProductDetailPage() {
     };
   }, [showEditModal, showCreatorModal, show3dModal]);
 
+  // Cleanup preload link on unmount
+  useEffect(() => {
+    return () => {
+      if (preloadLinkRef.current && preloadLinkRef.current.parentNode) {
+        preloadLinkRef.current.parentNode.removeChild(preloadLinkRef.current);
+      }
+    };
+  }, []);
+
   const getBackPath = () => {
     const currentPath = window.location.pathname;
     if (currentPath.includes('/admin/products')) {
@@ -293,7 +307,40 @@ export function ProductDetailPage() {
                     <h2 className="text-2xl font-bold text-white">{product.name}</h2>
                     <button
                       type="button"
-                      onClick={() => setShow3dModal(true)}
+                      onClick={() => {
+                        setShow3dModal(true);
+                        // Preload the model URL if available
+                        if (product.model3dUrl) {
+                          const modelUrl = getModel3dUrl(product.model3dUrl);
+                          if (modelUrl) {
+                            // Prefetch the GLB file
+                            const link = document.createElement('link');
+                            link.rel = 'prefetch';
+                            link.as = 'fetch';
+                            link.href = modelUrl;
+                            link.crossOrigin = 'anonymous';
+                            document.head.appendChild(link);
+                            preloadLinkRef.current = link;
+                          }
+                        }
+                      }}
+                      onMouseEnter={() => {
+                        // Start preloading on hover for faster click response
+                        if (product.model3dUrl && !isPreloadingModel) {
+                          setIsPreloadingModel(true);
+                          const modelUrl = getModel3dUrl(product.model3dUrl);
+                          if (modelUrl) {
+                            // Prefetch the GLB file
+                            const link = document.createElement('link');
+                            link.rel = 'prefetch';
+                            link.as = 'fetch';
+                            link.href = modelUrl;
+                            link.crossOrigin = 'anonymous';
+                            document.head.appendChild(link);
+                            preloadLinkRef.current = link;
+                          }
+                        }
+                      }}
                       className="rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
                       title={product.model3dUrl ? 'View 3D model' : 'View 3D model (not available)'}
                     >
@@ -661,13 +708,23 @@ export function ProductDetailPage() {
               </div>
               <div className="relative z-0 flex-1 min-h-0 flex items-center justify-center" style={{ width: '100%', height: 968 }}>
                 {product.model3dUrl ? (
-                  <GlbViewer
-                    url={getModel3dUrl(product.model3dUrl)}
-                    siteName={product.name}
-                    width={1000}
-                    height={968}
-                    backgroundColor="#282C34"
-                  />
+                  <Suspense
+                    fallback={
+                      <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-white/5 p-8 text-center">
+                        <Loader2 className="h-12 w-12 animate-spin text-[#A8DADC]" />
+                        <p className="text-lg font-medium text-white/80">Loading 3D viewer...</p>
+                        <p className="text-sm text-white/50">Preparing your model</p>
+                      </div>
+                    }
+                  >
+                    <GlbViewer
+                      url={getModel3dUrl(product.model3dUrl)}
+                      siteName={product.name}
+                      width={1000}
+                      height={968}
+                      backgroundColor="#282C34"
+                    />
+                  </Suspense>
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-white/5 p-8 text-center">
                     <Eye className="h-16 w-16 text-white/30" />

@@ -1,1915 +1,1391 @@
-/**
- * Enhanced GLB Viewer with Intelligent Telecom Structure Analysis
- * + Element Selection / Property Inspector
- * ─────────────────────────────────────────────────────────────────
- * Features:
- *  1. Structure Height — computed from bounding box (Z or Y axis)
- *  2. Equipment Detection — uses material color + geometry heuristics
- *     (IFC→GLB export strips semantic names, so name-based regex fails)
- *  3. Element Categorization — groups meshes by material color + geometry
- *  4. Explode View — interactive model decomposition
- *  5. Wireframe Toggle — structural visualization mode
- *  6. Auto-fit camera — intelligent framing based on model bounds
- *  7. ★ Element Selection — click any mesh to inspect its properties
- *     (raycasting, highlight, animated property panel with all GLB data)
- *
- * Used by UnifiedModelViewer for GLB model type.
- */
-
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const DEFAULT_BACKGROUND = "#282C34";
-const BACKGROUND_OPACITY = 0.2;
-/** rgba(40, 44, 52, 0.2) for transparent 20% opacity background */
-const DEFAULT_BACKGROUND_RGBA = "rgba(40, 44, 52, 0.2)";
-const ACCENT = "#4a9eff";
-const ACCENT_GLOW = "rgba(74, 158, 255, 0.25)";
-const PANEL_BG = "rgba(15, 17, 23, 0.92)";
-const PANEL_BORDER = "rgba(74, 158, 255, 0.15)";
-const TEXT_PRIMARY = "#e2e8f0";
-const TEXT_SECONDARY = "#94a3b8";
-const TEXT_MUTED = "#64748b";
-const SUCCESS = "#34d399";
-const WARNING = "#fbbf24";
-const SELECT_COLOR = "#00e5ff";
-const SELECT_GLOW = "rgba(0, 229, 255, 0.3)";
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TYPES & INTERFACES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function hexToRgba(hex: string, alpha: number): string {
-  const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-  if (!m) return DEFAULT_BACKGROUND_RGBA;
-  return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
-}
+/** Environment lighting presets */
+export type EnvironmentPreset = "studio" | "outdoor" | "showroom" | "dramatic";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+/** Camera angle presets */
+export type CameraPreset = "beauty" | "front" | "side" | "top" | "back";
+
+/** Material category detected by the classifier */
+type MaterialCategory =
+  | "metal-polished"
+  | "metal-brushed"
+  | "metal-rough"
+  | "glass"
+  | "fabric"
+  | "plastic-glossy"
+  | "plastic-matte"
+  | "rubber"
+  | "wood"
+  | "ceramic"
+  | "leather"
+  | "gemstone"
+  | "emissive"
+  | "generic";
+
 export interface GlbViewerProps {
   url: string | null;
+  /** Optional product/site name shown in the bottom bar */
   siteName?: string;
   width?: number;
   height?: number;
-  /** Hex background color; used with BACKGROUND_OPACITY (0.2) for transparent look */
+  /** Hex background color (default: transparent) */
   backgroundColor?: string;
-  onLoaded?: (triangleCount: number) => void;
+  /** Background opacity 0–1 (default 0 = fully transparent) */
+  backgroundOpacity?: number;
+  /** Starting environment preset */
+  environment?: EnvironmentPreset;
+  /** Enable auto-rotate on load */
+  autoRotate?: boolean;
+  /** Show ground shadow plane */
+  showGroundShadow?: boolean;
+  /** Show ground reflection */
+  showGroundReflection?: boolean;
+  /** Show dimension wireframe */
+  showDimensions?: boolean;
+  /** Enable screenshot button */
+  enableScreenshot?: boolean;
+  /** Enable fullscreen button */
+  enableFullscreen?: boolean;
+  /** Enable camera preset buttons */
+  enableCameraPresets?: boolean;
+  /** Enable environment switcher */
+  enableEnvironmentSwitch?: boolean;
+  /** Called when the model finishes loading */
+  onLoaded?: (info: {
+    triangleCount: number;
+    materialCount: number;
+    boundingBox: { x: number; y: number; z: number };
+  }) => void;
+  /** Called on load error */
   onError?: (message: string) => void;
+  /** Close button handler — if provided, a close button appears */
+  onClose?: () => void;
 }
 
-interface EquipmentCount {
-  Antenna: number;
-  RRU: number;
-  Dish: number;
-}
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CONSTANTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-interface CategoryInfo {
-  name: string;
-  count: number;
-  triangles: number;
-  color: string;
-}
+const DEFAULT_BG = "#0a0a0f";
+const DRACO_DECODER_PATH = "https://www.gstatic.com/draco/versioned/decoders/1.5.7/";
 
-interface MeshAnalysisEntry {
-  name: string;
-  category: string;
-  equipmentType: keyof EquipmentCount | null;
-  materialColor: string;
-  materialAlpha: number;
-  triangles: number;
-  volume: number;
-  heightSpan: [number, number];
-  bbox: THREE.Box3;
-}
-
-interface StructureAnalysis {
-  height: number;
-  heightAxis: "X" | "Y" | "Z";
-  widthX: number;
-  widthY: number;
-  widthZ: number;
-  equipment: EquipmentCount;
-  categories: CategoryInfo[];
-  totalTriangles: number;
-  totalMeshes: number;
-  meshEntries: MeshAnalysisEntry[];
-}
-
-interface GlbExplodeChild {
-  mesh: THREE.Mesh;
-  originalWorldPosition: THREE.Vector3;
-  originalPosition: THREE.Vector3;
-}
-
-interface GlbExplodeState {
-  centerWorld: THREE.Vector3;
-  maxDistance: number;
-  children: GlbExplodeChild[];
-}
-
-// ─── Selected Element Properties ──────────────────────────────────────────────
-interface SelectedElementProps {
-  // Identity
-  meshName: string;
-  parentName: string;
-  uuid: string;
-  // Classification (from our analysis)
-  category: string;
-  equipmentType: string | null;
-  // Geometry
-  triangleCount: number;
-  vertexCount: number;
-  boundingBox: { min: THREE.Vector3; max: THREE.Vector3 };
-  dimensions: { x: number; y: number; z: number };
-  volume: number;
-  worldPosition: THREE.Vector3;
-  // Material
-  materialName: string;
-  materialType: string;
-  color: string;
-  opacity: number;
-  metalness: number;
-  roughness: number;
-  doubleSided: boolean;
-  // Extras / User Data (IFC properties when preserved)
-  userData: Record<string, unknown>;
-  extras: Record<string, unknown>;
-  // Hierarchy
-  depth: number;
-  childCount: number;
-  ancestorPath: string;
-}
-
-// ─── Property Group for display ───────────────────────────────────────────────
-interface PropertyGroup {
-  name: string;
-  icon: React.ReactNode;
-  color: string;
-  properties: { key: string; value: string; highlight?: boolean }[];
-}
-
-// ─── Color-to-hex helper ──────────────────────────────────────────────────────
-function colorToHex(r: number, g: number, b: number): string {
-  const toHex = (v: number) =>
-    Math.round(v * 255)
-      .toString(16)
-      .padStart(2, "0");
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-// ─── Material + Geometry Based Classification ─────────────────────────────────
-const NAME_EQUIPMENT_PATTERNS: Record<string, RegExp[]> = {
-  Antenna: [
-    /antenna/i, /ANT[\s_-]/i, /cnx_ant/i, /panel[\s_-]?ant/i,
-    /sector[\s_-]?ant/i, /omni/i, /dipole/i, /yagi/i, /cnx_equip.*ant/i,
-  ],
-  RRU: [
-    /rru/i, /remote[\s_-]?radio/i, /radio[\s_-]?unit/i, /cnx_rru/i,
-    /bbu/i, /baseband/i, /cnx_equip.*rru/i, /radio[\s_-]?head/i,
-  ],
-  Dish: [
-    /dish/i, /parabolic/i, /microwave/i, /mw[\s_-]?dish/i, /cnx_mw/i,
-    /reflector/i, /cnx_dish/i, /satellite/i,
-  ],
-};
-
-const NAME_CATEGORY_PATTERNS: Record<string, RegExp[]> = {
-  "Tower Structure": [
-    /tower/i, /mast/i, /pole/i, /monopole/i, /lattice/i,
-    /cnx_str/i, /structure/i, /column/i, /leg/i, /brace/i,
-    /diagonal/i, /horizontal/i, /vertical/i, /frame/i,
-  ],
-  "Cable & Conduit": [
-    /cable/i, /conduit/i, /tray/i, /wire/i, /fiber/i,
-    /cnx_cab/i, /feeder/i, /jumper/i, /connector/i, /harness/i,
-  ],
-  "Mounting Hardware": [
-    /mount/i, /bracket/i, /clamp/i, /bolt/i, /nut/i,
-    /cnx_mnt/i, /fixture/i, /support/i, /hanger/i, /pipe/i,
-    /arm/i, /platform/i, /rail/i,
-  ],
-  Foundation: [
-    /foundation/i, /base/i, /footing/i, /concrete/i, /slab/i,
-    /cnx_fnd/i, /ground/i, /pad/i, /anchor/i,
-  ],
-  Enclosure: [
-    /enclosure/i, /cabinet/i, /shelter/i, /cnx_enc/i,
-    /housing/i, /box/i, /panel[\s_-]?board/i, /equipment[\s_-]?room/i,
-  ],
-  "Safety & Access": [
-    /ladder/i, /stair/i, /handrail/i, /safety/i, /guard/i,
-    /cnx_saf/i, /step/i, /cage/i, /climb/i, /fall[\s_-]?arrest/i,
-  ],
-  Antenna: [/antenna/i, /ant[\s_-]/i, /cnx_ant/i, /omni/i, /dipole/i, /yagi/i],
-  RRU: [/rru/i, /remote[\s_-]?radio/i, /radio[\s_-]?unit/i, /cnx_rru/i, /bbu/i],
-  Dish: [/dish/i, /parabolic/i, /microwave/i, /cnx_mw/i, /reflector/i],
-};
-
-function classifyByName(
-  name: string
-): { category: string; equipType: keyof EquipmentCount | null } {
-  if (/^(empty|mesh|node|object)[\s_-]?\d*$/i.test(name)) {
-    return { category: "", equipType: null };
+/** Environment preset configurations */
+const ENV_CONFIGS: Record<
+  EnvironmentPreset,
+  {
+    label: string;
+    icon: string;
+    gradient: {
+      bottom: [number, number, number];
+      mid: [number, number, number];
+      top: [number, number, number];
+    };
+    softboxes: Array<{
+      pos: [number, number, number];
+      size: number;
+      intensity: number;
+      color?: [number, number, number];
+    }>;
+    lights: {
+      ambient: number;
+      hemiSky: string;
+      hemiGround: string;
+      hemiIntensity: number;
+      key: { color: string; intensity: number; pos: [number, number, number] };
+      fill: { color: string; intensity: number; pos: [number, number, number] };
+      rim: { color: string; intensity: number; pos: [number, number, number] };
+      bottom: { color: string; intensity: number };
+    };
+    toneMappingExposure: number;
   }
-  for (const [eqType, patterns] of Object.entries(NAME_EQUIPMENT_PATTERNS)) {
-    for (const p of patterns) {
-      if (p.test(name))
-        return {
-          category: eqType,
-          equipType: eqType as keyof EquipmentCount,
-        };
+> = {
+  studio: {
+    label: "Studio",
+    icon: "◐",
+    gradient: {
+      bottom: [0.22, 0.2, 0.19],
+      mid: [0.32, 0.32, 0.33],
+      top: [0.5, 0.5, 0.53],
+    },
+    softboxes: [
+      { pos: [40, 65, 30], size: 38, intensity: 2.0 },
+      { pos: [-55, 35, 25], size: 32, intensity: 1.1 },
+      { pos: [10, 25, -65], size: 28, intensity: 0.85 },
+      { pos: [0, -55, 0], size: 65, intensity: 0.5 },
+      { pos: [30, 80, -20], size: 20, intensity: 1.5 },
+    ],
+    lights: {
+      ambient: 0.08,
+      hemiSky: "#c8d8e8",
+      hemiGround: "#2a2018",
+      hemiIntensity: 0.2,
+      key: { color: "#fff8f0", intensity: 0.65, pos: [80, 150, 100] },
+      fill: { color: "#e8f0ff", intensity: 0.3, pos: [-100, 80, 60] },
+      rim: { color: "#ffffff", intensity: 0.25, pos: [20, 60, -120] },
+      bottom: { color: "#e0dcd8", intensity: 0.08 },
+    },
+    toneMappingExposure: 0.75,
+  },
+  outdoor: {
+    label: "Outdoor",
+    icon: "☀",
+    gradient: {
+      bottom: [0.35, 0.32, 0.28],
+      mid: [0.55, 0.6, 0.7],
+      top: [0.4, 0.6, 0.9],
+    },
+    softboxes: [
+      { pos: [0, 90, 10], size: 80, intensity: 2.5, color: [1.0, 0.96, 0.88] },
+      { pos: [-40, 20, 40], size: 50, intensity: 0.6, color: [0.7, 0.8, 1.0] },
+      { pos: [0, -50, 0], size: 70, intensity: 0.4, color: [0.5, 0.45, 0.38] },
+    ],
+    lights: {
+      ambient: 0.12,
+      hemiSky: "#87ceeb",
+      hemiGround: "#8b7355",
+      hemiIntensity: 0.3,
+      key: { color: "#fff4e0", intensity: 0.9, pos: [60, 200, 80] },
+      fill: { color: "#b0d4f1", intensity: 0.25, pos: [-80, 40, 60] },
+      rim: { color: "#ffeedd", intensity: 0.18, pos: [30, 80, -100] },
+      bottom: { color: "#d4c4a8", intensity: 0.12 },
+    },
+    toneMappingExposure: 0.85,
+  },
+  showroom: {
+    label: "Showroom",
+    icon: "◆",
+    gradient: {
+      bottom: [0.15, 0.15, 0.16],
+      mid: [0.2, 0.2, 0.22],
+      top: [0.35, 0.35, 0.38],
+    },
+    softboxes: [
+      { pos: [50, 70, 40], size: 45, intensity: 2.2 },
+      { pos: [-50, 70, 40], size: 45, intensity: 2.0 },
+      { pos: [0, 90, 0], size: 60, intensity: 1.8 },
+      { pos: [0, -50, 0], size: 70, intensity: 0.35 },
+      { pos: [60, 30, -40], size: 25, intensity: 1.0 },
+      { pos: [-60, 30, -40], size: 25, intensity: 0.9 },
+    ],
+    lights: {
+      ambient: 0.05,
+      hemiSky: "#d0d0e0",
+      hemiGround: "#1a1a1a",
+      hemiIntensity: 0.15,
+      key: { color: "#ffffff", intensity: 0.7, pos: [60, 140, 80] },
+      fill: { color: "#f0f0ff", intensity: 0.35, pos: [-60, 140, 80] },
+      rim: { color: "#ffffff", intensity: 0.3, pos: [0, 50, -130] },
+      bottom: { color: "#e8e8e8", intensity: 0.06 },
+    },
+    toneMappingExposure: 0.8,
+  },
+  dramatic: {
+    label: "Dramatic",
+    icon: "◑",
+    gradient: {
+      bottom: [0.05, 0.04, 0.06],
+      mid: [0.1, 0.08, 0.12],
+      top: [0.15, 0.12, 0.2],
+    },
+    softboxes: [
+      { pos: [60, 80, 20], size: 30, intensity: 3.0, color: [1.0, 0.95, 0.85] },
+      { pos: [-20, 10, 50], size: 15, intensity: 0.4 },
+      { pos: [0, -50, 0], size: 40, intensity: 0.15 },
+    ],
+    lights: {
+      ambient: 0.02,
+      hemiSky: "#1a1a2e",
+      hemiGround: "#000000",
+      hemiIntensity: 0.05,
+      key: { color: "#fff0d0", intensity: 1.0, pos: [100, 120, 50] },
+      fill: { color: "#c0c8e0", intensity: 0.1, pos: [-80, 60, 80] },
+      rim: { color: "#e0d0ff", intensity: 0.45, pos: [-30, 40, -100] },
+      bottom: { color: "#1a1a1a", intensity: 0.01 },
+    },
+    toneMappingExposure: 0.75,
+  },
+};
+
+/** Camera preset angles (normalized direction + distance multiplier) */
+const CAMERA_PRESETS: Record<
+  CameraPreset,
+  { label: string; dir: [number, number, number]; distMul: number }
+> = {
+  beauty: { label: "¾", dir: [0.6, 0.35, 0.7], distMul: 1.5 },
+  front: { label: "F", dir: [0, 0.15, 1], distMul: 1.6 },
+  side: { label: "S", dir: [1, 0.15, 0], distMul: 1.6 },
+  top: { label: "T", dir: [0.05, 1, 0.05], distMul: 1.8 },
+  back: { label: "B", dir: [0, 0.15, -1], distMul: 1.6 },
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MATERIAL CLASSIFIER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Classifies a MeshStandardMaterial into a product-relevant category
+// so we can apply category-specific rendering optimizations.
+
+function classifyMaterial(m: THREE.MeshStandardMaterial): MaterialCategory {
+  const metalness = m.metalness ?? 0;
+  const roughness = m.roughness ?? 0.5;
+  const opacity = m.opacity ?? 1;
+  // More sensitive detection - check for ANY emissive component, even very small
+  const hasEmissive =
+    m.emissive &&
+    (m.emissive.r > 0.001 || m.emissive.g > 0.001 || m.emissive.b > 0.001);
+  // Also check emissiveIntensity property
+  const hasEmissiveIntensity = (m as any).emissiveIntensity && (m as any).emissiveIntensity > 0;
+
+  if (hasEmissive || hasEmissiveIntensity) return "emissive";
+
+  // Transparent / translucent → glass or gemstone
+  if (opacity < 0.85 || m.transparent) {
+    if (metalness > 0.1) return "gemstone";
+    return "glass";
+  }
+
+  // High metalness
+  if (metalness > 0.5) {
+    if (roughness < 0.15) return "metal-polished";
+    if (roughness < 0.45) return "metal-brushed";
+    return "metal-rough";
+  }
+
+  // Low metalness, varying roughness
+  if (metalness < 0.1) {
+    if (roughness > 0.85) return "fabric";
+    if (roughness > 0.7) return "rubber";
+    if (roughness > 0.5) return "plastic-matte";
+    if (roughness > 0.3) {
+      // Could be wood, ceramic, or leather — use color heuristics
+      const hsl = { h: 0, s: 0, l: 0 };
+      m.color.getHSL(hsl);
+      if (hsl.s < 0.15 && hsl.l > 0.7) return "ceramic";
+      if (hsl.h > 0.02 && hsl.h < 0.12 && hsl.s > 0.2) return "wood";
+      if (hsl.h > 0.0 && hsl.h < 0.08 && hsl.s > 0.3 && hsl.l < 0.4)
+        return "leather";
+      return "plastic-matte";
     }
+    return "plastic-glossy";
   }
-  for (const [cat, patterns] of Object.entries(NAME_CATEGORY_PATTERNS)) {
-    for (const p of patterns) {
-      if (p.test(name)) {
-        const equipType =
-          cat === "Antenna" || cat === "RRU" || cat === "Dish"
-            ? (cat as keyof EquipmentCount)
-            : null;
-        return { category: cat, equipType };
+
+  return "generic";
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MATERIAL OPTIMIZER — category-aware
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// NEVER overrides authored colors. Only tunes rendering params per category.
+
+function optimizeMaterial(m: THREE.MeshStandardMaterial, cat: MaterialCategory) {
+  switch (cat) {
+    case "metal-polished":
+      // Chrome, polished steel, gold — needs strong reflections
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.9, 1.8);
+      m.roughness = Math.max(m.roughness, 0.04); // prevent perfect mirror
+      fixDarkMetalColor(m);
+      break;
+
+    case "metal-brushed":
+      // Brushed aluminum, stainless steel — softer reflections
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.7, 1.5);
+      fixDarkMetalColor(m);
+      break;
+
+    case "metal-rough":
+      // Cast iron, weathered metal — needs texture visibility
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.6, 1.4);
+      fixDarkMetalColor(m);
+      // Ensure texture details show through
+      m.roughness = Math.max(m.roughness ?? 0.5, 0.5);
+      break;
+
+    case "glass":
+      // Ensure transparency renders correctly
+      m.transparent = true;
+      // For glass, we need depthWrite enabled for proper depth sorting
+      // But disable it only if opacity is very low to prevent artifacts
+      m.depthWrite = m.opacity > 0.5;
+      m.side = THREE.DoubleSide;
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.8, 2.0);
+      // Boost transmission appearance
+      if (m.opacity > 0.1 && m.opacity < 0.5) {
+        m.opacity = Math.max(m.opacity, 0.25);
       }
-    }
-  }
-  return { category: "", equipType: null };
-}
+      // Add polygon offset for overlapping glass surfaces
+      m.polygonOffset = true;
+      m.polygonOffsetFactor = 2;
+      m.polygonOffsetUnits = 2;
+      break;
 
-interface MeshGeoInfo {
-  mesh: THREE.Mesh;
-  name: string;
-  bbox: THREE.Box3;
-  size: THREE.Vector3;
-  center: THREE.Vector3;
-  volume: number;
-  triangles: number;
-  materialColor: { r: number; g: number; b: number; a: number };
-  materialHex: string;
-}
+    case "gemstone":
+      // High refraction look — strong env, moderate roughness
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 1.2, 2.5);
+      m.transparent = true;
+      // Enable depthWrite for gemstones to prevent z-fighting
+      m.depthWrite = m.opacity > 0.5;
+      m.side = THREE.DoubleSide;
+      // Add polygon offset for overlapping gemstone surfaces
+      m.polygonOffset = true;
+      m.polygonOffsetFactor = 2;
+      m.polygonOffsetUnits = 2;
+      break;
+      break;
 
-function classifyByGeometryAndMaterial(
-  infos: MeshGeoInfo[],
-  modelBox: THREE.Box3,
-  modelSize: THREE.Vector3,
-  heightAxisIdx: number
-): Map<
-  THREE.Mesh,
-  { category: string; equipType: keyof EquipmentCount | null }
-> {
-  const result = new Map<
-    THREE.Mesh,
-    { category: string; equipType: keyof EquipmentCount | null }
-  >();
-  if (infos.length === 0) return result;
+    case "fabric":
+      // Fabric textures need better visibility - increase env map slightly
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.4, 0.8);
+      // Ensure fabric textures show through
+      m.roughness = Math.max(m.roughness ?? 0.5, 0.6);
+      break;
 
-  const modelHeight = [modelSize.x, modelSize.y, modelSize.z][heightAxisIdx];
-  const modelMin = [modelBox.min.x, modelBox.min.y, modelBox.min.z][
-    heightAxisIdx
-  ];
+    case "rubber":
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.2, 0.6);
+      break;
 
-  const volumes = infos
-    .map((i) => i.volume)
-    .filter((v) => v > 0)
-    .sort((a, b) => a - b);
-  const medianVol =
-    volumes.length > 0 ? volumes[Math.floor(volumes.length / 2)] : 0;
+    case "leather":
+      // Leather needs better texture visibility
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.5, 1.0);
+      m.roughness = Math.max(m.roughness ?? 0.5, 0.5);
+      break;
 
-  for (const info of infos) {
-    const heightPos = [info.center.x, info.center.y, info.center.z][
-      heightAxisIdx
-    ];
-    const relativeHeight =
-      modelHeight > 0 ? (heightPos - modelMin) / modelHeight : 0;
-    const sizeArr = [info.size.x, info.size.y, info.size.z];
-    const heightExtent = sizeArr[heightAxisIdx];
-    const maxHorizontalExtent = Math.max(
-      ...sizeArr.filter((_, i) => i !== heightAxisIdx)
-    );
-    const aspectRatio = heightExtent / Math.max(maxHorizontalExtent, 0.001);
-    const { r, g, b, a } = info.materialColor;
-    const isReddish = r > 0.35 && g < 0.15 && b < 0.15;
-    const isWhitish = r > 0.8 && g > 0.8 && b > 0.8 && a >= 1.0;
-    const isSemiTransparent = a > 0 && a < 1.0;
-    const isDark = r < 0.25 && g < 0.25 && b < 0.25 && a >= 1.0;
-    const isVeryDark = r < 0.02 && g < 0.02 && b < 0.02;
-    const isLightGray =
-      r > 0.4 &&
-      r < 0.7 &&
-      Math.abs(r - g) < 0.05 &&
-      Math.abs(r - b) < 0.05;
+    case "plastic-glossy":
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.5, 1.2);
+      break;
 
-    let category = "Other";
-    let equipType: keyof EquipmentCount | null = null;
+    case "plastic-matte":
+      // Improve texture visibility for matte plastics
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.4, 0.9);
+      break;
 
-    if (isReddish && relativeHeight > 0.4) {
-      if (info.volume < medianVol * 2) {
-        if (aspectRatio > 3) {
-          category = "Antenna";
-          equipType = "Antenna";
+    case "wood":
+      // Wood needs higher env map intensity to show grain and texture detail
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.6, 1.2);
+      // Ensure wood textures are visible with proper roughness
+      m.roughness = Math.max(m.roughness ?? 0.5, 0.4);
+      break;
+
+    case "ceramic":
+      // Glossy ceramic needs decent reflections
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.5, 1.2);
+      break;
+
+    case "emissive":
+      // LEDs, screens, indicators, lasers — PROFESSIONAL GLOW with maximum brightness
+      // Set very high emissive intensity for professional appearance
+      const currentEmissiveIntensity = (m as any).emissiveIntensity ?? 1.0;
+      // Significantly boost emissive intensity - minimum 10.0 for professional glow
+      m.emissiveIntensity = Math.max(currentEmissiveIntensity * 2.0, 10.0);
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.01, 0.2);
+      
+      // Ensure emissive color is VERY bright and saturated
+      if (m.emissive) {
+        const maxEmissive = Math.max(m.emissive.r, m.emissive.g, m.emissive.b);
+        
+        // Detect if this is a red laser/light (red is dominant)
+        const isRedLaser = m.emissive.r > m.emissive.g * 1.5 && m.emissive.r > m.emissive.b * 1.5;
+        
+        // For red lasers, boost even more aggressively
+        if (isRedLaser) {
+          // Make red lasers VERY bright and saturated
+          m.emissive.r = Math.min(m.emissive.r * 8.0, 1.0); // Cap at 1.0 but boost significantly
+          m.emissive.g = Math.min(m.emissive.g * 2.0, 0.2); // Keep green low for pure red
+          m.emissive.b = Math.min(m.emissive.b * 2.0, 0.2); // Keep blue low for pure red
+          // Set minimum intensity even higher for red lasers
+          m.emissiveIntensity = Math.max(m.emissiveIntensity, 15.0);
         } else {
-          category = "RRU";
-          equipType = "RRU";
+          // For other colors, boost based on brightness
+          if (maxEmissive < 0.5) {
+            // Boost dim colors by 6-10x
+            const boostFactor = maxEmissive < 0.1 ? 10.0 : 6.0;
+            m.emissive.multiplyScalar(boostFactor);
+            // Clamp to prevent overflow but keep bright
+            m.emissive.r = Math.min(m.emissive.r, 1.0);
+            m.emissive.g = Math.min(m.emissive.g, 1.0);
+            m.emissive.b = Math.min(m.emissive.b, 1.0);
+          } else {
+            // Already bright, but ensure saturation and boost slightly
+            m.emissive.multiplyScalar(2.5);
+            m.emissive.r = Math.min(m.emissive.r, 1.0);
+            m.emissive.g = Math.min(m.emissive.g, 1.0);
+            m.emissive.b = Math.min(m.emissive.b, 1.0);
+          }
+        }
+        
+        // Ensure minimum brightness for all emissive materials
+        if (maxEmissive < 0.8) {
+          const targetBrightness = isRedLaser ? 0.95 : 0.85;
+          const scaleFactor = targetBrightness / maxEmissive;
+          m.emissive.multiplyScalar(Math.min(scaleFactor, 3.0));
+          // Clamp again after scaling
+          m.emissive.r = Math.min(m.emissive.r, 1.0);
+          m.emissive.g = Math.min(m.emissive.g, 1.0);
+          m.emissive.b = Math.min(m.emissive.b, 1.0);
         }
       } else {
-        category = "Antenna";
-        equipType = "Antenna";
+        // If no emissive color set but material is classified as emissive, add one
+        // Use the base color as emissive and make it very bright
+        m.emissive.copy(m.color);
+        m.emissive.multiplyScalar(5.0);
+        m.emissive.r = Math.min(m.emissive.r, 1.0);
+        m.emissive.g = Math.min(m.emissive.g, 1.0);
+        m.emissive.b = Math.min(m.emissive.b, 1.0);
       }
-    } else if (isSemiTransparent) {
-      if (relativeHeight < 0.25 && info.volume > medianVol) {
-        category = "Enclosure";
-      } else if (isLightGray) {
-        category = "Safety & Access";
-      } else {
-        category = "Enclosure";
-      }
-    } else if (info.volume > medianVol * 50 && relativeHeight < 0.3) {
-      category = "Foundation";
-    } else if (isVeryDark && maxHorizontalExtent > heightExtent * 5) {
-      category = "Cable & Conduit";
-    } else if (
-      isWhitish &&
-      relativeHeight > 0.3 &&
-      info.volume < medianVol * 5
-    ) {
-      category = "RRU";
-      equipType = "RRU";
-    } else if (isDark) {
-      if (aspectRatio > 4 && heightExtent > modelHeight * 0.2) {
-        category = "Tower Structure";
-      } else if (info.volume < medianVol * 0.1) {
-        category = "Mounting Hardware";
-      } else if (relativeHeight > 0.15) {
-        category = "Tower Structure";
-      } else if (relativeHeight < 0.15 && info.volume > medianVol * 5) {
-        category = "Foundation";
-      } else {
-        category = "Tower Structure";
-      }
-    } else if (r > 0.6 && g > 0.6 && b > 0.5 && a >= 1.0) {
-      if (info.volume > medianVol * 10) {
-        category = "Tower Structure";
-      } else {
-        category = "Mounting Hardware";
-      }
-    } else if (isLightGray && a >= 1.0) {
-      if (info.volume > medianVol * 50) {
-        category = "Foundation";
-      } else {
-        category = "Tower Structure";
-      }
-    }
+      
+      // Make emissive materials stand out by reducing base color influence
+      // Darken base color slightly so emissive glow is more prominent
+      m.color.multiplyScalar(0.7);
+      
+      // Optimize material properties for maximum glow visibility
+      m.metalness = Math.min(m.metalness ?? 0, 0.2); // Low metalness for better glow
+      m.roughness = Math.max(m.roughness ?? 0.5, 0.8); // Higher roughness for softer glow
+      
+      // Disable tone mapping for pure, bright glow (or use very high exposure)
+      m.toneMapped = false; // This ensures the glow isn't dimmed by tone mapping
+      break;
 
-    result.set(info.mesh, { category, equipType });
+    case "generic":
+    default:
+      // Generic materials need better texture visibility
+      m.envMapIntensity = clamp(m.envMapIntensity ?? 1.0, 0.5, 1.2);
+      break;
   }
 
-  return result;
+  // ── Optimize normal maps for better texture detail ──
+  if (m.normalMap) {
+    // Ensure normal maps are properly configured for texture visibility
+    if (!m.normalScale) {
+      m.normalScale = new THREE.Vector2(1, 1);
+    }
+    const ns = m.normalScale;
+    // Cap extreme normal scale that makes surfaces look like crumpled foil
+    if (ns.x > 2.0) ns.x = 2.0;
+    if (ns.y > 2.0) ns.y = 2.0;
+    // Ensure minimum normal map strength for texture detail
+    if (ns.x < 0.3) ns.x = 0.5;
+    if (ns.y < 0.3) ns.y = 0.5;
+    
+    // Set proper texture filtering for normal maps
+    m.normalMap.minFilter = THREE.LinearMipmapLinearFilter;
+    m.normalMap.magFilter = THREE.LinearFilter;
+    m.normalMap.generateMipmaps = true;
+  }
+  
+  // ── Optimize all textures for better visibility ──
+  if (m.map) {
+    m.map.minFilter = THREE.LinearMipmapLinearFilter;
+    m.map.magFilter = THREE.LinearFilter;
+    m.map.generateMipmaps = true;
+    m.map.anisotropy = 16; // High anisotropy for crisp textures
+  }
+  
+  if (m.roughnessMap) {
+    m.roughnessMap.minFilter = THREE.LinearMipmapLinearFilter;
+    m.roughnessMap.magFilter = THREE.LinearFilter;
+    m.roughnessMap.generateMipmaps = true;
+  }
+  
+  if (m.metalnessMap) {
+    m.metalnessMap.minFilter = THREE.LinearMipmapLinearFilter;
+    m.metalnessMap.magFilter = THREE.LinearFilter;
+    m.metalnessMap.generateMipmaps = true;
+  }
+  
+  if (m.aoMap) {
+    m.aoMap.minFilter = THREE.LinearMipmapLinearFilter;
+    m.aoMap.magFilter = THREE.LinearFilter;
+    m.aoMap.generateMipmaps = true;
+  }
+
+  m.needsUpdate = true;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "Tower Structure": "#4a9eff",
-  "Cable & Conduit": "#a78bfa",
-  "Mounting Hardware": "#f59e0b",
-  Foundation: "#6b7280",
-  Enclosure: "#10b981",
-  "Safety & Access": "#ef4444",
-  Antenna: "#22d3ee",
-  RRU: "#f472b6",
-  Dish: "#fb923c",
-  Other: "#94a3b8",
-};
+/** Fix near-black metallic base colors that result in invisible reflections */
+function fixDarkMetalColor(m: THREE.MeshStandardMaterial) {
+  const hex = m.color.getHex();
+  if (hex < 0x0f0f0f) {
+    m.color.setHex(0x3a3a3a);
+  } else if (hex < 0x1a1a1a) {
+    m.color.setHex(0x2a2a2a);
+  }
+}
 
-// ─── Analyze the loaded GLB model ─────────────────────────────────────────────
-function analyzeModel(model: THREE.Group): StructureAnalysis {
-  const box = new THREE.Box3().setFromObject(model);
-  const size = box.getSize(new THREE.Vector3());
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(Math.max(v, min), max);
+}
 
-  let heightAxis: "X" | "Y" | "Z" = "Y";
-  let heightAxisIdx = 1;
-  let height = size.y;
-  if (size.z > size.y && size.z > size.x) {
-    heightAxis = "Z";
-    heightAxisIdx = 2;
-    height = size.z;
-  } else if (size.x > size.y && size.x > size.z) {
-    heightAxis = "X";
-    heightAxisIdx = 0;
-    height = size.x;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ENVIRONMENT MAP BUILDER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function buildEnvironment(
+  renderer: THREE.WebGLRenderer,
+  preset: EnvironmentPreset
+): THREE.Texture {
+  const cfg = ENV_CONFIGS[preset];
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileCubemapShader();
+
+  const envScene = new THREE.Scene();
+
+  // ── Gradient backdrop sphere ──
+  const geo = new THREE.SphereGeometry(100, 64, 32);
+  const colors = new Float32Array(geo.attributes.position.count * 3);
+  const posAttr = geo.attributes.position;
+  const { bottom, mid, top } = cfg.gradient;
+
+  for (let i = 0; i < posAttr.count; i++) {
+    const y = posAttr.getY(i);
+    const t = (y + 100) / 200; // normalize [0,1]
+
+    let r: number, g: number, b: number;
+    if (t < 0.4) {
+      const s = t / 0.4;
+      r = lerp(bottom[0], mid[0], s);
+      g = lerp(bottom[1], mid[1], s);
+      b = lerp(bottom[2], mid[2], s);
+    } else {
+      const s = (t - 0.4) / 0.6;
+      r = lerp(mid[0], top[0], s);
+      g = lerp(mid[1], top[1], s);
+      b = lerp(mid[2], top[2], s);
+    }
+
+    colors[i * 3] = r;
+    colors[i * 3 + 1] = g;
+    colors[i * 3 + 2] = b;
   }
 
-  const meshInfos: MeshGeoInfo[] = [];
-  let totalTriangles = 0;
-  let totalMeshes = 0;
+  geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    side: THREE.BackSide,
+  });
+  envScene.add(new THREE.Mesh(geo, mat));
 
+  // ── Softbox panels ──
+  for (const sb of cfg.softboxes) {
+    const sbGeo = new THREE.PlaneGeometry(sb.size, sb.size);
+    const color = sb.color
+      ? new THREE.Color(sb.color[0] * sb.intensity, sb.color[1] * sb.intensity, sb.color[2] * sb.intensity)
+      : new THREE.Color(sb.intensity, sb.intensity, sb.intensity * 0.98);
+    const sbMat = new THREE.MeshBasicMaterial({
+      color,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(sbGeo, sbMat);
+    mesh.position.set(sb.pos[0], sb.pos[1], sb.pos[2]);
+    mesh.lookAt(0, 0, 0);
+    envScene.add(mesh);
+  }
+
+  const envTexture = pmrem.fromScene(envScene, 0.04).texture;
+
+  // Cleanup generator resources
+  geo.dispose();
+  mat.dispose();
+  pmrem.dispose();
+
+  return envTexture;
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SCENE LIGHTS BUILDER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function buildSceneLights(
+  scene: THREE.Scene,
+  preset: EnvironmentPreset,
+  modelRadius: number
+): THREE.Group {
+  const cfg = ENV_CONFIGS[preset].lights;
+  const group = new THREE.Group();
+  group.name = "__product_lights__";
+
+  // Scale light positions relative to model size
+  const scale = Math.max(modelRadius * 2, 1);
+
+  const ambient = new THREE.AmbientLight(0xffffff, cfg.ambient);
+  group.add(ambient);
+
+  const hemi = new THREE.HemisphereLight(cfg.hemiSky, cfg.hemiGround, cfg.hemiIntensity);
+  group.add(hemi);
+
+  const key = new THREE.DirectionalLight(cfg.key.color, cfg.key.intensity);
+  key.position.set(
+    cfg.key.pos[0] * (scale / 100),
+    cfg.key.pos[1] * (scale / 100),
+    cfg.key.pos[2] * (scale / 100)
+  );
+  // Shadow for key light (contact shadow)
+  key.castShadow = true;
+  key.shadow.mapSize.width = 1024;
+  key.shadow.mapSize.height = 1024;
+  const shadowExtent = modelRadius * 2;
+  key.shadow.camera.left = -shadowExtent;
+  key.shadow.camera.right = shadowExtent;
+  key.shadow.camera.top = shadowExtent;
+  key.shadow.camera.bottom = -shadowExtent;
+  key.shadow.camera.near = 0.1;
+  key.shadow.camera.far = scale * 5;
+  key.shadow.bias = -0.002;
+  key.shadow.normalBias = 0.02;
+  group.add(key);
+
+  const fill = new THREE.DirectionalLight(cfg.fill.color, cfg.fill.intensity);
+  fill.position.set(
+    cfg.fill.pos[0] * (scale / 100),
+    cfg.fill.pos[1] * (scale / 100),
+    cfg.fill.pos[2] * (scale / 100)
+  );
+  group.add(fill);
+
+  const rim = new THREE.DirectionalLight(cfg.rim.color, cfg.rim.intensity);
+  rim.position.set(
+    cfg.rim.pos[0] * (scale / 100),
+    cfg.rim.pos[1] * (scale / 100),
+    cfg.rim.pos[2] * (scale / 100)
+  );
+  group.add(rim);
+
+  const bottom = new THREE.DirectionalLight(cfg.bottom.color, cfg.bottom.intensity);
+  bottom.position.set(0, -scale * 0.8, 0);
+  group.add(bottom);
+
+  scene.add(group);
+  return group;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GROUND PLANE (shadow + reflection)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function createGroundPlane(
+  modelRadius: number,
+  showShadow: boolean,
+  showReflection: boolean
+): THREE.Group {
+  const group = new THREE.Group();
+  group.name = "__ground__";
+
+  const planeSize = modelRadius * 6;
+
+  if (showShadow) {
+    // Shadow-catching plane (transparent except for shadows)
+    const shadowGeo = new THREE.PlaneGeometry(planeSize, planeSize);
+    const shadowMat = new THREE.ShadowMaterial({
+      opacity: 0.25,
+      color: 0x000000,
+    });
+    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowMesh.rotation.x = -Math.PI / 2;
+    shadowMesh.receiveShadow = true;
+    shadowMesh.name = "__shadow_plane__";
+    group.add(shadowMesh);
+  }
+
+  if (showReflection) {
+    // Subtle radial-gradient reflection disc
+    const reflGeo = new THREE.CircleGeometry(planeSize * 0.4, 64);
+    const reflMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.04,
+      depthWrite: false,
+    });
+    const reflMesh = new THREE.Mesh(reflGeo, reflMat);
+    reflMesh.rotation.x = -Math.PI / 2;
+    reflMesh.position.y = -0.01;
+    reflMesh.name = "__reflection_disc__";
+    group.add(reflMesh);
+  }
+
+  return group;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DIMENSION WIREFRAME
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function createDimensionOverlay(box: THREE.Box3): THREE.Group {
+  const group = new THREE.Group();
+  group.name = "__dimensions__";
+
+  const helper = new THREE.Box3Helper(box, new THREE.Color(0x4488ff));
+  (helper.material as THREE.LineBasicMaterial).transparent = true;
+  (helper.material as THREE.LineBasicMaterial).opacity = 0.4;
+  (helper.material as THREE.LineBasicMaterial).depthTest = true;
+  group.add(helper);
+
+  return group;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// UTILS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function countTriangles(model: THREE.Group): number {
+  let total = 0;
   model.traverse((child) => {
     if (child instanceof THREE.Mesh && child.geometry) {
-      totalMeshes++;
       const geom = child.geometry;
-      let tris = 0;
-      if (geom.index) tris = geom.index.count / 3;
-      else tris = (geom.attributes.position?.count ?? 0) / 3;
-      tris = Math.round(tris);
-      totalTriangles += tris;
-
-      const name =
-        child.name || child.parent?.name || `mesh_${totalMeshes}`;
-
-      let matColor = { r: 0.5, g: 0.5, b: 0.5, a: 1.0 };
-      if (child.material) {
-        const mat = Array.isArray(child.material)
-          ? child.material[0]
-          : child.material;
-        if (mat && "color" in mat) {
-          const c = (mat as THREE.MeshStandardMaterial).color;
-          const opacity =
-            (mat as THREE.MeshStandardMaterial).opacity ?? 1.0;
-          matColor = { r: c.r, g: c.g, b: c.b, a: opacity };
-        }
-      }
-
-      const meshBox = new THREE.Box3().setFromObject(child);
-      const meshSize = meshBox.getSize(new THREE.Vector3());
-      const meshCenter = meshBox.getCenter(new THREE.Vector3());
-      const volume = meshSize.x * meshSize.y * meshSize.z;
-
-      meshInfos.push({
-        mesh: child,
-        name,
-        bbox: meshBox,
-        size: meshSize,
-        center: meshCenter,
-        volume,
-        triangles: tris,
-        materialColor: matColor,
-        materialHex: colorToHex(matColor.r, matColor.g, matColor.b),
-      });
+      total += geom.index
+        ? geom.index.count / 3
+        : (geom.attributes.position?.count ?? 0) / 3;
     }
   });
+  return Math.round(total);
+}
 
-  const equipment: EquipmentCount = { Antenna: 0, RRU: 0, Dish: 0 };
-  const categoryMap = new Map<string, { count: number; triangles: number }>();
-  const meshEntries: MeshAnalysisEntry[] = [];
-
-  const nameResults = new Map<
-    THREE.Mesh,
-    { category: string; equipType: keyof EquipmentCount | null }
-  >();
-  const unresolved: MeshGeoInfo[] = [];
-
-  for (const info of meshInfos) {
-    const nameResult = classifyByName(info.name);
-    if (nameResult.category) {
-      nameResults.set(info.mesh, nameResult);
-    } else {
-      unresolved.push(info);
+function countMaterials(model: THREE.Group): number {
+  const mats = new Set<number>();
+  model.traverse((child) => {
+    if (child instanceof THREE.Mesh && child.material) {
+      const arr = Array.isArray(child.material) ? child.material : [child.material];
+      arr.forEach((m) => mats.add(m.id));
     }
-  }
+  });
+  return mats.size;
+}
 
-  const geoResults = classifyByGeometryAndMaterial(
-    unresolved,
-    box,
-    size,
-    heightAxisIdx
-  );
+/** Smoothly animate camera to a target position & lookAt over ~500ms */
+function animateCameraTo(
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  targetPos: THREE.Vector3,
+  targetLookAt: THREE.Vector3,
+  duration = 500
+) {
+  const startPos = camera.position.clone();
+  const startTarget = controls.target.clone();
+  const startTime = performance.now();
 
-  for (const info of meshInfos) {
-    const nameResult = nameResults.get(info.mesh);
-    const geoResult = geoResults.get(info.mesh);
-    const finalResult = nameResult ||
-      geoResult || { category: "Other", equipType: null };
+  const tick = () => {
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    // Ease-out cubic
+    const ease = 1 - Math.pow(1 - t, 3);
 
-    if (finalResult.equipType) {
-      equipment[finalResult.equipType]++;
-    }
+    camera.position.lerpVectors(startPos, targetPos, ease);
+    controls.target.lerpVectors(startTarget, targetLookAt, ease);
+    controls.update();
 
-    const existing = categoryMap.get(finalResult.category) || {
-      count: 0,
-      triangles: 0,
-    };
-    existing.count++;
-    existing.triangles += info.triangles;
-    categoryMap.set(finalResult.category, existing);
-
-    const heightSpan: [number, number] =
-      heightAxisIdx === 0
-        ? [info.bbox.min.x, info.bbox.max.x]
-        : heightAxisIdx === 1
-          ? [info.bbox.min.y, info.bbox.max.y]
-          : [info.bbox.min.z, info.bbox.max.z];
-
-    meshEntries.push({
-      name: info.name,
-      category: finalResult.category,
-      equipmentType: finalResult.equipType,
-      materialColor: info.materialHex,
-      materialAlpha: info.materialColor.a,
-      triangles: info.triangles,
-      volume: info.volume,
-      heightSpan,
-      bbox: info.bbox,
-    });
-  }
-
-  const categories: CategoryInfo[] = Array.from(categoryMap.entries())
-    .map(([name, data]) => ({
-      name,
-      count: data.count,
-      triangles: data.triangles,
-      color: CATEGORY_COLORS[name] || CATEGORY_COLORS.Other,
-    }))
-    .sort((a, b) => b.count - a.count);
-
-  return {
-    height: Math.round(height * 100) / 100,
-    heightAxis,
-    widthX: Math.round(size.x * 100) / 100,
-    widthY: Math.round(size.y * 100) / 100,
-    widthZ: Math.round(size.z * 100) / 100,
-    equipment,
-    categories,
-    totalTriangles: Math.round(totalTriangles),
-    totalMeshes,
-    meshEntries,
+    if (t < 1) requestAnimationFrame(tick);
   };
+  tick();
 }
 
-// ─── Extract all properties from a selected mesh ──────────────────────────────
-function extractMeshProperties(
-  mesh: THREE.Mesh,
-  analysisEntries: MeshAnalysisEntry[]
-): SelectedElementProps {
-  const geom = mesh.geometry;
-  let tris = 0;
-  let verts = 0;
-  if (geom) {
-    if (geom.index) tris = Math.round(geom.index.count / 3);
-    else tris = Math.round((geom.attributes.position?.count ?? 0) / 3);
-    verts = geom.attributes.position?.count ?? 0;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CSS STYLES (injected once)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const VIEWER_STYLES = `
+  @keyframes glb-spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes glb-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes glb-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  const bbox = new THREE.Box3().setFromObject(mesh);
-  const dims = bbox.getSize(new THREE.Vector3());
-  const worldPos = new THREE.Vector3();
-  mesh.getWorldPosition(worldPos);
-
-  // Material info
-  const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-  let materialName = mat?.name || "unnamed";
-  let materialType = mat?.type || "unknown";
-  let color = "#808080";
-  let opacity = 1;
-  let metalness = 0;
-  let roughness = 1;
-  let doubleSided = false;
-
-  if (mat) {
-    doubleSided = mat.side === THREE.DoubleSide;
-    if ("color" in mat) {
-      const c = (mat as THREE.MeshStandardMaterial).color;
-      color = `#${c.getHexString()}`;
-    }
-    if ("opacity" in mat) opacity = (mat as any).opacity ?? 1;
-    if ("metalness" in mat) metalness = (mat as any).metalness ?? 0;
-    if ("roughness" in mat) roughness = (mat as any).roughness ?? 1;
+  .glb-viewer-root {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
-  // Walk up hierarchy for ancestor path and depth
-  let depth = 0;
-  let ancestorPath = mesh.name || "mesh";
-  let parent = mesh.parent;
-  while (parent) {
-    depth++;
-    if (parent.name && parent.name !== "Scene" && parent.name !== "") {
-      ancestorPath = `${parent.name} > ${ancestorPath}`;
-    }
-    parent = parent.parent;
+  .glb-viewer-root * { box-sizing: border-box; }
+
+  .glb-canvas-container {
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    background: transparent;
+  }
+  .glb-canvas-container:active { cursor: grabbing; }
+
+  /* ── Toolbar (bottom-center) ── */
+  .glb-toolbar {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 10px;
+    background: rgba(10, 10, 18, 0.72);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    z-index: 15;
+    animation: glb-fade-in 0.4s ease 0.3s both;
   }
 
-  // UserData — GLB/glTF extras get stored here
-  const userData: Record<string, unknown> = {};
-  const extras: Record<string, unknown> = {};
-
-  // Collect mesh userData
-  if (mesh.userData && Object.keys(mesh.userData).length > 0) {
-    Object.entries(mesh.userData).forEach(([k, v]) => {
-      userData[k] = v;
-    });
+  .glb-toolbar-divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+    background: rgba(255,255,255,0.1);
   }
 
-  // Collect parent userData (IFC properties often stored on parent nodes)
-  let p = mesh.parent;
-  while (p) {
-    if (p.userData && Object.keys(p.userData).length > 0) {
-      Object.entries(p.userData).forEach(([k, v]) => {
-        if (!userData[k]) {
-          extras[`${p!.name || "parent"}.${k}`] = v;
-        }
-      });
-    }
-    p = p.parent;
+  .glb-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: rgba(255,255,255,0.65);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0;
+    line-height: 1;
+  }
+  .glb-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.95);
+  }
+  .glb-btn.active {
+    background: rgba(255,255,255,0.15);
+    color: #ffffff;
+  }
+  .glb-btn svg { width: 16px; height: 16px; }
+
+  .glb-btn-text {
+    font-size: 11px;
+    letter-spacing: 0.02em;
   }
 
-  // Find matching analysis entry
-  const meshName = mesh.name || mesh.parent?.name || "unnamed";
-  const entry = analysisEntries.find(
-    (e) =>
-      e.name === meshName ||
-      e.name === mesh.name ||
-      e.name === mesh.parent?.name
-  );
-
-  return {
-    meshName: mesh.name || "unnamed",
-    parentName: mesh.parent?.name || "none",
-    uuid: mesh.uuid.substring(0, 12),
-    category: entry?.category || "Unclassified",
-    equipmentType: entry?.equipmentType || null,
-    triangleCount: tris,
-    vertexCount: verts,
-    boundingBox: { min: bbox.min, max: bbox.max },
-    dimensions: {
-      x: Math.round(dims.x * 1000) / 1000,
-      y: Math.round(dims.y * 1000) / 1000,
-      z: Math.round(dims.z * 1000) / 1000,
-    },
-    volume: Math.round(dims.x * dims.y * dims.z * 1000) / 1000,
-    worldPosition: worldPos,
-    materialName,
-    materialType,
-    color,
-    opacity,
-    metalness,
-    roughness,
-    doubleSided,
-    userData,
-    extras,
-    depth,
-    childCount: mesh.children.length,
-    ancestorPath,
-  };
-}
-
-// ─── Build property groups for the panel ──────────────────────────────────────
-function buildPropertyGroups(props: SelectedElementProps): PropertyGroup[] {
-  const groups: PropertyGroup[] = [];
-
-  // 1. Identity / Attributes
-  const identityProps: { key: string; value: string; highlight?: boolean }[] = [
-    { key: "Name", value: props.meshName, highlight: true },
-    { key: "Parent", value: props.parentName },
-    { key: "UUID", value: props.uuid },
-    { key: "Category", value: props.category, highlight: true },
-  ];
-  if (props.equipmentType) {
-    identityProps.push({
-      key: "Equipment Type",
-      value: props.equipmentType,
-      highlight: true,
-    });
-  }
-  identityProps.push(
-    { key: "Hierarchy Depth", value: String(props.depth) },
-    { key: "Children", value: String(props.childCount) },
-    { key: "Path", value: props.ancestorPath }
-  );
-
-  groups.push({
-    name: "Attributes",
-    icon: SelectionIcons.attributes,
-    color: ACCENT,
-    properties: identityProps,
-  });
-
-  // 2. Geometry
-  groups.push({
-    name: "Geometry",
-    icon: SelectionIcons.geometry,
-    color: SUCCESS,
-    properties: [
-      { key: "Triangles", value: props.triangleCount.toLocaleString() },
-      { key: "Vertices", value: props.vertexCount.toLocaleString() },
-      {
-        key: "Dimensions (X×Y×Z)",
-        value: `${props.dimensions.x} × ${props.dimensions.y} × ${props.dimensions.z}`,
-      },
-      { key: "Volume", value: `${props.volume} units³` },
-      {
-        key: "World Position",
-        value: `(${props.worldPosition.x.toFixed(2)}, ${props.worldPosition.y.toFixed(2)}, ${props.worldPosition.z.toFixed(2)})`,
-      },
-      {
-        key: "BBox Min",
-        value: `(${props.boundingBox.min.x.toFixed(2)}, ${props.boundingBox.min.y.toFixed(2)}, ${props.boundingBox.min.z.toFixed(2)})`,
-      },
-      {
-        key: "BBox Max",
-        value: `(${props.boundingBox.max.x.toFixed(2)}, ${props.boundingBox.max.y.toFixed(2)}, ${props.boundingBox.max.z.toFixed(2)})`,
-      },
-    ],
-  });
-
-  // 3. Material
-  groups.push({
-    name: "Material",
-    icon: SelectionIcons.material,
-    color: "#f472b6",
-    properties: [
-      { key: "Name", value: props.materialName },
-      { key: "Type", value: props.materialType },
-      { key: "Color", value: props.color, highlight: true },
-      { key: "Opacity", value: `${(props.opacity * 100).toFixed(0)}%` },
-      { key: "Metalness", value: props.metalness.toFixed(2) },
-      { key: "Roughness", value: props.roughness.toFixed(2) },
-      { key: "Double Sided", value: props.doubleSided ? "Yes" : "No" },
-    ],
-  });
-
-  // 4. User Data (IFC properties, glTF extras)
-  const userDataEntries = Object.entries(props.userData);
-  const extrasEntries = Object.entries(props.extras);
-  if (userDataEntries.length > 0 || extrasEntries.length > 0) {
-    const allProps: { key: string; value: string; highlight?: boolean }[] = [];
-    userDataEntries.forEach(([k, v]) => {
-      allProps.push({
-        key: k,
-        value: typeof v === "object" ? JSON.stringify(v) : String(v),
-        highlight: true,
-      });
-    });
-    extrasEntries.forEach(([k, v]) => {
-      allProps.push({
-        key: k,
-        value: typeof v === "object" ? JSON.stringify(v) : String(v),
-      });
-    });
-    groups.push({
-      name: "IFC Properties / Extras",
-      icon: SelectionIcons.properties,
-      color: WARNING,
-      properties: allProps,
-    });
+  /* ── Camera presets (right side) ── */
+  .glb-cam-presets {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 10px;
+    background: rgba(10, 10, 18, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+    z-index: 15;
+    animation: glb-fade-in 0.4s ease 0.5s both;
   }
 
-  return groups;
-}
+  /* ── Close button ── */
+  .glb-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 10, 18, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 9px;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    z-index: 20;
+    transition: all 0.15s ease;
+  }
+  .glb-close-btn:hover {
+    background: rgba(255,50,50,0.35);
+    color: #ffffff;
+    transform: scale(1.05);
+  }
 
-// ─── SVG Icons ────────────────────────────────────────────────────────────────
-const Icons = {
-  height: (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M12 2v20M5 5l7-3 7 3M5 19l7 3 7-3" />
+  /* ── Site name badge ── */
+  .glb-site-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: rgba(10, 10, 18, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+    z-index: 10;
+    animation: glb-fade-in 0.3s ease 0.4s both;
+  }
+  .glb-site-badge span {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Loading overlay ── */
+  .glb-loading-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10,10,18,0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 25;
+  }
+
+  .glb-spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: rgba(255,255,255,0.85);
+    border-radius: 50%;
+    animation: glb-spin 0.7s linear infinite;
+  }
+
+  .glb-loading-text {
+    margin-top: 16px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .glb-progress-bar {
+    width: 160px;
+    height: 3px;
+    margin-top: 10px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .glb-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, rgba(255,255,255,0.6), rgba(255,255,255,0.9));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+
+  /* ── Error state ── */
+  .glb-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(10,10,18,0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  /* ── Empty state ── */
+  .glb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  /* ── Material info tooltip ── */
+  .glb-mat-tooltip {
+    position: absolute;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: rgba(10,10,18,0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.08);
+    pointer-events: none;
+    z-index: 30;
+    animation: glb-fade-in 0.15s ease;
+  }
+  .glb-mat-tooltip span {
+    font-size: 11px;
+    color: rgba(255,255,255,0.75);
+  }
+`;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SVG ICON HELPERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const Icon = {
+  close: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+      <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   ),
-  triangle: (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-    </svg>
-  ),
-  mesh: (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <rect x={3} y={3} width={7} height={7} rx={1} />
-      <rect x={14} y={3} width={7} height={7} rx={1} />
-      <rect x={3} y={14} width={7} height={7} rx={1} />
-      <rect x={14} y={14} width={7} height={7} rx={1} />
-    </svg>
-  ),
-  antenna: (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M12 20V10M8 20h8M2 8c3.5-3.5 5-5 10-5s6.5 1.5 10 5M6 12c2-2 3-3 6-3s4 1 6 3" />
-    </svg>
-  ),
-  rru: (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <rect x={4} y={4} width={16} height={16} rx={2} />
-      <circle cx={12} cy={12} r={3} />
-      <path d="M12 4v3M12 17v3M4 12h3M17 12h3" />
-    </svg>
-  ),
-  dish: (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M4 15c0-5.523 4.477-10 10-10" />
-      <path d="M4 15l8-4M12 11l5-8" />
-      <circle cx={4} cy={15} r={2} />
-    </svg>
-  ),
-  explode: (
-    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-      <path d="M12 2l2 4M12 22l-2-4M2 12l4 2M22 12l-4-2M4.9 4.9l3.6 2.1M19.1 19.1l-3.6-2.1M19.1 4.9l-2.1 3.6M4.9 19.1l2.1-3.6" />
-      <circle cx={12} cy={12} r={3} />
-    </svg>
-  ),
-  wireframe: (
-    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-      <path d="M12 3L3 8v8l9 5 9-5V8l-9-5zM3 8l9 5M12 21.5V13M21 8l-9 5M7.5 5.5l9 5M16.5 5.5l-9 5" />
-    </svg>
-  ),
-  reset: (
-    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+  rotate: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <path d="M1 4v6h6M23 20v-6h-6" />
       <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
     </svg>
   ),
-  info: (
-    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+  camera: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  ),
+  fullscreen: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+      <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
+    </svg>
+  ),
+  dimensions: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+      <path d="M21 3H3v18h18V3z" opacity="0.3" />
+      <path d="M3 3l4 4M21 3l-4 4M3 21l4-4M21 21l-4-4" />
+    </svg>
+  ),
+  reset: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+      <path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
+    </svg>
+  ),
+  error: (
+    <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={1.5}>
       <circle cx={12} cy={12} r={10} />
-      <path d="M12 16v-4M12 8h0" />
-    </svg>
-  ),
-  close: (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M18 6L6 18M6 6l12 12" />
-    </svg>
-  ),
-  // Element Selection: cursor with selection target (inspect/select 3D element)
-  select: (
-    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      {/* Pointer/cursor */}
-      <path d="M5 4l6.5 14 2.5-5.5 5-2L5 4z" />
-      {/* Selection target ring at tip */}
-      <circle cx={17} cy={17} r={3.5} strokeWidth={1.5} strokeDasharray="1.2 1.2" />
-      <circle cx={17} cy={17} r={1.25} fill="currentColor" stroke="none" />
+      <path d="M12 8v4M12 16h.01" />
     </svg>
   ),
 };
 
-// Icons for property groups
-const SelectionIcons = {
-  attributes: (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-      <circle cx={12} cy={7} r={4} />
-    </svg>
-  ),
-  geometry: (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-    </svg>
-  ),
-  material: (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <circle cx={13.5} cy={6.5} r={0.5} fill="currentColor" />
-      <circle cx={17.5} cy={10.5} r={0.5} fill="currentColor" />
-      <circle cx={8.5} cy={7.5} r={0.5} fill="currentColor" />
-      <circle cx={6.5} cy={12.5} r={0.5} fill="currentColor" />
-      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.04-.23-.29-.38-.63-.38-1.02 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.52-4.48-9.94-10-9.94z" />
-    </svg>
-  ),
-  properties: (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-    </svg>
-  ),
-};
-
-// ─── Custom crosshair cursor as data URI ──────────────────────────────────────
-const SELECTION_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='none' stroke='%2300e5ff' stroke-width='1.5' stroke-dasharray='4 3' opacity='0.8'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%2300e5ff'/%3E%3Cline x1='16' y1='2' x2='16' y2='8' stroke='%2300e5ff' stroke-width='1.5' opacity='0.6'/%3E%3Cline x1='16' y1='24' x2='16' y2='30' stroke='%2300e5ff' stroke-width='1.5' opacity='0.6'/%3E%3Cline x1='2' y1='16' x2='8' y2='16' stroke='%2300e5ff' stroke-width='1.5' opacity='0.6'/%3E%3Cline x1='24' y1='16' x2='30' y2='16' stroke='%2300e5ff' stroke-width='1.5' opacity='0.6'/%3E%3C/svg%3E") 16 16, crosshair`;
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function StatBadge({
-  label,
-  value,
-  unit,
-  icon,
-  color = ACCENT,
-}: {
-  label: string;
-  value: string | number;
-  unit?: string;
-  icon: React.ReactNode;
-  color?: string;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "10px 14px",
-        background: `linear-gradient(135deg, ${color}10, transparent)`,
-        borderRadius: 10,
-        border: `1px solid ${color}25`,
-      }}
-    >
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 8,
-          background: `${color}18`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color,
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 11,
-            color: TEXT_MUTED,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: TEXT_PRIMARY,
-            lineHeight: 1.2,
-          }}
-        >
-          {value}
-          {unit && (
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 400,
-                color: TEXT_SECONDARY,
-                marginLeft: 3,
-              }}
-            >
-              {unit}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EquipmentRow({
-  label,
-  count,
-  icon,
-  color,
-}: {
-  label: string;
-  count: number;
-  icon: React.ReactNode;
-  color: string;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "8px 12px",
-        borderRadius: 8,
-        background: count > 0 ? `${color}10` : "transparent",
-        border: `1px solid ${count > 0 ? `${color}20` : "rgba(255,255,255,0.05)"}`,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ color: count > 0 ? color : TEXT_MUTED }}>{icon}</span>
-        <span
-          style={{
-            fontSize: 13,
-            color: count > 0 ? TEXT_PRIMARY : TEXT_MUTED,
-          }}
-        >
-          {label}
-        </span>
-      </div>
-      <span
-        style={{
-          fontSize: 16,
-          fontWeight: 700,
-          color: count > 0 ? color : TEXT_MUTED,
-          minWidth: 28,
-          textAlign: "right",
-        }}
-      >
-        {count}
-      </span>
-    </div>
-  );
-}
-
-// ─── Property Panel for Selected Element ──────────────────────────────────────
-function SelectionPropertyPanel({
-  props,
-  onClose,
-  onDownloadExcel,
-}: {
-  props: SelectedElementProps;
-  onClose: () => void;
-  onDownloadExcel: () => void;
-}) {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set(["Attributes"])
-  );
-  const [searchTerm, setSearchTerm] = useState("");
-  const groups = buildPropertyGroups(props);
-
-  const toggleGroup = (name: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  };
-
-  const categoryColor =
-    CATEGORY_COLORS[props.category] || CATEGORY_COLORS.Other;
-
-  // Filter properties by search
-  const filteredGroups = groups
-    .map((g) => ({
-      ...g,
-      properties: searchTerm
-        ? g.properties.filter(
-            (p) =>
-              p.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              p.value.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        : g.properties,
-    }))
-    .filter((g) => g.properties.length > 0);
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: 12,
-        left: 12,
-        bottom: 12,
-        width: 340,
-        background: PANEL_BG,
-        backdropFilter: "blur(20px)",
-        borderRadius: 14,
-        border: `1px solid ${SELECT_COLOR}30`,
-        zIndex: 25,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        animation: "panelSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
-        boxShadow: `0 0 30px ${SELECT_COLOR}10, 0 8px 32px rgba(0,0,0,0.4)`,
-      }}
-    >
-      <style>{`
-        @keyframes panelSlideIn {
-          from { opacity: 0; transform: translateX(-16px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes pulseGlow {
-          0%, 100% { box-shadow: 0 0 4px ${SELECT_COLOR}40; }
-          50% { box-shadow: 0 0 12px ${SELECT_COLOR}60; }
-        }
-        .prop-row:hover {
-          background: rgba(255,255,255,0.04) !important;
-        }
-        .group-header:hover {
-          background: rgba(255,255,255,0.03) !important;
-        }
-        .search-input::placeholder {
-          color: ${TEXT_MUTED};
-        }
-      `}</style>
-
-      {/* ─── Header with element identity ─────────────────────── */}
-      <div
-        style={{
-          padding: "14px 16px 12px",
-          borderBottom: `1px solid ${SELECT_COLOR}20`,
-          background: `linear-gradient(180deg, ${SELECT_COLOR}08, transparent)`,
-        }}
-      >
-        {/* Category badge + close */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 8,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: SELECT_COLOR,
-                animation: "pulseGlow 2s ease-in-out infinite",
-              }}
-            />
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                color: SELECT_COLOR,
-              }}
-            >
-              Element Inspector
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              color: TEXT_MUTED,
-              cursor: "pointer",
-              padding: 4,
-              borderRadius: 4,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            {Icons.close}
-          </button>
-        </div>
-
-        {/* Element name */}
-        <h3
-          style={{
-            margin: 0,
-            fontSize: 14,
-            fontWeight: 700,
-            color: TEXT_PRIMARY,
-            letterSpacing: "-0.01em",
-            wordBreak: "break-all",
-            lineHeight: 1.3,
-          }}
-        >
-          {props.meshName}
-        </h3>
-
-        {/* Category + Equipment type badges */}
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            marginTop: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              padding: "3px 8px",
-              borderRadius: 4,
-              background: `${categoryColor}20`,
-              color: categoryColor,
-              border: `1px solid ${categoryColor}30`,
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-            }}
-          >
-            {props.category}
-          </span>
-          {props.equipmentType && (
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                padding: "3px 8px",
-                borderRadius: 4,
-                background: `${WARNING}20`,
-                color: WARNING,
-                border: `1px solid ${WARNING}30`,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}
-            >
-              {props.equipmentType}
-            </span>
-          )}
-          {/* Material color swatch */}
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 10,
-              fontWeight: 600,
-              padding: "3px 8px",
-              borderRadius: 4,
-              background: "rgba(255,255,255,0.06)",
-              color: TEXT_SECONDARY,
-              border: `1px solid rgba(255,255,255,0.08)`,
-            }}
-          >
-            <span
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 3,
-                background: props.color,
-                border: "1px solid rgba(255,255,255,0.2)",
-                flexShrink: 0,
-              }}
-            />
-            {props.color}
-          </span>
-        </div>
-
-        {/* Quick stats row */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            marginTop: 10,
-            paddingTop: 10,
-            borderTop: `1px solid rgba(255,255,255,0.05)`,
-          }}
-        >
-          <div style={{ textAlign: "center", flex: 1 }}>
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: SUCCESS,
-                lineHeight: 1,
-              }}
-            >
-              {props.triangleCount.toLocaleString()}
-            </div>
-            <div
-              style={{
-                fontSize: 9,
-                color: TEXT_MUTED,
-                textTransform: "uppercase",
-                marginTop: 2,
-              }}
-            >
-              Triangles
-            </div>
-          </div>
-          <div
-            style={{
-              width: 1,
-              background: "rgba(255,255,255,0.08)",
-              alignSelf: "stretch",
-            }}
-          />
-          <div style={{ textAlign: "center", flex: 1 }}>
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: ACCENT,
-                lineHeight: 1,
-              }}
-            >
-              {props.vertexCount.toLocaleString()}
-            </div>
-            <div
-              style={{
-                fontSize: 9,
-                color: TEXT_MUTED,
-                textTransform: "uppercase",
-                marginTop: 2,
-              }}
-            >
-              Vertices
-            </div>
-          </div>
-          <div
-            style={{
-              width: 1,
-              background: "rgba(255,255,255,0.08)",
-              alignSelf: "stretch",
-            }}
-          />
-          <div style={{ textAlign: "center", flex: 1 }}>
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: WARNING,
-                lineHeight: 1,
-              }}
-            >
-              {props.volume}
-            </div>
-            <div
-              style={{
-                fontSize: 9,
-                color: TEXT_MUTED,
-                textTransform: "uppercase",
-                marginTop: 2,
-              }}
-            >
-              Volume
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Action buttons ───────────────────────────────────── */}
-      <div
-        style={{
-          display: "flex",
-          gap: 6,
-          padding: "8px 12px",
-          borderBottom: `1px solid rgba(255,255,255,0.05)`,
-        }}
-      >
-        <button
-          type="button"
-          onClick={onDownloadExcel}
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            padding: "7px 10px",
-            fontSize: 11,
-            fontWeight: 600,
-            background: `${SUCCESS}15`,
-            color: SUCCESS,
-            border: `1px solid ${SUCCESS}25`,
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          <svg
-            width={12}
-            height={12}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-          </svg>
-          Export CSV
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const text = filteredGroups
-              .map(
-                (g) =>
-                  `[${g.name}]\n${g.properties.map((p) => `  ${p.key}: ${p.value}`).join("\n")}`
-              )
-              .join("\n\n");
-            navigator.clipboard.writeText(text);
-          }}
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            padding: "7px 10px",
-            fontSize: 11,
-            fontWeight: 600,
-            background: "rgba(255,255,255,0.05)",
-            color: TEXT_SECONDARY,
-            border: `1px solid rgba(255,255,255,0.08)`,
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          <svg
-            width={12}
-            height={12}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <rect x={9} y={9} width={13} height={13} rx={2} ry={2} />
-            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-          </svg>
-          Copy All
-        </button>
-      </div>
-
-      {/* ─── Search ───────────────────────────────────────────── */}
-      <div style={{ padding: "8px 12px 4px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "6px 10px",
-            borderRadius: 6,
-            background: "rgba(255,255,255,0.04)",
-            border: `1px solid rgba(255,255,255,0.08)`,
-          }}
-        >
-          <svg
-            width={13}
-            height={13}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={TEXT_MUTED}
-            strokeWidth={2}
-          >
-            <circle cx={11} cy={11} r={8} />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input
-            className="search-input"
-            type="text"
-            placeholder="Search properties..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              flex: 1,
-              background: "none",
-              border: "none",
-              outline: "none",
-              color: TEXT_PRIMARY,
-              fontSize: 12,
-              fontFamily: "inherit",
-            }}
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => setSearchTerm("")}
-              style={{
-                background: "none",
-                border: "none",
-                color: TEXT_MUTED,
-                cursor: "pointer",
-                padding: 0,
-                fontSize: 14,
-                lineHeight: 1,
-              }}
-            >
-              ×
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ─── Property Groups (collapsible) ────────────────────── */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "4px 0 12px",
-        }}
-      >
-        {filteredGroups.map((group) => {
-          const isExpanded = expandedGroups.has(group.name);
-          return (
-            <div key={group.name} style={{ marginBottom: 2 }}>
-              {/* Group header */}
-              <button
-                type="button"
-                className="group-header"
-                onClick={() => toggleGroup(group.name)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "8px 14px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  transition: "background 0.1s",
-                }}
-              >
-                {/* Expand/collapse arrow */}
-                <svg
-                  width={10}
-                  height={10}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke={TEXT_MUTED}
-                  strokeWidth={3}
-                  style={{
-                    transform: isExpanded
-                      ? "rotate(90deg)"
-                      : "rotate(0deg)",
-                    transition: "transform 0.15s ease",
-                    flexShrink: 0,
-                  }}
-                >
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-                <span style={{ color: group.color, flexShrink: 0 }}>
-                  {group.icon}
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: TEXT_PRIMARY,
-                    flex: 1,
-                  }}
-                >
-                  {group.name}
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: TEXT_MUTED,
-                    background: "rgba(255,255,255,0.05)",
-                    padding: "2px 6px",
-                    borderRadius: 4,
-                  }}
-                >
-                  {group.properties.length}
-                </span>
-              </button>
-
-              {/* Properties */}
-              {isExpanded && (
-                <div style={{ padding: "0 8px" }}>
-                  {group.properties.map((prop, i) => (
-                    <div
-                      key={i}
-                      className="prop-row"
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        padding: "5px 10px",
-                        borderRadius: 4,
-                        gap: 8,
-                        transition: "background 0.1s",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: TEXT_MUTED,
-                          flexShrink: 0,
-                          minWidth: 80,
-                          paddingTop: 1,
-                        }}
-                      >
-                        {prop.key}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: prop.highlight ? 600 : 400,
-                          color: prop.highlight
-                            ? TEXT_PRIMARY
-                            : TEXT_SECONDARY,
-                          textAlign: "right",
-                          wordBreak: "break-all",
-                          lineHeight: 1.4,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        {/* Color swatch for color values */}
-                        {prop.key === "Color" && (
-                          <span
-                            style={{
-                              width: 12,
-                              height: 12,
-                              borderRadius: 3,
-                              background: prop.value,
-                              border:
-                                "1px solid rgba(255,255,255,0.2)",
-                              flexShrink: 0,
-                            }}
-                          />
-                        )}
-                        {prop.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {filteredGroups.length === 0 && searchTerm && (
-          <div
-            style={{
-              padding: "20px",
-              textAlign: "center",
-              color: TEXT_MUTED,
-              fontSize: 12,
-            }}
-          >
-            No properties matching "{searchTerm}"
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MAIN COMPONENT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export function GlbViewer({
   url,
   siteName,
   width = 800,
   height = 600,
-  backgroundColor = DEFAULT_BACKGROUND,
+  backgroundColor = DEFAULT_BG,
+  backgroundOpacity = 0,
+  environment: initialEnvironment = "studio",
+  autoRotate: initialAutoRotate = false,
+  showGroundShadow = true,
+  showGroundReflection = true,
+  showDimensions: initialShowDimensions = false,
+  enableScreenshot = true,
+  enableFullscreen = true,
+  enableCameraPresets = true,
+  enableEnvironmentSwitch = true,
   onLoaded,
   onError,
+  onClose,
 }: GlbViewerProps) {
+  // ── Refs ──
   const containerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<{
     renderer: THREE.WebGLRenderer;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     controls: OrbitControls;
     animId: number;
+    lightsGroup: THREE.Group | null;
+    groundGroup: THREE.Group | null;
+    dimensionsGroup: THREE.Group | null;
+    modelRadius: number;
+    modelCenter: THREE.Vector3;
   } | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
-  const explodeStateRef = useRef<GlbExplodeState | null>(null);
-  const applyExplodeRef = useRef<(amount: number) => void>(() => {});
+  const envTextureRef = useRef<THREE.Texture | null>(null);
+  const isInteractingRef = useRef(false);
+  const autoRotateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ★ Selection state refs
-  const raycasterRef = useRef(new THREE.Raycaster());
-  const mouseRef = useRef(new THREE.Vector2());
-  const highlightMaterialsRef = useRef<
-    Map<THREE.Mesh, THREE.Material | THREE.Material[]>
-  >(new Map());
-  const outlineHelperRef = useRef<THREE.LineSegments | null>(null);
-  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
-
+  // ── State ──
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
-  const [analysis, setAnalysis] = useState<StructureAnalysis | null>(null);
-  const [showInfoPanel, setShowInfoPanel] = useState(false);
-  const [showExplodeSlider, setShowExplodeSlider] = useState(false);
-  const [explodeAmount, setExplodeAmount] = useState(0);
-  const [hasExplodeState, setHasExplodeState] = useState(false);
-  const [wireframe, setWireframe] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "equipment" | "categories"
-  >("overview");
+  const [envPreset, setEnvPreset] = useState<EnvironmentPreset>(initialEnvironment);
+  const [isAutoRotating, setIsAutoRotating] = useState(initialAutoRotate);
+  const [showDims, setShowDims] = useState(initialShowDimensions);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hoveredMaterial, setHoveredMaterial] = useState<{
+    name: string;
+    category: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
-  // ★ Selection mode state
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedElement, setSelectedElement] =
-    useState<SelectedElementProps | null>(null);
-  const [hoveredMesh, setHoveredMesh] = useState<THREE.Mesh | null>(null);
-  const selectModeRef = useRef(false);
+  // ── Stable callbacks ──
+  const handleScreenshot = useCallback(() => {
+    const s = sceneRef.current;
+    if (!s) return;
+    s.renderer.render(s.scene, s.camera);
+    const dataUrl = s.renderer.domElement.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.download = `${siteName || "product"}-3d-capture.png`;
+    link.href = dataUrl;
+    link.click();
+  }, [siteName]);
 
-  // Keep ref in sync
-  useEffect(() => {
-    selectModeRef.current = selectMode;
-  }, [selectMode]);
+  const handleFullscreen = useCallback(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    if (!document.fullscreenElement) {
+      root.requestFullscreen?.().then(() => setIsFullscreen(true));
+    } else {
+      document.exitFullscreen?.().then(() => setIsFullscreen(false));
+    }
+  }, []);
 
-  const toggleWireframe = useCallback(() => {
-    const model = modelRef.current;
-    if (!model) return;
-    const newVal = !wireframe;
-    model.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material) {
-        const mats = Array.isArray(child.material)
-          ? child.material
-          : [child.material];
-        mats.forEach((mat) => {
-          if ("wireframe" in mat)
-            (mat as THREE.MeshStandardMaterial).wireframe = newVal;
-        });
-      }
-    });
-    setWireframe(newVal);
-  }, [wireframe]);
-
-  const resetCamera = useCallback(() => {
+  const setCameraPreset = useCallback((preset: CameraPreset) => {
     const s = sceneRef.current;
     const model = modelRef.current;
     if (!s || !model) return;
-    const box = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z, 1);
+
+    const cfg = CAMERA_PRESETS[preset];
+    const center = s.modelCenter.clone();
+    const radius = s.modelRadius;
+
     const fov = s.camera.fov * (Math.PI / 180);
     const dist = Math.max(
-      (maxDim / (2 * Math.tan(fov / 2))) * 1.35,
-      10
+      (radius * 2) / (2 * Math.tan(fov / 2)) * cfg.distMul,
+      radius * 2
     );
-    s.camera.position.set(dist * 0.5, dist * 0.4, dist * 0.7);
-    s.camera.lookAt(0, 0, 0);
-    s.controls.target.set(0, 0, 0);
-    s.controls.update();
+
+    const dir = new THREE.Vector3(cfg.dir[0], cfg.dir[1], cfg.dir[2]).normalize();
+    const targetPos = center.clone().add(dir.multiplyScalar(dist));
+
+    animateCameraTo(s.camera, s.controls, targetPos, center);
   }, []);
 
-  // ★ Clear selection highlight
-  const clearSelection = useCallback(() => {
-    // Restore original materials
-    highlightMaterialsRef.current.forEach((origMat, mesh) => {
-      mesh.material = origMat;
-    });
-    highlightMaterialsRef.current.clear();
+  const resetCamera = useCallback(() => {
+    setCameraPreset("beauty");
+  }, [setCameraPreset]);
 
-    // Remove outline helper
-    if (outlineHelperRef.current && sceneRef.current) {
-      sceneRef.current.scene.remove(outlineHelperRef.current);
-      outlineHelperRef.current.geometry.dispose();
-      (outlineHelperRef.current.material as THREE.Material).dispose();
-      outlineHelperRef.current = null;
-    }
-
-    setSelectedElement(null);
-  }, []);
-
-  // ★ Apply selection highlight to a mesh
-  const selectMesh = useCallback(
-    (mesh: THREE.Mesh) => {
-      if (!analysis || !sceneRef.current) return;
-
-      // Clear previous
-      clearSelection();
-
-      // Save original material
-      highlightMaterialsRef.current.set(
-        mesh,
-        mesh.material
-      );
-
-      // Create highlight material: clone original + tint + emissive
-      const origMat = Array.isArray(mesh.material)
-        ? mesh.material[0]
-        : mesh.material;
-      const highlightMat = (
-        origMat as THREE.MeshStandardMaterial
-      ).clone();
-      highlightMat.emissive = new THREE.Color(SELECT_COLOR);
-      highlightMat.emissiveIntensity = 0.35;
-      highlightMat.transparent = true;
-      highlightMat.opacity = Math.max(
-        (origMat as THREE.MeshStandardMaterial).opacity ?? 1,
-        0.85
-      );
-      mesh.material = highlightMat;
-
-      // Add outline (wireframe edges)
-      const edges = new THREE.EdgesGeometry(mesh.geometry, 30);
-      const lineMat = new THREE.LineBasicMaterial({
-        color: new THREE.Color(SELECT_COLOR),
-        linewidth: 2,
-        transparent: true,
-        opacity: 0.7,
-      });
-      const outline = new THREE.LineSegments(edges, lineMat);
-      // Copy the mesh's world transform
-      mesh.updateMatrixWorld(true);
-      outline.matrixAutoUpdate = false;
-      outline.matrix.copy(mesh.matrixWorld);
-      sceneRef.current.scene.add(outline);
-      outlineHelperRef.current = outline;
-
-      // Extract properties
-      const props = extractMeshProperties(mesh, analysis.meshEntries);
-      setSelectedElement(props);
-
-      // Close info panel if it's open to avoid overlap
-      setShowInfoPanel(false);
-    },
-    [analysis, clearSelection]
-  );
-
-  // ★ Handle click for element selection (raycast)
-  const handleSelectionClick = useCallback(
-    (event: MouseEvent) => {
-      if (!selectModeRef.current) return;
-      if (!sceneRef.current || !modelRef.current) return;
-
-      const container = containerRef.current;
-      if (!container) return;
-
-      // Only select if mouse didn't move much (not an orbit drag)
-      const downPos = mouseDownPosRef.current;
-      if (downPos) {
-        const dx = Math.abs(event.clientX - downPos.x);
-        const dy = Math.abs(event.clientY - downPos.y);
-        if (dx > 5 || dy > 5) return; // was a drag, not a click
-      }
-
-      const rect = container.getBoundingClientRect();
-      mouseRef.current.x =
-        ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouseRef.current.y =
-        -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycasterRef.current.setFromCamera(
-        mouseRef.current,
-        sceneRef.current.camera
-      );
-      const intersects = raycasterRef.current.intersectObject(
-        modelRef.current,
-        true
-      );
-
-      if (intersects.length > 0) {
-        const hitMesh = intersects[0].object as THREE.Mesh;
-        if (hitMesh instanceof THREE.Mesh) {
-          selectMesh(hitMesh);
-        }
-      } else {
-        // Clicked empty space — deselect
-        clearSelection();
-      }
-    },
-    [selectMesh, clearSelection]
-  );
-
-  // ★ Track mousedown position for drag detection
-  const handleMouseDown = useCallback((event: MouseEvent) => {
-    mouseDownPosRef.current = { x: event.clientX, y: event.clientY };
-  }, []);
-
-  // ★ Handle hover for preview highlight
-  const handleSelectionHover = useCallback(
-    (event: MouseEvent) => {
-      if (!selectModeRef.current) return;
-      if (!sceneRef.current || !modelRef.current) return;
-      const container = containerRef.current;
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
-      mouseRef.current.x =
-        ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouseRef.current.y =
-        -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycasterRef.current.setFromCamera(
-        mouseRef.current,
-        sceneRef.current.camera
-      );
-      const intersects = raycasterRef.current.intersectObject(
-        modelRef.current,
-        true
-      );
-
-      if (intersects.length > 0) {
-        const hitMesh = intersects[0].object as THREE.Mesh;
-        if (hitMesh instanceof THREE.Mesh && hitMesh !== hoveredMesh) {
-          setHoveredMesh(hitMesh);
-        }
-      } else {
-        if (hoveredMesh) setHoveredMesh(null);
-      }
-    },
-    [hoveredMesh]
-  );
-
-  // ★ Attach/detach selection event listeners
+  // ── Toggle dimensions ──
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const s = sceneRef.current;
+    const model = modelRef.current;
+    if (!s || !model) return;
 
-    if (selectMode) {
-      container.addEventListener("mousedown", handleMouseDown);
-      container.addEventListener("click", handleSelectionClick);
-      container.addEventListener("mousemove", handleSelectionHover);
+    if (showDims && !s.dimensionsGroup) {
+      const box = new THREE.Box3().setFromObject(model);
+      const dimGroup = createDimensionOverlay(box);
+      s.scene.add(dimGroup);
+      s.dimensionsGroup = dimGroup;
+    } else if (!showDims && s.dimensionsGroup) {
+      s.scene.remove(s.dimensionsGroup);
+      s.dimensionsGroup = null;
     }
+  }, [showDims]);
 
-    return () => {
-      container.removeEventListener("mousedown", handleMouseDown);
-      container.removeEventListener("click", handleSelectionClick);
-      container.removeEventListener("mousemove", handleSelectionHover);
+  // ── Toggle auto-rotate ──
+  useEffect(() => {
+    const s = sceneRef.current;
+    if (!s) return;
+    s.controls.autoRotate = isAutoRotating;
+    s.controls.autoRotateSpeed = 1.2;
+  }, [isAutoRotating]);
+
+  // ── Environment switch ──
+  const switchEnvironment = useCallback(
+    (preset: EnvironmentPreset) => {
+      const s = sceneRef.current;
+      if (!s) return;
+
+      // Dispose old env
+      if (envTextureRef.current) {
+        envTextureRef.current.dispose();
+        envTextureRef.current = null;
+      }
+
+      // Build new env
+      const newEnv = buildEnvironment(s.renderer, preset);
+      s.scene.environment = newEnv;
+      envTextureRef.current = newEnv;
+
+      // Rebuild lights
+      if (s.lightsGroup) {
+        s.scene.remove(s.lightsGroup);
+      }
+      s.lightsGroup = buildSceneLights(s.scene, preset, s.modelRadius);
+
+      // Update tone mapping exposure
+      s.renderer.toneMappingExposure = ENV_CONFIGS[preset].toneMappingExposure;
+
+      setEnvPreset(preset);
+    },
+    []
+  );
+
+  // ── Hover material detection ──
+  const raycasterRef = useRef(new THREE.Raycaster());
+  const mouseRef = useRef(new THREE.Vector2());
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const s = sceneRef.current;
+      const model = modelRef.current;
+      if (!s || !model) return;
+
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      mouseRef.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseRef.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycasterRef.current.setFromCamera(mouseRef.current, s.camera);
+      const intersects = raycasterRef.current.intersectObject(model, true);
+
+      if (intersects.length > 0) {
+        const mesh = intersects[0].object as THREE.Mesh;
+        if (mesh.material) {
+          const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+          if (mat instanceof THREE.MeshStandardMaterial) {
+            const cat = classifyMaterial(mat);
+            setHoveredMaterial({
+              name: mat.name || mesh.name || "Unnamed",
+              category: cat.replace(/-/g, " "),
+              x: e.clientX - rect.left,
+              y: e.clientY - rect.top - 40,
+            });
+            return;
+          }
+        }
+      }
+      setHoveredMaterial(null);
+    },
+    []
+  );
+
+  // ── Keyboard shortcuts ──
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (!sceneRef.current) return;
+      switch (e.key.toLowerCase()) {
+        case "r":
+          resetCamera();
+          break;
+        case " ":
+          e.preventDefault();
+          setIsAutoRotating((prev) => !prev);
+          break;
+        case "1":
+          setCameraPreset("beauty");
+          break;
+        case "2":
+          setCameraPreset("front");
+          break;
+        case "3":
+          setCameraPreset("side");
+          break;
+        case "4":
+          setCameraPreset("top");
+          break;
+        case "d":
+          setShowDims((prev) => !prev);
+          break;
+        case "f":
+          if (enableFullscreen) handleFullscreen();
+          break;
+      }
     };
-  }, [selectMode, handleSelectionClick, handleSelectionHover, handleMouseDown]);
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [resetCamera, setCameraPreset, handleFullscreen, enableFullscreen]);
 
-  // ★ Toggle select mode
-  const toggleSelectMode = useCallback(() => {
-    const newMode = !selectMode;
-    setSelectMode(newMode);
-    if (!newMode) {
-      clearSelection();
-      setHoveredMesh(null);
+  // ── Double-click to focus ──
+  const handleDblClick = useCallback(
+    (e: React.MouseEvent) => {
+      const s = sceneRef.current;
+      const model = modelRef.current;
+      if (!s || !model) return;
+
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      );
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, s.camera);
+      const intersects = raycaster.intersectObject(model, true);
+
+      if (intersects.length > 0) {
+        const point = intersects[0].point;
+        const fov = s.camera.fov * (Math.PI / 180);
+        const dist = Math.max(s.modelRadius * 0.5 / Math.tan(fov / 2), s.modelRadius * 0.3);
+        const dir = s.camera.position.clone().sub(point).normalize();
+        const newPos = point.clone().add(dir.multiplyScalar(dist));
+
+        animateCameraTo(s.camera, s.controls, newPos, point, 400);
+      }
+    },
+    []
+  );
+
+  // ── Pause auto-rotate on interaction ──
+  const handleInteractStart = useCallback(() => {
+    isInteractingRef.current = true;
+    if (autoRotateTimeoutRef.current) {
+      clearTimeout(autoRotateTimeoutRef.current);
     }
-  }, [selectMode, clearSelection]);
+    const s = sceneRef.current;
+    if (s) s.controls.autoRotate = false;
+  }, []);
 
-  // ★ Download selected element as CSV
-  const downloadElementCSV = useCallback(() => {
-    if (!selectedElement) return;
-    const groups = buildPropertyGroups(selectedElement);
-    let csv = "Group,Property,Value\n";
-    groups.forEach((g) => {
-      g.properties.forEach((p) => {
-        const escapedVal = p.value.replace(/"/g, '""');
-        csv += `"${g.name}","${p.key}","${escapedVal}"\n`;
-      });
-    });
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${selectedElement.meshName || "element"}_properties.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [selectedElement]);
+  const handleInteractEnd = useCallback(() => {
+    isInteractingRef.current = false;
+    if (isAutoRotating) {
+      autoRotateTimeoutRef.current = setTimeout(() => {
+        const s = sceneRef.current;
+        if (s && !isInteractingRef.current) {
+          s.controls.autoRotate = true;
+        }
+      }, 2000);
+    }
+  }, [isAutoRotating]);
 
-  // ─── Main scene setup ───────────────────────────────────────────────
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MAIN SCENE SETUP & MODEL LOADING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !url) return;
@@ -1918,235 +1394,523 @@ export function GlbViewer({
     setLoading(true);
     setLoadProgress(0);
     setError(null);
-    setAnalysis(null);
-    setSelectedElement(null);
-    setSelectMode(false);
+    setHoveredMaterial(null);
 
+    // ── Renderer ──
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
+      powerPreference: "high-performance",
+      preserveDrawingBuffer: true, // needed for screenshot
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    const bg = backgroundColor ?? DEFAULT_BACKGROUND;
-    const bgColor = new THREE.Color(bg);
-    renderer.setClearColor(bgColor, 0);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.79;
+    // Note: outputEncoding is deprecated in favor of outputColorSpace, but kept for compatibility
+
+    // Tone mapping - use ACES for better handling of bright emissive materials
+    if ((THREE as any).AgXToneMapping !== undefined) {
+      renderer.toneMapping = (THREE as any).AgXToneMapping;
+    } else {
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    }
+    // Increase tone mapping exposure to make emissive materials brighter
+    // This helps with professional glow appearance
+    renderer.toneMappingExposure = ENV_CONFIGS[envPreset].toneMappingExposure * 1.3;
+    
+    // Enable better handling of HDR/bright colors for emissive materials
+    renderer.useLegacyLights = false; // Use modern lighting model
+    
+    // Ensure renderer can handle bright emissive values
+    // This helps with proper rendering of glowing elements
+    if ((renderer as any).toneMappingWhitePoint !== undefined) {
+      (renderer as any).toneMappingWhitePoint = 1.5; // Higher white point for brighter glow
+    }
+
+    // Shadows
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    
+    // Improve depth buffer precision to prevent z-fighting
+    renderer.sortObjects = true; // Enable depth sorting
+    renderer.depthTest = true;
+    renderer.depthWrite = true;
+
+    // Transparent background
+    renderer.setClearColor(0x000000, 0);
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
     renderer.domElement.style.backgroundColor = "transparent";
 
+    // ── Scene ──
     const scene = new THREE.Scene();
     scene.background = null;
 
-    const camera = new THREE.PerspectiveCamera(
-      50,
-      width / height,
-      0.1,
-      10000
-    );
-    camera.position.set(20, 20, 20);
+    // ── Camera ──
+    // Use reasonable default near/far planes - will be adjusted after model loads
+    // Wide range causes z-fighting and depth precision issues
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+    camera.position.set(10, 8, 10);
 
+    // ── Controls ──
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.minDistance = 1;
+    controls.dampingFactor = 0.07;
+    controls.minDistance = 0.3;
     controls.maxDistance = 5000;
+    controls.enablePan = true;
+    controls.panSpeed = 0.8;
+    controls.rotateSpeed = 0.8;
+    controls.zoomSpeed = 1.2;
+    controls.autoRotate = initialAutoRotate;
+    controls.autoRotateSpeed = 1.2;
+    controls.maxPolarAngle = Math.PI * 0.95; // prevent flipping under
 
-    // Lighting — preserve product colors: no white washout, directional shine only where it hits
-    scene.add(new THREE.AmbientLight(0xffffff, 0.28));
-    scene.add(new THREE.HemisphereLight(0x9cb0c4, 0x1e1e28, 0.28));
-    const dirLight = new THREE.DirectionalLight(0xfff5e8, 0.55);
-    dirLight.position.set(200, 400, 300);
-    dirLight.castShadow = false;
-    scene.add(dirLight);
-    const dirLight2 = new THREE.DirectionalLight(0xfff0e0, 0.38);
-    dirLight2.position.set(-180, 350, 220);
-    dirLight2.castShadow = false;
-    scene.add(dirLight2);
-    const rimLight = new THREE.DirectionalLight(0xd0dce8, 0.22);
-    rimLight.position.set(-200, 100, -300);
-    rimLight.castShadow = false;
-    scene.add(rimLight);
-    const backLight = new THREE.DirectionalLight(0xb0c0d8, 0.2);
-    backLight.position.set(150, 80, -350);
-    backLight.castShadow = false;
-    scene.add(backLight);
-    const fillLight = new THREE.DirectionalLight(0x6a7d94, 0.2);
-    fillLight.position.set(-100, 200, -200);
-    scene.add(fillLight);
-
-    // Environment map — dark gray so reflections don't wash out product colors
-    const envScene = new THREE.Scene();
-    const envGeo = new THREE.SphereGeometry(100, 32, 16);
-    const envMat = new THREE.MeshBasicMaterial({
-      color: 0x4a4a4a,
-      side: THREE.BackSide,
+    // Pause auto-rotate on user interaction
+    controls.addEventListener("start", () => {
+      isInteractingRef.current = true;
+      if (autoRotateTimeoutRef.current) clearTimeout(autoRotateTimeoutRef.current);
+      controls.autoRotate = false;
     });
-    const envMesh = new THREE.Mesh(envGeo, envMat);
-    envScene.add(envMesh);
-    const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    const envRenderTarget = pmremGenerator.fromScene(envScene, 0.22);
-    scene.environment = envRenderTarget.texture;
-    envGeo.dispose();
-    envMat.dispose();
+    controls.addEventListener("end", () => {
+      isInteractingRef.current = false;
+      if (isAutoRotating) {
+        autoRotateTimeoutRef.current = setTimeout(() => {
+          if (!isInteractingRef.current && !disposed) {
+            controls.autoRotate = true;
+          }
+        }, 2000);
+      }
+    });
 
+    // ── Environment ──
+    const envTexture = buildEnvironment(renderer, envPreset);
+    scene.environment = envTexture;
+    envTextureRef.current = envTexture;
+
+    // ── Animation loop ──
     let animId = 0;
     const animate = () => {
       animId = requestAnimationFrame(animate);
       controls.update();
+      
+      // Sort meshes by depth to fix overlapping/z-fighting issues
+      // This ensures proper front/back rendering order
+      if (modelRef.current) {
+        const meshes: THREE.Mesh[] = [];
+        modelRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            meshes.push(child);
+          }
+        });
+        
+        // Sort meshes by their distance from camera (further = render first)
+        meshes.sort((a, b) => {
+          const aWorldPos = new THREE.Vector3();
+          const bWorldPos = new THREE.Vector3();
+          a.getWorldPosition(aWorldPos);
+          b.getWorldPosition(bWorldPos);
+          const aDist = camera.position.distanceTo(aWorldPos);
+          const bDist = camera.position.distanceTo(bWorldPos);
+          return bDist - aDist; // Further objects render first
+        });
+        
+        // Apply render order based on sorted depth
+        meshes.forEach((mesh, index) => {
+          mesh.renderOrder = index;
+        });
+      }
+      
       renderer.render(scene, camera);
     };
     animate();
 
-    sceneRef.current = { renderer, scene, camera, controls, animId };
+    sceneRef.current = {
+      renderer,
+      scene,
+      camera,
+      controls,
+      animId,
+      lightsGroup: null,
+      groundGroup: null,
+      dimensionsGroup: null,
+      modelRadius: 1,
+      modelCenter: new THREE.Vector3(),
+    };
     modelRef.current = null;
-    explodeStateRef.current = null;
-    highlightMaterialsRef.current.clear();
-    outlineHelperRef.current = null;
-    setHasExplodeState(false);
 
+    // ── GLTF Loader with Draco ──
     const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath(DRACO_DECODER_PATH);
+    dracoLoader.setDecoderConfig({ type: "js" });
+    loader.setDRACOLoader(dracoLoader);
+
     loader.load(
       url,
       (gltf) => {
         if (disposed) return;
         const model = gltf.scene;
-        scene.add(model);
-        modelRef.current = model;
 
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z, 1);
-        model.position.sub(center);
-        model.updateMatrixWorld(true);
-
-        // Light material tweaks: roughness, envMapIntensity, dark metallic albedo, and bright emissives (lasers/LEDs)
+        // ── Extract and preserve lights from GLB file ──
+        const embeddedLights: THREE.Light[] = [];
         model.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.material) {
-            const mats = Array.isArray(child.material)
-              ? child.material
-              : [child.material];
-            for (const mat of mats) {
-              if (
-                mat instanceof THREE.MeshStandardMaterial ||
-                (mat as THREE.MeshStandardMaterial).isMeshStandardMaterial
-              ) {
-                const m = mat as THREE.MeshStandardMaterial;
-                m.roughness = Math.min(m.roughness, 0.88);
-                // Keep env reflection subtle so model albedo/color stays dominant (no white washout)
-                m.envMapIntensity =
-                  m.metalness > 0.4 ? 0.32 + (1 - m.metalness) * 0.18 : 0.5;
-                // Slight nudge for very dark metallic albedo so they're not pure black (stay dark)
-                if (m.metalness > 0.5 && m.color.getHex() < 0x0d0d0d) {
-                  m.color.setHex(0x252525);
-                }
-                // Boost emissive so in-model lights (lasers, LEDs, screens) look like real lighting
-                if (m.emissive && (m.emissive.r > 0.01 || m.emissive.g > 0.01 || m.emissive.b > 0.01)) {
-                  const current = m.emissiveIntensity ?? 1;
-                  m.emissiveIntensity = Math.max(current * 3, 2.5);
-                }
-              }
+          if (
+            child instanceof THREE.Light ||
+            child instanceof THREE.PointLight ||
+            child instanceof THREE.SpotLight ||
+            child instanceof THREE.DirectionalLight ||
+            child instanceof THREE.RectAreaLight ||
+            child instanceof THREE.HemisphereLight
+          ) {
+            embeddedLights.push(child as THREE.Light);
+          }
+        });
+        
+        // Add embedded lights to scene (they're already in the model hierarchy)
+        // But ensure they're properly configured for PROFESSIONAL visibility
+        embeddedLights.forEach((light) => {
+          // PROFESSIONAL: Significantly boost light intensity for maximum visibility
+          // GLB files often have lights with very low intensity values
+          if (light.intensity > 0) {
+            // Boost by 5-10x depending on original intensity for professional appearance
+            const boostFactor = light.intensity < 0.5 ? 10.0 : 
+                               light.intensity < 1.0 ? 7.0 : 5.0;
+            light.intensity *= boostFactor;
+            
+            // Ensure minimum intensity for professional glow
+            if (light.intensity < 3.0) {
+              light.intensity = 3.0;
             }
+          }
+          
+          if (light instanceof THREE.PointLight || light instanceof THREE.SpotLight) {
+            // Ensure point/spot lights cast shadows and are visible
+            light.castShadow = true;
+            if (light.shadow) {
+              light.shadow.mapSize.width = 2048; // Higher resolution for better quality
+              light.shadow.mapSize.height = 2048;
+              light.shadow.camera.near = 0.1;
+              light.shadow.camera.far = 2000; // Increased range
+              light.shadow.bias = -0.0001;
+              light.shadow.normalBias = 0.02;
+            }
+            // Increase decay/distance for point lights to make them more visible
+            if (light instanceof THREE.PointLight) {
+              light.distance = light.distance || 1000;
+              light.decay = 1.0; // Linear decay for more consistent brightness
+            }
+          }
+          
+          // For spot lights, ensure they have a good angle and penumbra
+          if (light instanceof THREE.SpotLight) {
+            light.angle = Math.min(light.angle || Math.PI / 6, Math.PI / 4);
+            light.penumbra = light.penumbra || 0.3;
+            light.distance = light.distance || 1000;
+            light.decay = 1.0;
           }
         });
 
-        const fov = camera.fov * (Math.PI / 180);
-        const dist = Math.max(
-          (maxDim / (2 * Math.tan(fov / 2))) * 1.35,
-          10
-        );
-        camera.position.set(dist * 0.5, dist * 0.4, dist * 0.7);
-        camera.lookAt(0, 0, 0);
-        controls.target.set(0, 0, 0);
-        controls.update();
+        // ── Center model at origin ──
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        model.position.sub(center);
+        model.updateMatrixWorld(true);
 
-        const result = analyzeModel(model);
-        setAnalysis(result);
-        onLoaded?.(result.totalTriangles);
+        // Recompute after centering
+        const centeredBox = new THREE.Box3().setFromObject(model);
+        const centeredCenter = centeredBox.getCenter(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z, 0.01);
+        const modelRadius = maxDim / 2;
 
-        // Build explode state
-        const explodeChildren: GlbExplodeChild[] = [];
+        // ── Fix meshing issues: Enable proper depth sorting and face culling ──
         model.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.geometry) {
-            const worldPos = new THREE.Vector3();
-            child.getWorldPosition(worldPos);
-            explodeChildren.push({
-              mesh: child,
-              originalWorldPosition: worldPos.clone(),
-              originalPosition: child.position.clone(),
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.frustumCulled = true; // performance
+            
+            // Fix face culling - prevent back faces from showing through
+            // FrontSide = only render front faces (default, but ensure it's set)
+            if (child.material) {
+              const materials = Array.isArray(child.material) ? child.material : [child.material];
+              materials.forEach((mat) => {
+                if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshBasicMaterial) {
+                  // Only use DoubleSide for transparent materials
+                  if (!mat.transparent && mat.opacity === 1) {
+                    mat.side = THREE.FrontSide; // Only render front faces
+                  }
+                  
+                  // Enable depth writing for opaque materials to prevent z-fighting
+                  if (!mat.transparent || mat.opacity > 0.99) {
+                    mat.depthWrite = true;
+                  }
+                  
+                  // Add polygon offset to prevent z-fighting on overlapping surfaces
+                  mat.polygonOffset = true;
+                  mat.polygonOffsetFactor = 1;
+                  mat.polygonOffsetUnits = 1;
+                  
+                  mat.needsUpdate = true;
+                }
+              });
+            }
+            
+            // Ensure proper render order - objects further away render first
+            child.renderOrder = 0;
+          }
+        });
+
+        // ── Optimize all textures for maximum quality and visibility ──
+        model.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.material) {
+            const mats = Array.isArray(child.material) ? child.material : [child.material];
+            mats.forEach((mat: any) => {
+              // Optimize all textures on the material
+              if (mat.map) {
+                mat.map.minFilter = THREE.LinearMipmapLinearFilter;
+                mat.map.magFilter = THREE.LinearFilter;
+                mat.map.generateMipmaps = true;
+                mat.map.anisotropy = 16;
+              }
+              if (mat.normalMap) {
+                mat.normalMap.minFilter = THREE.LinearMipmapLinearFilter;
+                mat.normalMap.magFilter = THREE.LinearFilter;
+                mat.normalMap.generateMipmaps = true;
+              }
+              if (mat.roughnessMap) {
+                mat.roughnessMap.minFilter = THREE.LinearMipmapLinearFilter;
+                mat.roughnessMap.magFilter = THREE.LinearFilter;
+                mat.roughnessMap.generateMipmaps = true;
+              }
+              if (mat.metalnessMap) {
+                mat.metalnessMap.minFilter = THREE.LinearMipmapLinearFilter;
+                mat.metalnessMap.magFilter = THREE.LinearFilter;
+                mat.metalnessMap.generateMipmaps = true;
+              }
+              if (mat.aoMap) {
+                mat.aoMap.minFilter = THREE.LinearMipmapLinearFilter;
+                mat.aoMap.magFilter = THREE.LinearFilter;
+                mat.aoMap.generateMipmaps = true;
+              }
             });
           }
         });
 
-        if (explodeChildren.length > 0) {
-          const centerWorld = new THREE.Vector3(0, 0, 0);
-          const maxDistance = 0.3 * maxDim;
-          explodeStateRef.current = {
-            centerWorld,
-            maxDistance,
-            children: explodeChildren,
-          };
-          applyExplodeRef.current = (amount: number) => {
-            const state = explodeStateRef.current;
-            if (!state) return;
-            for (const {
-              mesh,
-              originalWorldPosition,
-              originalPosition,
-            } of state.children) {
-              if (amount === 0) {
-                mesh.position.copy(originalPosition);
-                continue;
+        // ── Classify & optimize every material ──
+        model.traverse((child) => {
+          if (!(child instanceof THREE.Mesh) || !child.material) return;
+          const mats = Array.isArray(child.material)
+            ? child.material
+            : [child.material];
+          for (const mat of mats) {
+            // Handle MeshBasicMaterial (often used for glowing elements like lasers)
+            if (mat instanceof THREE.MeshBasicMaterial) {
+              const basicMat = mat as THREE.MeshBasicMaterial;
+              // If it has emissive properties, boost them PROFESSIONALLY
+              if (basicMat.emissive) {
+                const maxEmissive = Math.max(
+                  basicMat.emissive.r,
+                  basicMat.emissive.g,
+                  basicMat.emissive.b
+                );
+                
+                // Detect red laser/light
+                const isRedLaser = basicMat.emissive.r > basicMat.emissive.g * 1.5 && 
+                                   basicMat.emissive.r > basicMat.emissive.b * 1.5;
+                
+                if (maxEmissive > 0.001) {
+                  if (isRedLaser) {
+                    // Red lasers get maximum boost for professional appearance
+                    basicMat.emissive.r = Math.min(basicMat.emissive.r * 10.0, 1.0);
+                    basicMat.emissive.g = Math.min(basicMat.emissive.g * 2.0, 0.15);
+                    basicMat.emissive.b = Math.min(basicMat.emissive.b * 2.0, 0.15);
+                  } else {
+                    // Boost other colors significantly
+                    const boostFactor = maxEmissive < 0.2 ? 8.0 : 5.0;
+                    basicMat.emissive.multiplyScalar(boostFactor);
+                    // Clamp to prevent overflow
+                    basicMat.emissive.r = Math.min(basicMat.emissive.r, 1.0);
+                    basicMat.emissive.g = Math.min(basicMat.emissive.g, 1.0);
+                    basicMat.emissive.b = Math.min(basicMat.emissive.b, 1.0);
+                  }
+                  
+                  // Set very high emissive intensity for professional glow
+                  if ((basicMat as any).emissiveIntensity !== undefined) {
+                    (basicMat as any).emissiveIntensity = Math.max(
+                      (basicMat as any).emissiveIntensity ?? 1.0,
+                      isRedLaser ? 20.0 : 12.0
+                    );
+                  }
+                } else {
+                  // No emissive color but material is basic - use base color
+                  basicMat.emissive = basicMat.color.clone();
+                  basicMat.emissive.multiplyScalar(8.0);
+                  basicMat.emissive.r = Math.min(basicMat.emissive.r, 1.0);
+                  basicMat.emissive.g = Math.min(basicMat.emissive.g, 1.0);
+                  basicMat.emissive.b = Math.min(basicMat.emissive.b, 1.0);
+                }
+              } else {
+                // No emissive set - create from base color
+                basicMat.emissive = basicMat.color.clone();
+                basicMat.emissive.multiplyScalar(8.0);
+                basicMat.emissive.r = Math.min(basicMat.emissive.r, 1.0);
+                basicMat.emissive.g = Math.min(basicMat.emissive.g, 1.0);
+                basicMat.emissive.b = Math.min(basicMat.emissive.b, 1.0);
               }
-              mesh.position.copy(originalPosition);
-              const directionWorld = originalWorldPosition
-                .clone()
-                .sub(state.centerWorld)
-                .normalize();
-              const newWorldPos = originalWorldPosition
-                .clone()
-                .add(
-                  directionWorld.multiplyScalar(
-                    amount * state.maxDistance
-                  )
-                );
-              if (mesh.parent) {
-                mesh.position.copy(
-                  mesh.parent.worldToLocal(newWorldPos)
-                );
+              
+              // Make basic materials glow professionally
+              basicMat.toneMapped = false; // Disable tone mapping for pure, bright glow
+              continue;
+            }
+            
+            if (
+              mat instanceof THREE.MeshStandardMaterial ||
+              (mat as any).isMeshStandardMaterial
+            ) {
+              const m = mat as THREE.MeshStandardMaterial;
+              const category = classifyMaterial(m);
+              
+              // Check if this is an emissive material BEFORE optimizing
+              const isEmissive = category === "emissive";
+              
+              optimizeMaterial(m, category);
+              
+              // Only reduce brightness for NON-emissive materials
+              // Emissive materials should stay bright to glow properly
+              if (!isEmissive) {
+                // Slightly reduce brightness to prevent overexposure, but keep textures visible
+                // Reduced darkening from 15% to 8% to preserve texture detail
+                const currentColor = m.color.clone();
+                currentColor.multiplyScalar(0.92); // Reduce brightness by only 8% to preserve textures
+                m.color.copy(currentColor);
+                
+                // Don't reduce envMapIntensity as much - textures need it for visibility
+                // Only reduce if it's extremely high to prevent overexposure
+                if (m.envMapIntensity && m.envMapIntensity > 1.5) {
+                  m.envMapIntensity *= 0.85; // Less aggressive reduction
+                }
+                
+                // Ensure proper depth handling for opaque materials
+                if (!m.transparent && m.opacity === 1) {
+                  m.depthWrite = true;
+                  m.side = THREE.FrontSide; // Only render front faces
+                  // Add polygon offset to prevent z-fighting
+                  if (!m.polygonOffset) {
+                    m.polygonOffset = true;
+                    m.polygonOffsetFactor = 1;
+                    m.polygonOffsetUnits = 1;
+                  }
+                }
+              } else {
+                // For emissive materials, disable tone mapping for maximum glow
+                // This ensures the glow isn't dimmed and appears professional
+                m.toneMapped = false; // Disable tone mapping for pure bright glow
+                
+                // Emissive materials also need proper depth handling
+                m.depthWrite = true;
+                m.side = THREE.FrontSide;
+                if (!m.polygonOffset) {
+                  m.polygonOffset = true;
+                  m.polygonOffsetFactor = 1;
+                  m.polygonOffsetUnits = 1;
+                }
+                
+                // Ensure emissive intensity is very high for professional appearance
+                const currentEmissiveIntensity = (m as any).emissiveIntensity ?? 1.0;
+                (m as any).emissiveIntensity = Math.max(currentEmissiveIntensity, 12.0);
               }
             }
-          };
-          applyExplodeRef.current(0);
-          setHasExplodeState(true);
+          }
+        });
+
+        scene.add(model);
+        modelRef.current = model;
+
+        // Store model metrics
+        if (sceneRef.current) {
+          sceneRef.current.modelRadius = modelRadius;
+          sceneRef.current.modelCenter = centeredCenter;
         }
 
+        // ── Build lights (scaled to model) ──
+        const lightsGroup = buildSceneLights(scene, envPreset, modelRadius);
+        if (sceneRef.current) sceneRef.current.lightsGroup = lightsGroup;
+
+        // ── Ground plane ──
+        const groundGroup = createGroundPlane(
+          modelRadius,
+          showGroundShadow,
+          showGroundReflection
+        );
+        // Position at bottom of model
+        groundGroup.position.y = centeredBox.min.y;
+        scene.add(groundGroup);
+        if (sceneRef.current) sceneRef.current.groundGroup = groundGroup;
+
+        // ── Camera setup ──
+        const fov = camera.fov * (Math.PI / 180);
+        const dist = Math.max(
+          (maxDim / (2 * Math.tan(fov / 2))) * 1.5,
+          maxDim * 1.5
+        );
+        camera.position.set(
+          centeredCenter.x + dist * 0.6,
+          centeredCenter.y + dist * 0.35,
+          centeredCenter.z + dist * 0.7
+        );
+        camera.lookAt(centeredCenter);
+        controls.target.copy(centeredCenter);
+        controls.update();
+
+        // Near/far planes - optimized to prevent z-fighting
+        // Keep near plane as close as possible and far plane reasonable
+        // This improves depth buffer precision
+        const nearPlane = Math.max(maxDim * 0.001, 0.01);
+        const farPlane = Math.min(maxDim * 50, 10000);
+        camera.near = nearPlane;
+        camera.far = farPlane;
+        camera.updateProjectionMatrix();
+        
+        // Update renderer to use better depth precision
+        renderer.setClearColor(0x000000, 0);
+        renderer.clearDepth(); // Clear depth buffer
+
+        // Min distance for zoom
+        controls.minDistance = maxDim * 0.1;
+        controls.maxDistance = maxDim * 20;
+
+        // ── Report metrics ──
+        const triCount = countTriangles(model);
+        const matCount = countMaterials(model);
+        onLoaded?.({
+          triangleCount: triCount,
+          materialCount: matCount,
+          boundingBox: { x: size.x, y: size.y, z: size.z },
+        });
         setLoading(false);
       },
       (progress) => {
         if (progress.lengthComputable) {
-          setLoadProgress(
-            Math.round((progress.loaded / progress.total) * 100)
-          );
+          setLoadProgress(Math.round((progress.loaded / progress.total) * 100));
         }
       },
       (err: unknown) => {
-        const msg =
-          err instanceof Error ? err.message : "Failed to load GLB";
+        if (disposed) return;
+        const msg = err instanceof Error ? err.message : "Failed to load GLB file";
         setError(msg);
         setLoading(false);
         onError?.(msg);
       }
     );
 
+    // ── Resize observer ──
     const onResize = () => {
       if (disposed || !container) return;
       const w = container.clientWidth;
       const h = container.clientHeight;
+      if (w === 0 || h === 0) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
@@ -2154,1055 +1918,228 @@ export function GlbViewer({
     const ro = new ResizeObserver(onResize);
     ro.observe(container);
 
+    // ── Fullscreen change listener ──
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+
+    // ── Cleanup ──
     return () => {
       disposed = true;
       modelRef.current = null;
-      explodeStateRef.current = null;
-      highlightMaterialsRef.current.clear();
-      outlineHelperRef.current = null;
+      if (envTextureRef.current) {
+        envTextureRef.current.dispose();
+        envTextureRef.current = null;
+      }
+      if (autoRotateTimeoutRef.current) {
+        clearTimeout(autoRotateTimeoutRef.current);
+      }
       scene.environment = null;
-      envRenderTarget.dispose();
-      pmremGenerator.dispose();
       ro.disconnect();
+      document.removeEventListener("fullscreenchange", handleFsChange);
       cancelAnimationFrame(animId);
       controls.dispose();
+      dracoLoader.dispose();
       renderer.dispose();
-      if (container?.contains(renderer.domElement))
+      if (container?.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
+      }
       sceneRef.current = null;
     };
-  }, [url, width, height, backgroundColor, onLoaded, onError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, width, height]);
 
-  // ─── Render: No URL ─────────────────────────────────────────────────
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // RENDER
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  // ── No URL ──
   if (!url) {
     return (
-      <div
-        style={{
-          width,
-          height,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: DEFAULT_BACKGROUND,
-          borderRadius: 12,
-          border: `1px solid ${PANEL_BORDER}`,
-        }}
-      >
-        <p style={{ color: TEXT_MUTED, fontSize: 14 }}>
-          No GLB URL provided.
-        </p>
+      <div className="glb-empty" style={{ width, height }}>
+        <style>{VIEWER_STYLES}</style>
+        <p style={{ color: "#94a3b8", fontSize: 14 }}>No 3D model available</p>
       </div>
     );
   }
 
-  // ─── Render: Error ──────────────────────────────────────────────────
+  // ── Error ──
   if (error) {
     return (
-      <div
-        style={{
-          width,
-          height,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 12,
-          background: DEFAULT_BACKGROUND,
-          borderRadius: 12,
-          border: `1px solid ${PANEL_BORDER}`,
-        }}
-      >
-        <p style={{ fontSize: 14, color: "#ef4444" }}>{error}</p>
+      <div className="glb-error" style={{ width, height }}>
+        <style>{VIEWER_STYLES}</style>
+        {Icon.error}
+        <p style={{ fontSize: 13, color: "#ef4444", textAlign: "center", maxWidth: 300 }}>
+          {error}
+        </p>
+        <button
+          onClick={() => {
+            setError(null);
+            setLoading(true);
+            // Force re-mount by toggling a key — the parent should handle retry
+            onError?.("retry");
+          }}
+          style={{
+            marginTop: 8,
+            padding: "8px 20px",
+            border: "1px solid rgba(239,68,68,0.3)",
+            borderRadius: 8,
+            background: "rgba(239,68,68,0.08)",
+            color: "#ef4444",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 500,
+          }}
+        >
+          Try Again
+        </button>
       </div>
     );
   }
 
-  const totalEquip = analysis
-    ? analysis.equipment.Antenna +
-      analysis.equipment.RRU +
-      analysis.equipment.Dish
-    : 0;
+  // ── Active viewer ──
+  const envKeys = Object.keys(ENV_CONFIGS) as EnvironmentPreset[];
 
-  const bgHex = backgroundColor ?? DEFAULT_BACKGROUND;
-  const bgStyle = hexToRgba(bgHex, BACKGROUND_OPACITY);
   return (
     <div
-      style={{
-        position: "relative",
-        width,
-        height,
-        borderRadius: 14,
-        overflow: "hidden",
-        border: `1px solid ${PANEL_BORDER}`,
-        background: bgStyle,
-        fontFamily:
-          "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace",
-      }}
+      ref={rootRef}
+      className="glb-viewer-root"
+      style={{ width: isFullscreen ? "100vw" : width, height: isFullscreen ? "100vh" : height }}
+      tabIndex={0}
     >
+      <style>{VIEWER_STYLES}</style>
+
       {/* 3D Canvas */}
       <div
         ref={containerRef}
-        style={{
-          width: "100%",
-          height: "100%",
-          cursor: selectMode ? SELECTION_CURSOR : "grab",
-          background: bgStyle,
-        }}
+        className="glb-canvas-container"
+        onPointerMove={handlePointerMove}
+        onPointerLeave={() => setHoveredMaterial(null)}
+        onDoubleClick={handleDblClick}
+        onPointerDown={handleInteractStart}
+        onPointerUp={handleInteractEnd}
       />
 
       {/* Loading overlay */}
       {loading && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            background: bgStyle,
-            zIndex: 20,
-          }}
-        >
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              border: `3px solid ${PANEL_BORDER}`,
-              borderTopColor: ACCENT,
-              borderRadius: "50%",
-              animation: "glb-spin 0.8s linear infinite",
-            }}
-          />
-          <style>{`@keyframes glb-spin { to { transform: rotate(360deg); } }`}</style>
-          <p style={{ marginTop: 16, color: TEXT_SECONDARY, fontSize: 13 }}>
-            Loading model...{" "}
-            {loadProgress > 0 ? `${loadProgress}%` : ""}
+        <div className="glb-loading-overlay">
+          <div className="glb-spinner" />
+          <p className="glb-loading-text">
+            Loading 3D Model{loadProgress > 0 ? ` · ${loadProgress}%` : "…"}
           </p>
-        </div>
-      )}
-
-      {/* ─── Select Mode Indicator Banner ────────────────────── */}
-      {selectMode && !selectedElement && (
-        <div
-          style={{
-            position: "absolute",
-            top: 56,
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 16px",
-            borderRadius: 20,
-            background: `${SELECT_COLOR}18`,
-            backdropFilter: "blur(12px)",
-            border: `1px solid ${SELECT_COLOR}35`,
-            zIndex: 12,
-            animation: "fadeIn 0.2s ease",
-          }}
-        >
-          <style>{`@keyframes fadeIn { from { opacity:0; transform: translateX(-50%) translateY(-6px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }`}</style>
-          <div
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: SELECT_COLOR,
-              animation: "pulseGlow 1.5s ease-in-out infinite",
-            }}
-          />
-          <style>{`@keyframes pulseGlow { 0%,100% { box-shadow: 0 0 4px ${SELECT_COLOR}60; } 50% { box-shadow: 0 0 12px ${SELECT_COLOR}90; } }`}</style>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: SELECT_COLOR,
-              letterSpacing: "0.03em",
-            }}
-          >
-            Click any element to inspect properties
-          </span>
-          <span
-            style={{ fontSize: 10, color: TEXT_MUTED, marginLeft: 4 }}
-          >
-            ESC to exit
-          </span>
-        </div>
-      )}
-
-      {/* ─── Toolbar ──────────────────────────────────────────── */}
-      {analysis && (
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            right: selectedElement ? 12 : "auto",
-            left: selectedElement ? "auto" : 12,
-            display: "flex",
-            gap: 6,
-            zIndex: 10,
-          }}
-        >
-          {/* ★ Element Select button — primary position */}
-          <ToolbarButton
-            icon={Icons.select}
-            active={selectMode}
-            title={
-              selectMode
-                ? "Exit Selection Mode"
-                : "Element Selection (Click to inspect)"
-            }
-            onClick={toggleSelectMode}
-            accentColor={SELECT_COLOR}
-            pulse={selectMode}
-          />
-          <ToolbarButton
-            icon={Icons.info}
-            active={showInfoPanel}
-            title="Structure Analysis"
-            onClick={() => {
-              setShowInfoPanel((p) => !p);
-              if (!showInfoPanel) {
-                clearSelection();
-                setSelectMode(false);
-              }
-            }}
-          />
-          <ToolbarButton
-            icon={Icons.wireframe}
-            active={wireframe}
-            title="Wireframe"
-            onClick={toggleWireframe}
-          />
-          <ToolbarButton
-            icon={Icons.reset}
-            active={false}
-            title="Reset Camera"
-            onClick={resetCamera}
-          />
-          {hasExplodeState && (
-            <ToolbarButton
-              icon={Icons.explode}
-              active={showExplodeSlider}
-              title="Explode View"
-              onClick={() => setShowExplodeSlider((p) => !p)}
-            />
-          )}
-        </div>
-      )}
-
-      {/* ─── Explode Slider ────────────────────────────────────── */}
-      {showExplodeSlider && hasExplodeState && (
-        <div
-          style={{
-            position: "absolute",
-            top: 56,
-            left: selectedElement ? "auto" : 12,
-            right: selectedElement ? 12 : "auto",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: PANEL_BG,
-            backdropFilter: "blur(12px)",
-            padding: "8px 14px",
-            borderRadius: 10,
-            border: `1px solid ${PANEL_BORDER}`,
-            zIndex: 10,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 10,
-              color: TEXT_MUTED,
-              fontWeight: 600,
-            }}
-          >
-            EXPLODE
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(explodeAmount * 100)}
-            onChange={(e) => {
-              const value = Number(e.target.value) / 100;
-              setExplodeAmount(value);
-              applyExplodeRef.current?.(value);
-            }}
-            style={{
-              width: 140,
-              height: 4,
-              accentColor: ACCENT,
-              cursor: "pointer",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 11,
-              color: ACCENT,
-              fontWeight: 600,
-              minWidth: 34,
-              textAlign: "right",
-            }}
-          >
-            {Math.round(explodeAmount * 100)}%
-          </span>
-        </div>
-      )}
-
-      {/* ─── Quick Stats Bar (bottom) ────────────────────────────── */}
-      {analysis && !showInfoPanel && !selectedElement && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 12,
-            left: 12,
-            right: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "10px 16px",
-            borderRadius: 10,
-            background: PANEL_BG,
-            backdropFilter: "blur(12px)",
-            border: `1px solid ${PANEL_BORDER}`,
-            zIndex: 5,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-            }}
-          >
-            {siteName && (
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: TEXT_PRIMARY,
-                }}
-              >
-                {siteName}
-              </span>
-            )}
-            <span style={{ fontSize: 12, color: TEXT_SECONDARY }}>
-              <span style={{ color: ACCENT, fontWeight: 600 }}>
-                {analysis.height.toLocaleString()}
-              </span>{" "}
-              units tall ({analysis.heightAxis})
-            </span>
-            <span style={{ fontSize: 12, color: TEXT_SECONDARY }}>
-              <span style={{ color: SUCCESS, fontWeight: 600 }}>
-                {analysis.totalMeshes}
-              </span>{" "}
-              meshes
-            </span>
-            <span style={{ fontSize: 12, color: TEXT_SECONDARY }}>
-              <span style={{ color: WARNING, fontWeight: 600 }}>
-                {(analysis.totalTriangles / 1000).toFixed(1)}k
-              </span>{" "}
-              tris
-            </span>
-          </div>
-          {totalEquip > 0 && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              {analysis.equipment.Antenna > 0 && (
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: "#22d3ee",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  {Icons.antenna} {analysis.equipment.Antenna}
-                </span>
-              )}
-              {analysis.equipment.RRU > 0 && (
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: "#f472b6",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  {Icons.rru} {analysis.equipment.RRU}
-                </span>
-              )}
-              {analysis.equipment.Dish > 0 && (
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: "#fb923c",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  {Icons.dish} {analysis.equipment.Dish}
-                </span>
-              )}
+          {loadProgress > 0 && (
+            <div className="glb-progress-bar">
+              <div className="glb-progress-fill" style={{ width: `${loadProgress}%` }} />
             </div>
           )}
         </div>
       )}
 
-      {/* ─── Selected Element Property Panel (left side) ─────────── */}
-      {selectedElement && (
-        <SelectionPropertyPanel
-          props={selectedElement}
-          onClose={() => {
-            clearSelection();
-            // Stay in select mode so user can click another element
-          }}
-          onDownloadExcel={downloadElementCSV}
-        />
+      {/* Material tooltip on hover */}
+      {hoveredMaterial && !loading && (
+        <div
+          className="glb-mat-tooltip"
+          style={{ left: hoveredMaterial.x, top: hoveredMaterial.y }}
+        >
+          <span>
+            <strong>{hoveredMaterial.name}</strong> — {hoveredMaterial.category}
+          </span>
+        </div>
       )}
 
-      {/* ─── Detailed Analysis Panel (right side) ────────────────── */}
-      {showInfoPanel && analysis && (
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            bottom: 12,
-            width: 320,
-            background: PANEL_BG,
-            backdropFilter: "blur(16px)",
-            borderRadius: 12,
-            border: `1px solid ${PANEL_BORDER}`,
-            zIndex: 15,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
-        >
-          {/* Panel Header */}
-          <div
-            style={{
-              padding: "14px 16px 12px",
-              borderBottom: `1px solid ${PANEL_BORDER}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
+      {/* Close button */}
+      {onClose && (
+        <button className="glb-close-btn" onClick={onClose} title="Close 3D Viewer">
+          {Icon.close}
+        </button>
+      )}
+
+      {/* Site name badge */}
+      {siteName && !loading && (
+        <div className="glb-site-badge">
+          <span>{siteName}</span>
+        </div>
+      )}
+
+      {/* ── Bottom toolbar ── */}
+      {!loading && (
+        <div className="glb-toolbar">
+          {/* Auto-rotate toggle */}
+          <button
+            className={`glb-btn ${isAutoRotating ? "active" : ""}`}
+            onClick={() => setIsAutoRotating((v) => !v)}
+            title="Auto-rotate (Space)"
           >
-            <div>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: TEXT_PRIMARY,
-                  letterSpacing: "-0.01em",
-                }}
+            {Icon.rotate}
+          </button>
+
+          {/* Reset camera */}
+          <button className="glb-btn" onClick={resetCamera} title="Reset camera (R)">
+            {Icon.reset}
+          </button>
+
+          {/* Dimensions toggle */}
+          <button
+            className={`glb-btn ${showDims ? "active" : ""}`}
+            onClick={() => setShowDims((v) => !v)}
+            title="Toggle dimensions (D)"
+          >
+            {Icon.dimensions}
+          </button>
+
+          <div className="glb-toolbar-divider" />
+
+          {/* Environment presets */}
+          {enableEnvironmentSwitch &&
+            envKeys.map((key) => (
+              <button
+                key={key}
+                className={`glb-btn glb-btn-text ${envPreset === key ? "active" : ""}`}
+                onClick={() => switchEnvironment(key)}
+                title={`${ENV_CONFIGS[key].label} lighting`}
               >
-                {siteName || "Structure Analysis"}
-              </h3>
-              <p
-                style={{
-                  margin: "2px 0 0",
-                  fontSize: 11,
-                  color: TEXT_MUTED,
-                }}
-              >
-                GLB Model Report (Material + Geometry)
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowInfoPanel(false)}
-              style={{
-                background: "none",
-                border: "none",
-                color: TEXT_MUTED,
-                cursor: "pointer",
-                padding: 4,
-              }}
-            >
-              {Icons.close}
+                {ENV_CONFIGS[key].icon}
+              </button>
+            ))}
+
+          {enableEnvironmentSwitch && (enableScreenshot || enableFullscreen) && (
+            <div className="glb-toolbar-divider" />
+          )}
+
+          {/* Screenshot */}
+          {enableScreenshot && (
+            <button className="glb-btn" onClick={handleScreenshot} title="Screenshot">
+              {Icon.camera}
             </button>
-          </div>
+          )}
 
-          {/* Tab Bar */}
-          <div
-            style={{ display: "flex", padding: "8px 12px 0", gap: 4 }}
-          >
-            {(["overview", "equipment", "categories"] as const).map(
-              (tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  style={{
-                    flex: 1,
-                    padding: "7px 0",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    background:
-                      activeTab === tab
-                        ? `${ACCENT}18`
-                        : "transparent",
-                    color:
-                      activeTab === tab ? ACCENT : TEXT_MUTED,
-                    border: `1px solid ${activeTab === tab ? `${ACCENT}35` : "transparent"}`,
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {tab}
-                </button>
-              )
-            )}
-          </div>
-
-          {/* Tab Content */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "12px 12px 16px",
-            }}
-          >
-            {activeTab === "overview" && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
-              >
-                <StatBadge
-                  label="Structure Height"
-                  value={analysis.height.toLocaleString()}
-                  unit={`units (${analysis.heightAxis}-axis)`}
-                  icon={Icons.height}
-                  color={ACCENT}
-                />
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
-                  }}
-                >
-                  <StatBadge
-                    label="Triangles"
-                    value={(analysis.totalTriangles / 1000).toFixed(
-                      1
-                    )}
-                    unit="K"
-                    icon={Icons.triangle}
-                    color={WARNING}
-                  />
-                  <StatBadge
-                    label="Meshes"
-                    value={analysis.totalMeshes}
-                    icon={Icons.mesh}
-                    color={SUCCESS}
-                  />
-                </div>
-                <div
-                  style={{
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    background: "rgba(255,255,255,0.03)",
-                    border: `1px solid ${PANEL_BORDER}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: TEXT_MUTED,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      marginBottom: 8,
-                    }}
-                  >
-                    Bounding Box Dimensions
-                  </div>
-                  <div style={{ display: "flex", gap: 12 }}>
-                    {[
-                      {
-                        axis: "X",
-                        val: analysis.widthX,
-                        color: "#ef4444",
-                      },
-                      {
-                        axis: "Y",
-                        val: analysis.widthY,
-                        color: "#22c55e",
-                      },
-                      {
-                        axis: "Z",
-                        val: analysis.widthZ,
-                        color: "#3b82f6",
-                      },
-                    ].map((d) => (
-                      <div
-                        key={d.axis}
-                        style={{ flex: 1, textAlign: "center" }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: d.color,
-                            marginBottom: 2,
-                          }}
-                        >
-                          {d.axis}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 15,
-                            fontWeight: 700,
-                            color: TEXT_PRIMARY,
-                          }}
-                        >
-                          {d.val.toLocaleString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    background: `linear-gradient(135deg, ${ACCENT}08, transparent)`,
-                    border: `1px solid ${ACCENT}15`,
-                    fontSize: 12,
-                    color: TEXT_SECONDARY,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: ACCENT,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      marginBottom: 6,
-                    }}
-                  >
-                    Structure Summary
-                  </div>
-                  <ul style={{ margin: 0, paddingLeft: 16 }}>
-                    <li>
-                      Height:{" "}
-                      <strong style={{ color: TEXT_PRIMARY }}>
-                        {analysis.height.toLocaleString()}
-                      </strong>{" "}
-                      units along {analysis.heightAxis}-axis
-                    </li>
-                    <li>
-                      Equipment:{" "}
-                      {totalEquip > 0 ? (
-                        <>
-                          <strong style={{ color: "#22d3ee" }}>
-                            {analysis.equipment.Antenna}
-                          </strong>{" "}
-                          Antenna(s),{" "}
-                          <strong style={{ color: "#f472b6" }}>
-                            {analysis.equipment.RRU}
-                          </strong>{" "}
-                          RRU(s),{" "}
-                          <strong style={{ color: "#fb923c" }}>
-                            {analysis.equipment.Dish}
-                          </strong>{" "}
-                          Dish(es)
-                        </>
-                      ) : (
-                        <span style={{ color: TEXT_MUTED }}>
-                          No telecom equipment detected
-                        </span>
-                      )}
-                    </li>
-                    <li>
-                      Complexity:{" "}
-                      <strong style={{ color: TEXT_PRIMARY }}>
-                        {analysis.totalMeshes}
-                      </strong>{" "}
-                      meshes,{" "}
-                      <strong style={{ color: TEXT_PRIMARY }}>
-                        {analysis.totalTriangles.toLocaleString()}
-                      </strong>{" "}
-                      tris across{" "}
-                      <strong style={{ color: TEXT_PRIMARY }}>
-                        {analysis.categories.length}
-                      </strong>{" "}
-                      categories
-                    </li>
-                    <li>
-                      Top category:{" "}
-                      <strong
-                        style={{
-                          color:
-                            analysis.categories[0]?.color ||
-                            TEXT_PRIMARY,
-                        }}
-                      >
-                        {analysis.categories[0]?.name || "N/A"}
-                      </strong>{" "}
-                      ({analysis.categories[0]?.count || 0} elements)
-                    </li>
-                    <li>
-                      Detection:{" "}
-                      <span style={{ color: WARNING }}>
-                        Material color + geometry heuristics
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "equipment" && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    background:
-                      totalEquip > 0
-                        ? `${SUCCESS}10`
-                        : "rgba(255,255,255,0.03)",
-                    border: `1px solid ${totalEquip > 0 ? `${SUCCESS}20` : PANEL_BORDER}`,
-                    fontSize: 12,
-                    color: totalEquip > 0 ? SUCCESS : TEXT_MUTED,
-                    textAlign: "center",
-                    fontWeight: 600,
-                  }}
-                >
-                  {totalEquip > 0
-                    ? `${totalEquip} telecom equipment element(s) detected`
-                    : "No telecom equipment detected"}
-                </div>
-                <EquipmentRow
-                  label="Antennas"
-                  count={analysis.equipment.Antenna}
-                  icon={Icons.antenna}
-                  color="#22d3ee"
-                />
-                <EquipmentRow
-                  label="RRU / Radio Units"
-                  count={analysis.equipment.RRU}
-                  icon={Icons.rru}
-                  color="#f472b6"
-                />
-                <EquipmentRow
-                  label="Dishes / Microwave"
-                  count={analysis.equipment.Dish}
-                  icon={Icons.dish}
-                  color="#fb923c"
-                />
-                {totalEquip > 0 && (
-                  <div
-                    style={{
-                      marginTop: 8,
-                      padding: "10px 12px",
-                      borderRadius: 8,
-                      background: "rgba(255,255,255,0.03)",
-                      border: `1px solid ${PANEL_BORDER}`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: TEXT_MUTED,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Detected Equipment Elements
-                    </div>
-                    <div style={{ maxHeight: 200, overflowY: "auto" }}>
-                      {analysis.meshEntries
-                        .filter((e) => e.equipmentType !== null)
-                        .map((entry, i) => {
-                          const color =
-                            entry.equipmentType === "Antenna"
-                              ? "#22d3ee"
-                              : entry.equipmentType === "RRU"
-                                ? "#f472b6"
-                                : "#fb923c";
-                          return (
-                            <div
-                              key={i}
-                              style={{
-                                fontSize: 11,
-                                color: TEXT_SECONDARY,
-                                padding: "4px 0",
-                                borderBottom:
-                                  "1px solid rgba(255,255,255,0.04)",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 6,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: 3,
-                                  background: color,
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <span
-                                style={{
-                                  width: 14,
-                                  height: 14,
-                                  borderRadius: 3,
-                                  background:
-                                    entry.materialColor,
-                                  border:
-                                    "1px solid rgba(255,255,255,0.15)",
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <span
-                                style={{
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  flex: 1,
-                                }}
-                              >
-                                {entry.name}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: 9,
-                                  color,
-                                  fontWeight: 700,
-                                  textTransform: "uppercase",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {entry.equipmentType}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
-                <div
-                  style={{
-                    marginTop: 4,
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    background: `${WARNING}08`,
-                    border: `1px solid ${WARNING}15`,
-                    fontSize: 10,
-                    color: TEXT_MUTED,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Detection method: material color + geometry
-                  heuristics. IFC→GLB export strips semantic names
-                  (all nodes are "empty_N"). For accurate detection,
-                  preserve IFC entity names during GLB export.
-                </div>
-              </div>
-            )}
-
-            {activeTab === "categories" && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                {analysis.categories.map((cat, i) => {
-                  const pct =
-                    analysis.totalMeshes > 0
-                      ? (cat.count / analysis.totalMeshes) * 100
-                      : 0;
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        padding: "10px 12px",
-                        borderRadius: 8,
-                        background: `${cat.color}08`,
-                        border: `1px solid ${cat.color}18`,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: 6,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: 10,
-                              height: 10,
-                              borderRadius: 3,
-                              background: cat.color,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <span
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 600,
-                              color: TEXT_PRIMARY,
-                            }}
-                          >
-                            {cat.name}
-                          </span>
-                        </div>
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: cat.color,
-                          }}
-                        >
-                          {cat.count}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          height: 4,
-                          borderRadius: 2,
-                          background: "rgba(255,255,255,0.06)",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${Math.max(pct, 2)}%`,
-                            borderRadius: 2,
-                            background: cat.color,
-                            transition: "width 0.3s ease",
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginTop: 4,
-                          fontSize: 10,
-                          color: TEXT_MUTED,
-                        }}
-                      >
-                        <span>{pct.toFixed(1)}% of meshes</span>
-                        <span>
-                          {cat.triangles.toLocaleString()} tris
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {/* Fullscreen */}
+          {enableFullscreen && (
+            <button className="glb-btn" onClick={handleFullscreen} title="Fullscreen (F)">
+              {Icon.fullscreen}
+            </button>
+          )}
         </div>
       )}
-    </div>
-  );
-}
 
-// ─── Enhanced Toolbar Button ──────────────────────────────────────────────────
-function ToolbarButton({
-  icon,
-  active,
-  title,
-  onClick,
-  accentColor,
-  pulse,
-}: {
-  icon: React.ReactNode;
-  active: boolean;
-  title: string;
-  onClick: () => void;
-  accentColor?: string;
-  pulse?: boolean;
-}) {
-  const color = accentColor || ACCENT;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 38,
-        height: 38,
-        padding: 0,
-        border: `1px solid ${active ? `${color}50` : PANEL_BORDER}`,
-        borderRadius: 8,
-        background: active ? `${color}25` : PANEL_BG,
-        backdropFilter: "blur(12px)",
-        color: active ? color : TEXT_SECONDARY,
-        cursor: "pointer",
-        transition: "all 0.15s",
-        position: "relative",
-        boxShadow: active ? `0 0 12px ${color}30` : "none",
-      }}
-    >
-      {icon}
-      {pulse && (
-        <span
-          style={{
-            position: "absolute",
-            top: -2,
-            right: -2,
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: color,
-            animation: "tbPulse 1.5s ease-in-out infinite",
-          }}
-        />
+      {/* ── Camera preset buttons (right side) ── */}
+      {enableCameraPresets && !loading && (
+        <div className="glb-cam-presets">
+          {(Object.keys(CAMERA_PRESETS) as CameraPreset[]).map((key) => (
+            <button
+              key={key}
+              className="glb-btn glb-btn-text"
+              onClick={() => setCameraPreset(key)}
+              title={`${CAMERA_PRESETS[key].label} view`}
+            >
+              {CAMERA_PRESETS[key].label}
+            </button>
+          ))}
+        </div>
       )}
-      <style>{`@keyframes tbPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(1.3); } }`}</style>
-    </button>
+
+    </div>
   );
 }
 
