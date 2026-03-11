@@ -15,6 +15,7 @@ server/.env
 server/uploads
 server/logs
 server/*.log
+server/uploads/products/models
 plan_incoice_management.md
 google-login.md
 
