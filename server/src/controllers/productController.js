@@ -108,7 +108,7 @@ export const getProduct = async (req, res) => {
 // Create product
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, price, sku, category, tags, images, createdBy } = req.body;
+    const { name, description, price, sku, category, tags, images, model3dUrl, createdBy } = req.body;
 
     if (!name || !price) {
       return res.status(400).json({ error: 'Name and price are required' });
@@ -125,6 +125,7 @@ export const createProduct = async (req, res) => {
       category: category || '',
       tags: Array.isArray(tags) ? tags : [],
       images: Array.isArray(images) ? images : [],
+      model3dUrl: model3dUrl || '',
       createdBy: productCreatedBy,
       isActive: true,
     });
@@ -141,7 +142,7 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, sku, category, tags, images, isActive, createdBy } = req.body;
+    const { name, description, price, sku, category, tags, images, model3dUrl, isActive, createdBy } = req.body;
 
     const product = await Product.findById(id);
     if (!product) {
@@ -155,6 +156,7 @@ export const updateProduct = async (req, res) => {
     if (category !== undefined) product.category = category;
     if (tags !== undefined) product.tags = Array.isArray(tags) ? tags : [];
     if (images !== undefined) product.images = Array.isArray(images) ? images : [];
+    if (model3dUrl !== undefined) product.model3dUrl = model3dUrl || '';
     if (isActive !== undefined) product.isActive = isActive;
     
     // Admins can change createdBy
@@ -204,6 +206,24 @@ export const uploadProductImage = async (req, res, next) => {
     res.status(201).json({
       message: 'Product image uploaded successfully',
       imageUrl: imagePath,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Upload product 3D model (GLB)
+export const uploadProductModel = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const modelPath = `/uploads/products/models/${req.file.filename}`;
+
+    res.status(201).json({
+      message: 'Product 3D model uploaded successfully',
+      modelUrl: modelPath,
     });
   } catch (error) {
     next(error);

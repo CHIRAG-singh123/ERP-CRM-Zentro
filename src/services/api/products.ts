@@ -76,3 +76,20 @@ export const uploadProductImage = async (file: File): Promise<string> => {
   return response.imageUrl;
 };
 
+export interface ProductModelUploadResponse {
+  message: string;
+  modelUrl: string;
+}
+
+export const uploadProductModel = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('model', file);
+
+  const response = await fetchJson<ProductModelUploadResponse>('/products/upload-model', {
+    method: 'POST',
+    body: formData,
+  });
+
+  return response.modelUrl;
+};
+

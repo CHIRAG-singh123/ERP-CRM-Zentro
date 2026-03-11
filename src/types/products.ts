@@ -8,6 +8,7 @@ export interface Product {
   sku?: string;
   category: string;
   images: string[];
+  model3dUrl?: string;
   createdBy: {
     _id: string;
     name: string;
@@ -44,6 +45,7 @@ export interface ProductFormData {
   category: string;
   tags: string[];
   images: string[];
+  model3dUrl?: string;
   createdBy?: string; // Optional, only for admins
 }
 

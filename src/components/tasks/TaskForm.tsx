@@ -28,15 +28,28 @@ interface TaskFormValues {
   tags: string;
 }
 
-const validationSchema = Yup.object({
-  title: Yup.string().required('Title is required').min(3, 'Title must be at least 3 characters'),
-  description: Yup.string(),
-  status: Yup.string().oneOf(['Todo', 'In Progress', 'Done', 'Cancelled']).required('Status is required'),
-  priority: Yup.string().oneOf(['Low', 'Medium', 'High', 'Urgent']).required('Priority is required'),
-  assignedTo: Yup.array().of(Yup.string()),
-  dueDate: Yup.string().required('Due Date is required'),
-  tags: Yup.string(),
-});
+// Build validation schema with optional past-date check for new tasks
+function buildValidationSchema(allowPastDueDate: boolean) {
+  return Yup.object({
+    title: Yup.string().required('Title is required').min(3, 'Title must be at least 3 characters'),
+    description: Yup.string(),
+    status: Yup.string().oneOf(['Todo', 'In Progress', 'Done', 'Cancelled']).required('Status is required'),
+    priority: Yup.string().oneOf(['Low', 'Medium', 'High', 'Urgent']).required('Priority is required'),
+    assignedTo: Yup.array().of(Yup.string()),
+    dueDate: Yup.string()
+      .required('Due Date is required')
+      .test('not-past', 'Past dates are not allowed to be selected.', (value) => {
+        if (!value) return true;
+        if (allowPastDueDate) return true; // when editing, allow existing past due dates
+        const selected = new Date(value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        selected.setHours(0, 0, 0, 0);
+        return selected >= today;
+      }),
+    tags: Yup.string(),
+  });
+}
 
 export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: TaskFormProps) {
   const { user } = useAuth();
@@ -156,6 +169,15 @@ export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: 
     const availableUserIds = new Set(availableUsers.map(u => String(u._id)));
     return normalizedIds.filter(id => availableUserIds.has(id));
   }, [task?.assignedTo, availableUsers]);
+
+  // Validation: when creating a new task, disallow past due dates; when editing, allow (existing task may have past date)
+  const validationSchema = useMemo(
+    () => buildValidationSchema(!!task),
+    [task]
+  );
+
+  // Today in YYYY-MM-DD for date input min (prevents selecting past dates in picker)
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   // Compute initial values using useMemo - only when task, validAssignedToIds, or initialDueDate changes
   const initialValues: TaskFormValues = useMemo(() => {
@@ -483,6 +505,7 @@ export function TaskForm({ task, isOpen, onSuccess, onCancel, initialDueDate }: 
                   <Field
                     type="date"
                     name="dueDate"
+                    min={todayStr}
                     className="w-full rounded-lg border border-white/10 bg-[#1A1A1C]/70 px-3 py-2 text-white outline-none transition-all duration-200 focus:border-[#A8DADC] focus:ring-2 focus:ring-[#A8DADC]/20"
                   />
                   <ErrorMessage name="dueDate" component="p" className="mt-1 text-xs text-red-400" />

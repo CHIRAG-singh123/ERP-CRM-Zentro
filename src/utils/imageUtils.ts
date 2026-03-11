@@ -15,3 +15,11 @@ export const getImageUrl = (url?: string | null): string | null => {
   return `${serverBase}${url.startsWith('/') ? url : `/${url}`}`;
 };
 
+/**
+ * Constructs a full URL for 3D model (e.g. .glb) from a relative path.
+ * Same as getImageUrl but named for clarity when used for model assets.
+ */
+export const getModel3dUrl = (url?: string | null): string | null => {
+  return getImageUrl(url);
+};
+

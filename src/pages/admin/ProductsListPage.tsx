@@ -6,6 +6,8 @@ import { DataGrid } from '../../components/common/DataGrid';
 import { DataGridPlaceholder } from '../../components/common/DataGridPlaceholder';
 import { PageHeader } from '../../components/common/PageHeader';
 import { ProductImageUploader } from '../../components/products/ProductImageUploader';
+import { ProductGlbUploader } from '../../components/products/ProductGlbUploader';
+import { ProductCategoryField } from '../../components/products/ProductCategoryField';
 import { ProductAvatar } from '../../components/common/ProductAvatar';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import {
@@ -16,7 +18,7 @@ import {
 } from '../../hooks/queries/useProducts';
 import { useAuth } from '../../context/AuthContext';
 import { useAllUsers } from '../../hooks/queries/useUsers';
-import { uploadProductImage } from '../../services/api/products';
+import { uploadProductImage, uploadProductModel } from '../../services/api/products';
 import { logger } from '../../utils/logger';
 import { AnimatedNumber } from '../../components/common/AnimatedNumber';
 import type { ProductFormData } from '../../types/products';
@@ -42,9 +44,11 @@ export function AdminProductsListPage() {
     category: '',
     tags: [],
     images: [],
+    model3dUrl: '',
     createdBy: user?._id || '',
   });
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [uploadedModel3dUrl, setUploadedModel3dUrl] = useState<string | null>(null);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -108,6 +112,7 @@ export function AdminProductsListPage() {
       const productData = {
         ...formData,
         images: uploadedImageUrl ? [uploadedImageUrl] : [],
+        model3dUrl: uploadedModel3dUrl || formData.model3dUrl || '',
       };
       await createMutation.mutateAsync(productData);
       setShowCreateModal(false);
@@ -123,6 +128,7 @@ export function AdminProductsListPage() {
       const productData = {
         ...formData,
         images: uploadedImageUrl ? [uploadedImageUrl] : formData.images,
+        model3dUrl: uploadedModel3dUrl !== null ? (uploadedModel3dUrl || '') : (formData.model3dUrl || ''),
       };
       await updateMutation.mutateAsync({ id: editingProduct, data: productData });
       setEditingProduct(null);
@@ -152,9 +158,11 @@ export function AdminProductsListPage() {
       category: '',
       tags: [],
       images: [],
+      model3dUrl: '',
       createdBy: user?._id || '',
     });
     setUploadedImageUrl(null);
+    setUploadedModel3dUrl(null);
   };
 
   const handleViewProduct = (product: Product) => {
@@ -171,9 +179,11 @@ export function AdminProductsListPage() {
       category: product.category,
       tags: product.tags,
       images: product.images,
+      model3dUrl: product.model3dUrl || '',
       createdBy: product.createdBy?._id || user?._id || '',
     });
     setUploadedImageUrl(product.images && product.images.length > 0 ? product.images[0] : null);
+    setUploadedModel3dUrl(product.model3dUrl || null);
     setShowCreateModal(true);
   };
 
@@ -577,6 +587,19 @@ export function AdminProductsListPage() {
                     }}
                   />
 
+                  <ProductGlbUploader
+                    modelUrl={uploadedModel3dUrl ?? formData.model3dUrl}
+                    onUpload={async (file) => {
+                      const url = await uploadProductModel(file);
+                      setUploadedModel3dUrl(url);
+                      return url;
+                    }}
+                    onRemove={() => {
+                      setUploadedModel3dUrl(null);
+                      setFormData({ ...formData, model3dUrl: '' });
+                    }}
+                  />
+
                   <div>
                     <label className="block text-sm font-medium text-white/70 mb-1">Name *</label>
                     <input
@@ -616,15 +639,10 @@ export function AdminProductsListPage() {
                       />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1">Category</label>
-                    <input
-                      type="text"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full rounded-lg border border-white/10 bg-[#1A1A1C]/70 px-3 py-2 text-white focus:border-[#B39CD0] focus:outline-none"
-                    />
-                  </div>
+                  <ProductCategoryField
+                    value={formData.category}
+                    onChange={(category) => setFormData({ ...formData, category })}
+                  />
                   <div>
                     <label className="block text-sm font-medium text-white/70 mb-1">Created By *</label>
                     <select

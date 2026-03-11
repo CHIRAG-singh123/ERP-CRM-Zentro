@@ -1,4 +1,4 @@
-import { Package, DollarSign, Tag, User, Edit, Trash2, ArrowLeft, Loader2, X, MessageSquare } from 'lucide-react';
+import { Package, DollarSign, Tag, User, Edit, Trash2, ArrowLeft, Loader2, X, MessageSquare, Eye } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -13,11 +13,15 @@ import { StarRating } from '../../components/common/StarRating';
 import { ReviewThread } from '../../components/reviews/ReviewThread';
 import { CreatorDetailsModal } from '../../components/products/CreatorDetailsModal';
 import { ProductImageUploader } from '../../components/products/ProductImageUploader';
+import { ProductGlbUploader } from '../../components/products/ProductGlbUploader';
+import { ProductCategoryField } from '../../components/products/ProductCategoryField';
 import { useAuth } from '../../context/AuthContext';
 import { useAllUsers } from '../../hooks/queries/useUsers';
 import { useEmployeeProductReviews } from '../../hooks/queries/useReviews';
-import { uploadProductImage } from '../../services/api/products';
+import { uploadProductImage, uploadProductModel } from '../../services/api/products';
 import { formatDate } from '../../utils/formatting';
+import { getModel3dUrl } from '../../utils/imageUtils';
+import { GlbViewer } from 'model-viewer/GlbViewer';
 import type { ProductFormData, Product } from '../../types/products';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -78,9 +82,12 @@ export function ProductDetailPage() {
     category: '',
     tags: [],
     images: [],
+    model3dUrl: '',
     createdBy: user?._id || '',
   });
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [uploadedModel3dUrl, setUploadedModel3dUrl] = useState<string | null>(null);
+  const [show3dModal, setShow3dModal] = useState(false);
 
   const { data, isLoading, isError, error } = useProduct(id || '');
   const product = data?.product;
@@ -135,9 +142,11 @@ export function ProductDetailPage() {
       category: productData.category,
       tags: productData.tags,
       images: productData.images,
+      model3dUrl: productData.model3dUrl || '',
       createdBy: productData.createdBy?._id || user?._id || '',
     });
     setUploadedImageUrl(productData.images && productData.images.length > 0 ? productData.images[0] : null);
+    setUploadedModel3dUrl(productData.model3dUrl || null);
     setShowEditModal(true);
   };
 
@@ -147,6 +156,7 @@ export function ProductDetailPage() {
       const productData = {
         ...formData,
         images: uploadedImageUrl ? [uploadedImageUrl] : formData.images,
+        model3dUrl: uploadedModel3dUrl !== null ? (uploadedModel3dUrl || '') : (formData.model3dUrl || ''),
       };
       await updateMutation.mutateAsync({ id: product._id, data: productData });
       setShowEditModal(false);
@@ -168,14 +178,16 @@ export function ProductDetailPage() {
       category: '',
       tags: [],
       images: [],
+      model3dUrl: '',
       createdBy: user?._id || '',
     });
     setUploadedImageUrl(null);
+    setUploadedModel3dUrl(null);
   };
 
   // Lock body scroll when modals are open
   useEffect(() => {
-    if (showEditModal || showCreatorModal) {
+    if (showEditModal || showCreatorModal || show3dModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -183,7 +195,7 @@ export function ProductDetailPage() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showEditModal, showCreatorModal]);
+  }, [showEditModal, showCreatorModal, show3dModal]);
 
   const getBackPath = () => {
     const currentPath = window.location.pathname;
@@ -277,7 +289,17 @@ export function ProductDetailPage() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-2xl font-bold text-white mb-3">{product.name}</h2>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h2 className="text-2xl font-bold text-white">{product.name}</h2>
+                    <button
+                      type="button"
+                      onClick={() => setShow3dModal(true)}
+                      className="rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                      title={product.model3dUrl ? 'View 3D model' : 'View 3D model (not available)'}
+                    >
+                      <Eye className="h-6 w-6" />
+                    </button>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80">
                       {product.category}
@@ -499,6 +521,19 @@ export function ProductDetailPage() {
                     }}
                   />
 
+                  <ProductGlbUploader
+                    modelUrl={uploadedModel3dUrl ?? formData.model3dUrl}
+                    onUpload={async (file) => {
+                      const url = await uploadProductModel(file);
+                      setUploadedModel3dUrl(url);
+                      return url;
+                    }}
+                    onRemove={() => {
+                      setUploadedModel3dUrl(null);
+                      setFormData({ ...formData, model3dUrl: '' });
+                    }}
+                  />
+
                   <div>
                     <label className="block text-sm font-medium text-white/70 mb-1">Name *</label>
                     <input
@@ -538,15 +573,10 @@ export function ProductDetailPage() {
                       />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1">Category</label>
-                    <input
-                      type="text"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full rounded-lg border border-white/10 bg-[#1A1A1C]/70 px-3 py-2 text-white focus:border-[#B39CD0] focus:outline-none"
-                    />
-                  </div>
+                  <ProductCategoryField
+                    value={formData.category}
+                    onChange={(category) => setFormData({ ...formData, category })}
+                  />
                   {isAdminRoute && (
                     <div>
                       <label className="block text-sm font-medium text-white/70 mb-1">Created By *</label>
@@ -599,6 +629,54 @@ export function ProductDetailPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {show3dModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-[6.5px] p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShow3dModal(false);
+            }}
+          >
+            <div
+              className="relative flex flex-col rounded-xl border border-white/10 bg-transparent shadow-2xl overflow-hidden"
+              style={{ width: 1000, height: 1000, maxWidth: 'min(100vw - 2rem, 1000px)', maxHeight: 'min(100vh - 2rem, 1000px)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 bg-[#1A1A1C] px-4 py-2">
+                <span className="text-sm font-medium text-white">3D View — {product.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setShow3dModal(false)}
+                  className="relative z-10 rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="relative z-0 flex-1 min-h-0 flex items-center justify-center" style={{ width: '100%', height: 968 }}>
+                {product.model3dUrl ? (
+                  <GlbViewer
+                    url={getModel3dUrl(product.model3dUrl)}
+                    siteName={product.name}
+                    width={1000}
+                    height={968}
+                    backgroundColor="#282C34"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-white/5 p-8 text-center">
+                    <Eye className="h-16 w-16 text-white/30" />
+                    <p className="text-lg font-medium text-white/80">No 3D model available</p>
+                    <p className="text-sm text-white/50 max-w-md">
+                      Upload a .glb file when editing this product to enable 3D view.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>,

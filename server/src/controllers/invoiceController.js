@@ -114,7 +114,7 @@ export const getInvoices = asyncHandler(async (req, res) => {
 
 // @desc    Get single invoice
 // @route   GET /api/invoices/:id
-// @access  Private
+// @access  Private (RBAC: admin all, employee own products, customer own contact)
 export const getInvoice = asyncHandler(async (req, res) => {
   const query = { _id: req.params.id };
   if (req.user.tenantId) {
@@ -130,6 +130,32 @@ export const getInvoice = asyncHandler(async (req, res) => {
 
   if (!invoice) {
     return res.status(404).json({ error: 'Invoice not found' });
+  }
+
+  // Role-based access: same rules as downloadInvoicePDF
+  if (req.user.role === 'employee') {
+    const productIds = invoice.lineItems
+      .map((item) => item.productId?._id || item.productId)
+      .filter(Boolean);
+    if (productIds.length > 0) {
+      const employeeProducts = await Product.find({
+        _id: { $in: productIds },
+        createdBy: req.user._id,
+      });
+      if (employeeProducts.length === 0) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+  } else if (req.user.role === 'customer') {
+    const customerContact = await Contact.findOne({
+      'emails.email': req.user.email,
+      tenantId: req.user.tenantId || null,
+    });
+    if (!customerContact || invoice.contactId?._id?.toString() !== customerContact._id.toString()) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+  } else if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied' });
   }
 
   res.json({ invoice });

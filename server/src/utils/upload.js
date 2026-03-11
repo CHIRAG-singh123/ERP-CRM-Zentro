@@ -71,6 +71,44 @@ export const productImageUpload = multer({
 
 export const productImageUploadDir = PRODUCT_IMAGE_DIR;
 
+// Product 3D model (GLB) upload configuration
+const PRODUCT_MODEL_DIR = path.join(process.cwd(), 'server', 'uploads', 'products', 'models');
+
+if (!fs.existsSync(PRODUCT_MODEL_DIR)) {
+  fs.mkdirSync(PRODUCT_MODEL_DIR, { recursive: true });
+}
+
+const productModelStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, PRODUCT_MODEL_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname)?.toLowerCase() || '.glb';
+    const userId = req.user?._id?.toString() || 'anon';
+    cb(null, `model-${userId}-${Date.now()}${ext}`);
+  },
+});
+
+const glbFileFilter = (_req, file, cb) => {
+  const ext = path.extname(file.originalname)?.toLowerCase();
+  const isGlb = ext === '.glb';
+  const isGlbMime = file.mimetype === 'model/gltf-binary' || file.mimetype === 'application/octet-stream';
+  if (isGlb || isGlbMime) {
+    return cb(null, true);
+  }
+  return cb(new Error('Only .glb (GLTF binary) files are allowed'));
+};
+
+export const productModelUpload = multer({
+  storage: productModelStorage,
+  fileFilter: glbFileFilter,
+  limits: {
+    fileSize: 200 * 1024 * 1024, // 200MB for 3D models
+  },
+});
+
+export const productModelUploadDir = PRODUCT_MODEL_DIR;
+
 // Group avatar upload configuration
 const GROUP_AVATAR_DIR = path.join(process.cwd(), 'server', 'uploads', 'group-avatars');
 

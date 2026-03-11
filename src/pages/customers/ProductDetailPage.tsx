@@ -6,10 +6,14 @@ import { StarRating } from '../../components/common/StarRating';
 import { ReviewThread } from '../../components/reviews/ReviewThread';
 import { useAuth } from '../../context/AuthContext';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ArrowLeft, Trash2, ShoppingCart, Eye, X } from 'lucide-react';
+import { PaymentModal } from '../../components/customers/PaymentModal';
+import { useToast } from '../../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { logger } from '../../utils/logger';
-import { getImageUrl } from '../../utils/imageUtils';
+import { getImageUrl, getModel3dUrl } from '../../utils/imageUtils';
+import { GlbViewer } from 'model-viewer/GlbViewer';
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +22,9 @@ export function ProductDetailPage() {
   const queryClient = useQueryClient();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [show3dModal, setShow3dModal] = useState(false);
+  const { success: showSuccessToast } = useToast();
 
   const { data: productData, isLoading: productLoading } = useProduct(id || '');
   const { data: reviewsData, isLoading: reviewsLoading } = useProductReviews(id || '', {
@@ -174,7 +181,17 @@ export function ProductDetailPage() {
         <div className="space-y-4">
           <div>
             <span className="text-xs uppercase tracking-wide text-white/50">{product.category}</span>
-            <h1 className="mt-2 text-3xl font-bold text-white">{product.name}</h1>
+            <div className="mt-2 flex items-center gap-2">
+              <h1 className="text-3xl font-bold text-white">{product.name}</h1>
+              <button
+                type="button"
+                onClick={() => setShow3dModal(true)}
+                className="rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                title={product.model3dUrl ? 'View 3D model' : 'View 3D model (not available for this product)'}
+              >
+                <Eye className="h-6 w-6" />
+              </button>
+            </div>
             <div className="mt-2 flex items-center gap-2">
               <StarRating rating={averageRating} size="lg" showValue />
               <span className="text-sm text-white/50">
@@ -185,8 +202,29 @@ export function ProductDetailPage() {
 
           <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 p-4">
             <div className="text-3xl font-bold text-[#B39CD0]">${product.price.toFixed(2)}</div>
+            {isAuthenticated ? (
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#B39CD0] px-4 py-3 text-sm font-medium text-[#1A1A1C] transition hover:bg-[#C3ADD9]"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Order now
+              </button>
+            ) : (
+              <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-3 text-center">
+                <p className="text-sm text-white/70">
+                  Please{' '}
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="text-[#B39CD0] hover:underline"
+                  >
+                    log in
+                  </button>{' '}
+                  to place an order.
+                </p>
+              </div>
+            )}
           </div>
-
 
           {product.description && (
             <div>
@@ -305,6 +343,64 @@ export function ProductDetailPage() {
         )}
       </div>
 
+      {showPaymentModal && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          product={{ _id: product._id, name: product.name, price: product.price }}
+          onSuccess={() => {
+            showSuccessToast('Payment successful. Receipt sent to your email.');
+          }}
+        />
+      )}
+
+      {show3dModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-[6.5px] p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShow3dModal(false);
+            }}
+          >
+            <div
+              className="relative flex flex-col rounded-xl border border-white/10 bg-transparent shadow-2xl overflow-hidden"
+              style={{ width: 1000, height: 1000, maxWidth: 'min(100vw - 2rem, 1000px)', maxHeight: 'min(100vh - 2rem, 1000px)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 bg-[#1A1A1C] px-4 py-2">
+                <span className="text-sm font-medium text-white">3D View — {product.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setShow3dModal(false)}
+                  className="relative z-10 rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="relative z-0 flex-1 min-h-0 flex items-center justify-center" style={{ width: '100%', height: 968 }}>
+                {product.model3dUrl ? (
+                  <GlbViewer
+                    url={getModel3dUrl(product.model3dUrl)}
+                    siteName={product.name}
+                    width={1000}
+                    height={968}
+                    backgroundColor="#282C34"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-white/5 p-8 text-center">
+                    <Eye className="h-16 w-16 text-white/30" />
+                    <p className="text-lg font-medium text-white/80">No 3D model available</p>
+                    <p className="text-sm text-white/50 max-w-md">
+                      A 3D model (.glb) has not been uploaded for this product. Admins or employees can add one when editing the product.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

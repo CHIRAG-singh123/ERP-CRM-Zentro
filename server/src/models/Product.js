@@ -32,6 +32,10 @@ const productSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    model3dUrl: {
+      type: String,
+      default: '',
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

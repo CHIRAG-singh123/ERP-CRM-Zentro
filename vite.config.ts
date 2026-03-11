@@ -1,3 +1,4 @@
+import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -152,7 +153,8 @@ export default defineConfig({
   resolve: {
     // Alias for faster resolution
     alias: {
-      '@': '/src',
+      '@': path.resolve(process.cwd(), 'src'),
+      'model-viewer': path.resolve(process.cwd(), 'src/pages/model-viewer'),
     },
     // Dedupe to prevent duplicate dependencies
     dedupe: ['react', 'react-dom'],
