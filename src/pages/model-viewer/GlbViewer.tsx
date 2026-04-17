@@ -1039,6 +1039,96 @@ const VIEWER_STYLES = `
     font-size: 11px;
     color: rgba(255,255,255,0.75);
   }
+
+  /* ── Light mode overrides (when app theme is light) ── */
+  .light .glb-viewer-root {
+    background: var(--color-background);
+  }
+  .light .glb-viewer-root .glb-canvas-container {
+    background: var(--color-background);
+  }
+  .light .glb-viewer-root .glb-toolbar {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid var(--color-border);
+  }
+  .light .glb-viewer-root .glb-toolbar-divider {
+    background: rgba(0, 0, 0, 0.12);
+  }
+  .light .glb-viewer-root .glb-btn {
+    color: var(--color-foreground);
+  }
+  .light .glb-viewer-root .glb-btn:hover {
+    background: var(--overlay-light);
+    color: var(--color-foreground);
+  }
+  .light .glb-viewer-root .glb-btn.active {
+    background: var(--overlay-medium);
+    color: var(--color-foreground);
+  }
+  .light .glb-viewer-root .glb-cam-presets {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border);
+  }
+  .light .glb-viewer-root .glb-close-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border);
+    color: var(--color-foreground);
+  }
+  .light .glb-viewer-root .glb-close-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+  }
+  .light .glb-viewer-root .glb-site-badge {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--color-border);
+  }
+  .light .glb-viewer-root .glb-site-badge span {
+    color: var(--color-foreground);
+  }
+  .light .glb-viewer-root .glb-loading-overlay {
+    background: rgba(247, 246, 249, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .light .glb-viewer-root .glb-spinner {
+    border-color: rgba(0, 0, 0, 0.1);
+    border-top-color: var(--color-foreground);
+  }
+  .light .glb-viewer-root .glb-loading-text {
+    color: var(--color-foreground);
+  }
+  .light .glb-viewer-root .glb-progress-bar {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .light .glb-viewer-root .glb-progress-fill {
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-secondary));
+    border-radius: 2px;
+  }
+  .light .glb-viewer-root .glb-mat-tooltip {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+  }
+  .light .glb-viewer-root .glb-mat-tooltip span {
+    color: var(--color-foreground);
+  }
+  .light .glb-viewer-root .glb-error {
+    background: var(--overlay-light);
+    border: 1px solid var(--color-border);
+  }
+  .light .glb-viewer-root .glb-error p {
+    color: var(--color-foreground);
+  }
+  .light .glb-viewer-root .glb-empty {
+    background: var(--overlay-light);
+    border: 1px solid var(--color-border);
+  }
+  .light .glb-viewer-root .glb-empty p {
+    color: var(--color-foreground);
+  }
 `;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

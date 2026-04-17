@@ -210,36 +210,15 @@ export const getKPIs = asyncHandler(async (req, res) => {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
 
-  // Get tasks due this week
-  const weekTasks = await Task.countDocuments({
+  // Weekly tasks: only tasks due this week (Mon–Sun), excluding completed/cancelled
+  const weeklyTasks = await Task.countDocuments({
     ...taskFilter,
+    status: { $nin: ['Done', 'Cancelled'] },
     dueDate: {
       $gte: weekStart,
       $lte: weekEnd,
     },
   });
-
-  // Get overdue tasks (not done, dueDate < now)
-  const overdueCount = await Task.countDocuments({
-    ...taskFilter,
-    status: { $ne: 'Done' },
-    dueDate: { $lt: new Date() },
-  });
-
-  // Get tasks that are both in week range AND overdue (to avoid double counting)
-  const weekAndOverdue = await Task.countDocuments({
-    ...taskFilter,
-    status: { $ne: 'Done' },
-    dueDate: {
-      $gte: weekStart,
-      $lte: weekEnd,
-      $lt: new Date(),
-    },
-  });
-
-  // Weekly tasks = week tasks + overdue tasks - duplicates
-  // This ensures we count all tasks that should appear in "This Week" view
-  const weeklyTasks = weekTasks + overdueCount - weekAndOverdue;
 
   res.json({
     monthlySales: monthlySales.map((item) => ({
@@ -415,31 +394,14 @@ export const exportDashboardPDF = asyncHandler(async (req, res) => {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
 
-  const weekTasks = await Task.countDocuments({
+  const weeklyTasks = await Task.countDocuments({
     ...taskFilter,
+    status: { $nin: ['Done', 'Cancelled'] },
     dueDate: {
       $gte: weekStart,
       $lte: weekEnd,
     },
   });
-
-  const overdueCount = await Task.countDocuments({
-    ...taskFilter,
-    status: { $ne: 'Done' },
-    dueDate: { $lt: new Date() },
-  });
-
-  const weekAndOverdue = await Task.countDocuments({
-    ...taskFilter,
-    status: { $ne: 'Done' },
-    dueDate: {
-      $gte: weekStart,
-      $lte: weekEnd,
-      $lt: new Date(),
-    },
-  });
-
-  const weeklyTasks = weekTasks + overdueCount - weekAndOverdue;
 
   // Prepare dashboard data
   const dashboardData = {

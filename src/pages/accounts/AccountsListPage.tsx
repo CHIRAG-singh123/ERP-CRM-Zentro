@@ -135,13 +135,6 @@ export function AccountsListPage() {
               placeholder="Search by name, email, industry…"
             />
           </div>
-          <button className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105">
-            Parent Tree
-          </button>
-          <button className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105">
-            <Layers className="h-4 w-4" />
-            Segments
-          </button>
           <button className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105">
             <Filter className="h-4 w-4" />
             Filters

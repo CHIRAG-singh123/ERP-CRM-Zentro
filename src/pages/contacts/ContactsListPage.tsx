@@ -12,6 +12,7 @@ import { importContacts, exportContacts } from '../../services/api/contacts';
 import { useQueryClient } from '@tanstack/react-query';
 import { ContactForm } from '../../components/contacts/ContactForm';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { OwnerFilterDropdown } from '../../components/contacts/OwnerFilterDropdown';
 import { transformContactToGridItem } from '../../utils/contactUtils';
 import type { Contact } from '../../services/api/contacts';
 import { AnimatedNumber } from '../../components/common/AnimatedNumber';
@@ -24,6 +25,7 @@ export function ContactsListPage() {
   const [deletingContact, setDeletingContact] = useState<Contact | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -47,8 +49,12 @@ export function ContactsListPage() {
   });
 
   const contacts = data?.contacts || [];
+  const filteredContacts =
+    selectedOwners.length === 0
+      ? contacts
+      : contacts.filter((c) => selectedOwners.includes(c.createdBy?.name || 'Unknown'));
   const pagination = data?.pagination;
-  const gridData = contacts.map(transformContactToGridItem);
+  const gridData = filteredContacts.map(transformContactToGridItem);
 
   const handleImport = async (file: File) => {
     const result = await importContacts(file);
@@ -135,12 +141,13 @@ export function ContactsListPage() {
               placeholder="Search by name, email, domain…"
             />
           </div>
-          <button className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105">
-            Smart Lists
-          </button>
-          <button className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105">
-            Filters
-          </button>
+          <OwnerFilterDropdown
+            selectedOwners={selectedOwners}
+            onOwnerChange={(owners) => {
+              setSelectedOwners(owners);
+              setPage(1);
+            }}
+          />
         </div>
       </PageHeader>
 
@@ -159,13 +166,13 @@ export function ContactsListPage() {
             data={gridData}
             getRowId={(row) => row._id}
             onRowClick={(row) => {
-              const contact = contacts.find((c) => c._id === row._id);
+              const contact = filteredContacts.find((c) => c._id === row._id);
               if (contact) {
                 handleViewContact(contact);
               }
             }}
             actions={(row) => {
-              const contact = contacts.find((c) => c._id === row._id);
+              const contact = filteredContacts.find((c) => c._id === row._id);
               if (!contact) return null;
 
               return (

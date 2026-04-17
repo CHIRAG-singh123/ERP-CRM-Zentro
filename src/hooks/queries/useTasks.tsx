@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   getTasks,
+  getAllTasks,
   getTask,
   createTask,
   updateTask,
@@ -31,6 +32,21 @@ export function useTasks(params?: {
   return useQuery({
     queryKey: ['tasks', params],
     queryFn: () => getTasks(params),
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useAllTasks(params?: {
+  limit?: number;
+  status?: Task['status'];
+  assignedTo?: string;
+  dueDate?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  return useQuery({
+    queryKey: ['tasks', 'allPages', params],
+    queryFn: () => getAllTasks(params),
     staleTime: 2 * 60 * 1000,
   });
 }

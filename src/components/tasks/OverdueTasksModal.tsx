@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Plus, Eye, Edit, Trash2, Filter, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useOverdueTasks, useTasks, useDeleteTask, useTaskSocketUpdates } from '../../hooks/queries/useTasks';
+import { useOverdueTasks, useTasks, useAllTasks, useDeleteTask, useTaskSocketUpdates } from '../../hooks/queries/useTasks';
 import { DataGrid } from '../common/DataGrid';
 import { TaskForm } from './TaskForm';
 import { TaskDetailsModal } from './TaskDetailsModal';
@@ -11,22 +11,85 @@ import { TaskPriorityBadge } from './TaskPriorityBadge';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import type { Task } from '../../services/api/tasks';
 
-type FilterType = 'overdue' | 'week' | 'month' | 'all';
+type FilterType = 'overdue' | 'week' | 'month' | 'all' | 'my';
 
 interface OverdueTasksModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+type AssigneeLike = { _id?: string; name?: string; email?: string };
+
+const ASSIGNEES_COLLAPSED_COUNT = 2;
+
+// Renders up to N assignees by default with a "+M more" toggle. When expanded,
+// all names scroll inside a fixed-height viewport so the table row height does
+// not grow regardless of how many members are assigned.
+function AssigneesCell({ assignees }: { assignees: AssigneeLike[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!assignees || assignees.length === 0) {
+    return <span className="text-white/50">Unassigned</span>;
+  }
+
+  const hasMany = assignees.length > ASSIGNEES_COLLAPSED_COUNT;
+  const visible = expanded || !hasMany
+    ? assignees
+    : assignees.slice(0, ASSIGNEES_COLLAPSED_COUNT);
+
+  return (
+    <div className="min-w-0">
+      <div
+        className={
+          hasMany
+            ? 'h-[54px] overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent]'
+            : ''
+        }
+      >
+        <div className="space-y-0.5">
+          {visible.map((u, idx) => (
+            <p
+              key={u?._id || idx}
+              className="text-sm leading-tight text-white/80"
+              title={u?.email || u?.name}
+            >
+              {u?.name || u?.email || 'Unknown'}
+            </p>
+          ))}
+        </div>
+      </div>
+      {hasMany && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((v) => !v);
+          }}
+          className="mt-1 rounded text-[11px] font-medium text-[#A8DADC] transition-colors hover:text-[#BCE7E5] focus:outline-none focus:ring-1 focus:ring-[#A8DADC]/40"
+          aria-expanded={expanded}
+        >
+          {expanded
+            ? 'Show less'
+            : `+${assignees.length - ASSIGNEES_COLLAPSED_COUNT} more`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // Helper functions for date ranges
+// "This week" means upcoming tasks: from today 00:00 (local) through end of the
+// current Mon-Sun week (Sunday 23:59:59.999 local). Past days are excluded so
+// overdue tasks never leak into the weekly view.
 function getThisWeekRange(): { start: Date; end: Date } {
   const now = new Date();
-  const dayOfWeek = now.getDay();
-  const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
-  const start = new Date(now.getFullYear(), now.getMonth(), diff);
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   start.setHours(0, 0, 0, 0);
+
+  const dayOfWeek = now.getDay();
+  const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
   const end = new Date(start);
-  end.setDate(start.getDate() + 6);
+  end.setDate(start.getDate() + daysUntilSunday);
   end.setHours(23, 59, 59, 999);
   return { start, end };
 }
@@ -70,13 +133,6 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
     };
   }, [isOpen]);
 
-  // Reset search query when filter changes away from 'all'
-  useEffect(() => {
-    if (filterType !== 'all') {
-      setSearchQuery('');
-    }
-  }, [filterType]);
-
   // Calculate date range based on filter
   const getDateRange = () => {
     if (filterType === 'week') {
@@ -95,7 +151,7 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
     return {};
   };
 
-  // Fetch overdue tasks (needed for "overdue" filter and "week" filter)
+  // Fetch overdue tasks (used only for the explicit "overdue" filter)
   const overdueQuery = useOverdueTasks({ page: 1, limit: 50 });
   
   // Fetch tasks based on filter type
@@ -103,9 +159,17 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
   const tasksQuery = useTasks({
     page: 1,
     limit: 50,
-    // Only pass date params if not "all" or "overdue"
-    ...(filterType === 'all' || filterType === 'overdue' ? {} : dateRange),
+    ...(filterType === 'overdue' ? {} : dateRange),
   });
+
+  // All pages (removes the 50-item ceiling for "All Tasks" / "My Task")
+  const allTasksQuery = useAllTasks(
+    filterType === 'all' || filterType === 'my'
+      ? {
+          limit: 100,
+        }
+      : undefined
+  );
 
   // Enable real-time task updates
   useTaskSocketUpdates();
@@ -119,28 +183,40 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
     isLoading = overdueQuery.isLoading;
     refetch = overdueQuery.refetch;
     tasks = overdueQuery.data?.tasks || [];
+  } else if (filterType === 'all') {
+    isLoading = allTasksQuery.isLoading;
+    refetch = allTasksQuery.refetch;
+    tasks = allTasksQuery.data?.tasks || [];
+  } else if (filterType === 'my') {
+    isLoading = allTasksQuery.isLoading;
+    refetch = allTasksQuery.refetch;
+    const allTasks = allTasksQuery.data?.tasks || [];
+    const myUserId = user?._id?.toString();
+    tasks = myUserId
+      ? allTasks.filter((task) => {
+          const assignedToMe = Array.isArray(task.assignedTo)
+            ? task.assignedTo.some((u) => u?._id?.toString() === myUserId)
+            : false;
+          const createdByMe = task.createdBy?._id?.toString() === myUserId;
+          return assignedToMe || createdByMe;
+        })
+      : [];
   } else if (filterType === 'week') {
-    // For "This Week": merge week tasks + overdue tasks (deduplicate)
-    isLoading = tasksQuery.isLoading || overdueQuery.isLoading;
-    refetch = () => {
-      tasksQuery.refetch();
-      overdueQuery.refetch();
-    };
-    
+    // "This Week" shows upcoming tasks only (today 00:00 -> end of week).
+    // It must NOT include overdue tasks; source strictly from the date-bounded query.
+    isLoading = tasksQuery.isLoading;
+    refetch = tasksQuery.refetch;
+
     const weekTasks = tasksQuery.data?.tasks || [];
-    const overdueTasks = overdueQuery.data?.tasks || [];
-    
-    // Merge and deduplicate by task ID
-    const taskMap = new Map<string, Task>();
-    weekTasks.forEach((task) => {
-      taskMap.set(task._id, task);
+    // Safety net: drop any task that slips through without a dueDate or whose
+    // dueDate is before the start of today (handles timezone/backend edge cases).
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    tasks = weekTasks.filter((task) => {
+      if (!task.dueDate) return false;
+      return new Date(task.dueDate).getTime() >= startOfToday.getTime();
     });
-    overdueTasks.forEach((task) => {
-      taskMap.set(task._id, task);
-    });
-    
-    tasks = Array.from(taskMap.values());
-    // Sort by dueDate (null/undefined last), then by createdAt
+
     tasks.sort((a, b) => {
       if (!a.dueDate && !b.dueDate) return 0;
       if (!a.dueDate) return 1;
@@ -163,26 +239,24 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
     });
   }
 
-  // Apply search filtering when filterType is 'all'
-  const filteredTasks = filterType === 'all' && searchQuery.trim()
-    ? tasks.filter(task => {
-        const query = searchQuery.toLowerCase();
-        const titleMatch = task.title?.toLowerCase().includes(query);
-        const descMatch = task.description?.toLowerCase().includes(query);
-        let assigneeMatch = false;
-        if (task.assignedTo) {
-          if (Array.isArray(task.assignedTo)) {
-            assigneeMatch = task.assignedTo.some((user: { name?: string }) => 
-              user.name?.toLowerCase().includes(query)
-            );
-          } else {
-            const assignedUser = task.assignedTo as { name?: string };
-            assigneeMatch = assignedUser.name?.toLowerCase().includes(query) || false;
-          }
-        }
-        return titleMatch || descMatch || assigneeMatch;
-      })
-    : tasks;
+  const filteredTasks = useMemo(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return tasks;
+
+    const query = trimmed.toLowerCase();
+    return tasks.filter((task) => {
+      const titleMatch = task.title?.toLowerCase().includes(query);
+      const descMatch = task.description?.toLowerCase().includes(query);
+
+      const assigneeMatch = Array.isArray(task.assignedTo)
+        ? task.assignedTo.some((u) => u?.name?.toLowerCase().includes(query))
+        : false;
+
+      const createdByMatch = task.createdBy?.name?.toLowerCase().includes(query) || false;
+
+      return Boolean(titleMatch || descMatch || assigneeMatch || createdByMatch);
+    });
+  }, [tasks, searchQuery]);
 
   const deleteMutation = useDeleteTask();
 
@@ -200,13 +274,7 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
     try {
       await deleteMutation.mutateAsync(deletingTask._id);
       setDeletingTask(null);
-      // Refetch both queries to ensure data is up to date
-      if (filterType === 'week') {
-        tasksQuery.refetch();
-        overdueQuery.refetch();
-      } else {
-        refetch();
-      }
+      refetch();
     } catch (error) {
       // Error handling is done in the mutation hook
     }
@@ -215,13 +283,7 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
   const handleFormSuccess = () => {
     setShowCreateModal(false);
     setEditingTask(null);
-    // Refetch both queries to ensure data is up to date
-    if (filterType === 'week') {
-      tasksQuery.refetch();
-      overdueQuery.refetch();
-    } else {
-      refetch();
-    }
+    refetch();
   };
 
   const handleFormCancel = () => {
@@ -241,6 +303,8 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
         return 'This Month';
       case 'all':
         return 'All Tasks';
+      case 'my':
+        return 'My Task';
       default:
         return 'Overdue';
     }
@@ -252,7 +316,7 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
     if (filterType === 'overdue') {
       return `${count} ${count === 1 ? 'task' : 'tasks'} requiring attention`;
     } else if (filterType === 'week') {
-      return `${count} ${count === 1 ? 'task' : 'tasks'} this week (includes overdue)`;
+      return `${count} ${count === 1 ? 'task' : 'tasks'} remaining this week`;
     } else if (filterType === 'month') {
       return `${count} ${count === 1 ? 'task' : 'tasks'} this month`;
     } else {
@@ -284,18 +348,16 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
               <h2 className="text-2xl font-semibold text-white">Tasks</h2>
               <p className="mt-1 text-sm text-white/60">{getTaskCountLabel()}</p>
             </div>
-            {filterType === 'all' && (
-              <div className="flex flex-1 max-w-md items-center gap-2 rounded-full border border-white/10 bg-[#1A1A1C] px-4 py-2 text-sm text-white/60 transition-all duration-200 focus-within:border-[#A8DADC] focus-within:ring-2 focus-within:ring-[#A8DADC]/20">
-                <Search className="h-4 w-4 text-white/40" />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent text-white placeholder:text-white/40 focus:outline-none"
-                  placeholder="Search tasks by title, description, or assignee..."
-                />
-              </div>
-            )}
+            <div className="flex flex-1 max-w-md items-center gap-2 rounded-full border border-white/10 bg-[#1A1A1C] px-4 py-2 text-sm text-white/60 transition-all duration-200 focus-within:border-[#A8DADC] focus-within:ring-2 focus-within:ring-[#A8DADC]/20">
+              <Search className="h-4 w-4 text-white/40" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+                placeholder="Search tasks by title, description, assignee, or creator..."
+              />
+            </div>
             <div className="flex items-center gap-3">
               {/* Filter Dropdown */}
               <div className="relative">
@@ -308,6 +370,7 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
                   <option value="week">This Week</option>
                   <option value="month">This Month</option>
                   <option value="all">All Tasks</option>
+                  <option value="my">My Task</option>
                 </select>
                 <Filter className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
               </div>
@@ -345,12 +408,12 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
             ) : filteredTasks.length === 0 ? (
               <div className="rounded-xl border border-white/10 bg-[#1A1A1C]/70 px-6 py-10 text-center text-sm text-white/50">
                 <p className="text-lg font-medium text-white/70 mb-2">
-                  {searchQuery.trim() && filterType === 'all'
+                  {searchQuery.trim()
                     ? 'No tasks match your search'
                     : `No ${getFilterLabel(filterType).toLowerCase()} tasks`}
                 </p>
                 <p className="text-white/50">
-                  {searchQuery.trim() && filterType === 'all'
+                  {searchQuery.trim()
                     ? 'Try adjusting your search terms.'
                     : filterType === 'overdue' 
                     ? 'All tasks are up to date!' 
@@ -388,24 +451,12 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
                   header: 'Assigned To',
                   render: (row) => {
                     const task = row as Task;
-                    if (task.assignedTo && Array.isArray(task.assignedTo) && task.assignedTo.length > 0) {
-                      return (
-                        <div className="space-y-1">
-                          {task.assignedTo.map((user: { _id: string; name: string; email: string }, index: number) => (
-                            <p key={user._id || index} className="text-sm text-white/80">
-                              {user.name}
-                            </p>
-                          ))}
-                        </div>
-                      );
-                    } else if (task.assignedTo && !Array.isArray(task.assignedTo)) {
-                      return (
-                        <span className="text-white/80">
-                          {(task.assignedTo as { name: string; email: string }).name}
-                        </span>
-                      );
-                    }
-                    return <span className="text-white/50">Unassigned</span>;
+                    const assignees: AssigneeLike[] = Array.isArray(task.assignedTo)
+                      ? (task.assignedTo as AssigneeLike[])
+                      : task.assignedTo
+                        ? [task.assignedTo as AssigneeLike]
+                        : [];
+                    return <AssigneesCell assignees={assignees} />;
                   },
                 },
                 {
@@ -498,13 +549,7 @@ export function OverdueTasksModal({ isOpen, onClose }: OverdueTasksModalProps) {
           }}
           onDelete={() => {
             setViewingTask(null);
-            // Refetch both queries to ensure data is up to date
-            if (filterType === 'week') {
-              tasksQuery.refetch();
-              overdueQuery.refetch();
-            } else {
-              refetch();
-            }
+            refetch();
           }}
         />
       )}

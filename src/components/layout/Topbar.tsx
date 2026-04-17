@@ -184,13 +184,23 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                 )}
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => navigate('/login')}
-                className="rounded-md bg-gradient-to-r from-accent to-accent-secondary px-4 py-2 text-sm font-semibold text-accent-foreground transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-accent/50 active:scale-95"
-              >
-                Sign In
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  className="rounded-md bg-gradient-to-r from-accent to-accent-secondary px-4 py-2 text-sm font-semibold text-accent-foreground transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-accent/50 active:scale-95"
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                  className="rounded-md border border-border bg-muted/50 p-2 transition-all duration-200 hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background text-foreground"
+                >
+                  {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                </button>
+              </>
             )}
           </div>
         </div>

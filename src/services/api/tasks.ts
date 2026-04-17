@@ -57,7 +57,7 @@ export interface EventsResponse {
   events: CalendarEvent[];
 }
 
-export const getTasks = async (params?: {
+export type GetTasksParams = {
   page?: number;
   limit?: number;
   status?: Task['status'];
@@ -65,7 +65,9 @@ export const getTasks = async (params?: {
   dueDate?: string;
   startDate?: string;
   endDate?: string;
-}): Promise<TasksResponse> => {
+};
+
+export const getTasks = async (params?: GetTasksParams): Promise<TasksResponse> => {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.append('page', params.page.toString());
   if (params?.limit) queryParams.append('limit', params.limit.toString());
@@ -77,6 +79,41 @@ export const getTasks = async (params?: {
 
   const queryString = queryParams.toString();
   return fetchJson<TasksResponse>(`/tasks${queryString ? `?${queryString}` : ''}`);
+};
+
+export const getAllTasks = async (
+  params?: Omit<GetTasksParams, 'page'>
+): Promise<TasksResponse> => {
+  const firstPage = await getTasks({ ...(params || {}), page: 1 });
+
+  const totalPages = firstPage.pagination?.pages || 1;
+  if (totalPages <= 1) return firstPage;
+
+  const tasksById = new Map<string, Task>();
+  for (const task of firstPage.tasks || []) {
+    tasksById.set(task._id, task);
+  }
+
+  const pageNumbers = Array.from({ length: totalPages - 1 }, (_, idx) => idx + 2);
+  const remainingPages = await Promise.all(
+    pageNumbers.map((page) => getTasks({ ...(params || {}), page }))
+  );
+
+  for (const pageData of remainingPages) {
+    for (const task of pageData.tasks || []) {
+      tasksById.set(task._id, task);
+    }
+  }
+
+  return {
+    tasks: Array.from(tasksById.values()),
+    pagination: {
+      page: 1,
+      limit: firstPage.pagination?.limit ?? (params?.limit ?? 50),
+      total: firstPage.pagination?.total ?? tasksById.size,
+      pages: totalPages,
+    },
+  };
 };
 
 export const getTaskEvents = async (start?: string, end?: string): Promise<EventsResponse> => {

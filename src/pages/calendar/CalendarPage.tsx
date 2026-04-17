@@ -7,15 +7,18 @@ import interactionPlugin from '@fullcalendar/interaction';
 import type { EventClickArg, DatesSetArg, DayCellMountArg, EventMountArg } from '@fullcalendar/core';
 import type { DateClickArg } from '@fullcalendar/interaction';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { useTaskEvents, useTask } from '../../hooks/queries/useTasks';
 import type { Task } from '../../services/api/tasks';
 import { PageHeader } from '../../components/common/PageHeader';
 import { TaskForm } from '../../components/tasks/TaskForm';
 import { TaskDetailsModal } from '../../components/tasks/TaskDetailsModal';
 import { DayTasksModal } from '../../components/tasks/DayTasksModal';
+import { buildCalendarIcs, downloadIcs } from '../../utils/calendarIcs';
 
 export function CalendarPage() {
   const { user } = useAuth();
+  const { success, info, error: showError } = useToast();
   const isAdmin = user?.role === 'admin';
   const isEmployee = user?.role === 'employee';
   const canViewTasks = isAdmin || isEmployee;
@@ -203,6 +206,26 @@ export function CalendarPage() {
     }
   }, [tasksPerDay]);
 
+  const handleExportIcs = useCallback(() => {
+    if (isLoading) return;
+    if (!events || events.length === 0) {
+      info('Nothing to export in this range');
+      return;
+    }
+
+    try {
+      const ics = buildCalendarIcs(events, { calName: 'Zentro tasks' });
+      const startLabel = dateRange.start.slice(0, 10);
+      const endLabel = dateRange.end.slice(0, 10);
+      const filename = `zentro-tasks-${startLabel}--${endLabel}.ics`;
+      downloadIcs(ics, filename);
+      success(`Exported ${events.length} task${events.length === 1 ? '' : 's'} to ICS`);
+    } catch (err) {
+      console.error('ICS export failed:', err);
+      showError('Failed to export ICS');
+    }
+  }, [events, isLoading, dateRange.start, dateRange.end, success, info, showError]);
+
   // Custom event mount to hide events after the first one on days with multiple tasks
   const handleEventDidMount = useCallback((arg: EventMountArg) => {
     if (!arg.event.start) return;
@@ -238,7 +261,13 @@ export function CalendarPage() {
         description="View your tasks and events. Use the 'New Task' button to create tasks."
         actions={
           <>
-            <button className="button-press flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-300 hover:border-white/20 hover:text-white hover:scale-105 hover:shadow-lg hover:shadow-[#A8DADC]/20">
+            <button
+              type="button"
+              onClick={handleExportIcs}
+              disabled={isLoading || events.length === 0}
+              aria-label="Export visible tasks as ICS"
+              className="button-press flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-300 hover:border-white/20 hover:text-white hover:scale-105 hover:shadow-lg hover:shadow-[#A8DADC]/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 disabled:hover:border-white/10 disabled:hover:text-white/60 disabled:hover:shadow-none"
+            >
               <Download className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
               Export ICS
             </button>

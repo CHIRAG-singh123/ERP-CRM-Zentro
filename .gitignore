@@ -32,5 +32,6 @@ google-login.md
 *.sw?
 .env
 
+server/server/uploads/products/
 # Bolt
 .bolt/

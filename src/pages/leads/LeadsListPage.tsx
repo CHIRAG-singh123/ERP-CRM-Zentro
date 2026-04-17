@@ -187,14 +187,7 @@ export function LeadsListPage() {
               <option value="Converted" className="bg-[#1A1A1C] text-white">Converted</option>
             </select>
           </div>
-          <button className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105">
-            <Bolt className="h-4 w-4" />
-            Automation
-          </button>
-          <button className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 transition-all duration-200 hover:border-white/20 hover:text-white hover:scale-105">
-            Lists
-          </button>
-        </div>
+          </div>
       </PageHeader>
 
       {viewMode === 'kanban' ? (
