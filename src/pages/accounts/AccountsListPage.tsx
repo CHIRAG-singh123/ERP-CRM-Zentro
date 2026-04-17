@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, Filter, Layers, Search, Eye, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Building2, Filter, Search, Eye, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { DataGrid } from '../../components/common/DataGrid';
